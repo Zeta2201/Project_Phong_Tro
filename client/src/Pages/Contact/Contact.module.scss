@@ -1,0 +1,129 @@
+.contactPage {
+    padding: 80px 20px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+
+        p {
+            font-size: 16px;
+            color: #4b5563;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+    }
+
+    .content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+
+        .infoBox,
+        .formBox {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .infoBox {
+            h2 {
+                font-size: 22px;
+                margin-bottom: 18px;
+                color: #111827;
+            }
+
+            p {
+                margin-bottom: 14px;
+                color: #374151;
+                font-size: 15px;
+            }
+
+            .socialLinks {
+                margin-top: 24px;
+
+                a {
+                    display: inline-block;
+                    margin-right: 16px;
+                    color: #2563eb;
+                    text-decoration: none;
+
+                    &:hover {
+                        text-decoration: underline;
+                    }
+                }
+            }
+        }
+
+        .formBox {
+            h2 {
+                font-size: 22px;
+                margin-bottom: 18px;
+                color: #111827;
+            }
+
+            .contactForm {
+                display: grid;
+                gap: 18px;
+
+                label {
+                    display: grid;
+                    gap: 8px;
+                    color: #374151;
+                    font-size: 14px;
+
+                    input,
+                    textarea {
+                        width: 100%;
+                        padding: 14px 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 12px;
+                        background: #f8fafc;
+                        color: #111827;
+                        font-size: 15px;
+                    }
+
+                    input:focus,
+                    textarea:focus {
+                        outline: none;
+                        border-color: #2563eb;
+                        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+                        background: #ffffff;
+                    }
+                }
+
+                button {
+                    width: fit-content;
+                    padding: 14px 28px;
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: background 0.2s ease;
+
+                    &:hover {
+                        background: #1d4ed8;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 900px) {
+    .contactPage {
+        .content {
+            grid-template-columns: 1fr;
+        }
+    }
+}
