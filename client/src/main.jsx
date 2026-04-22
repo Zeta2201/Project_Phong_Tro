@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, useRoutes } from 'react-router-
 import { publicRoutes } from './routes/index.jsx';
 
 import { Provider } from './store/Provider';
+import SocketProvider from './socket/SocketProvider.jsx';
 
 const AppRoutes = () => {
     return useRoutes(publicRoutes);
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')).render(
     <StrictMode>
         <Router>
             <Provider>
-                <AppRoutes />
+                <SocketProvider>
+                    <AppRoutes />
+                </SocketProvider>
             </Provider>
         </Router>
     </StrictMode>,
