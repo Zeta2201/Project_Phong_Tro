@@ -9,6 +9,7 @@ import AISearch from '../Pages/AISearch/AISearch';
 import Contact from '../Pages/Contact/Contact';
 import Layout from '../Components/Layout/Layout';
 import HomePage from '../Components/HomePage/HomePage';
+import Terms from '../Pages/Terms/Terms';
 
 export const publicRoutes = [
     {
@@ -20,6 +21,7 @@ export const publicRoutes = [
             { path: 'trang-ca-nhan', element: <InfoUser /> },
             { path: 'search/:value', element: <AISearch /> },
             { path: 'contact', element: <Contact /> },
+            { path: 'terms', element: <Terms /> },
         ],
     },
     { path: '/login', element: <LoginUser /> },
