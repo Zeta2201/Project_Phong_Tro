@@ -114,6 +114,49 @@
     }
 }
 
+.favourite-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+
+    &:hover {
+        transform: translateY(-1px);
+        background: #ffe4e8;
+    }
+}
+
+.post-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary-color), #f97316);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 10px 24px rgba(229, 31, 64, 0.18);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(229, 31, 64, 0.24);
+        opacity: 0.96;
+    }
+}
+
 .post-item {
     display: flex;
     gap: 12px;

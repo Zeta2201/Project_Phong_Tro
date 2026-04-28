@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from 'react';
-import { Layout, Menu, theme } from 'antd';
+import { Layout, Menu, Button, message } from 'antd';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -9,9 +9,10 @@ import {
     HomeOutlined,
     DollarOutlined,
     GlobalOutlined,
+    LogoutOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { requestGetAdmin } from '../../config/request';
+import { requestGetAdmin, requestLogout } from '../../config/request';
 import Dashboard from './Components/Dashborad/Dashborad';
 import classNames from 'classnames/bind';
 import styles from './Index.module.scss';
@@ -19,6 +20,7 @@ import styles from './Index.module.scss';
 import ManagerUser from './Components/ManagerUser/ManagerUser';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import ManagerRechange from './Components/ManagerRechange/ManagerRechange';
+import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
 const cx = classNames.bind(styles);
@@ -26,8 +28,20 @@ const cx = classNames.bind(styles);
 function Admin() {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
+    const { clearAuthState } = useStore();
 
     const [type, setType] = useState('dashboard');
+
+    const handleLogout = async () => {
+        try {
+            await requestLogout();
+            clearAuthState();
+            message.success('Đăng xuất thành công');
+            navigate('/login');
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Đăng xuất thất bại');
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -37,6 +51,7 @@ function Admin() {
                 navigate('/');
             }
         };
+
         fetchData();
     }, [navigate]);
 
@@ -97,6 +112,11 @@ function Admin() {
                         ) : (
                             <MenuFoldOutlined className={cx('trigger')} onClick={() => setCollapsed(!collapsed)} />
                         )}
+                    </div>
+                    <div className={cx('header-right')}>
+                        <Button type="primary" icon={<LogoutOutlined />} danger onClick={handleLogout}>
+                            Đăng xuất
+                        </Button>
                     </div>
                 </Header>
                 <Content className={cx('content')}>

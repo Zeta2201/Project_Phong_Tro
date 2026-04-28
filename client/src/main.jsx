@@ -2,7 +2,6 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, useRoutes } from 'react-router-dom';
 import { publicRoutes } from './routes/index.jsx';
-
 import { Provider } from './store/Provider';
 import SocketProvider from './socket/SocketProvider.jsx';
 

@@ -12,23 +12,35 @@ export function Provider({ children }) {
     const [dataUser, setDataUser] = useState({});
     const [dataPayment, setDataPayment] = useState(null);
     const [dataMessages, setDataMessages] = useState([]);
-    // State cho các cửa sổ chat đang mở
     const [globalUsersMessage, setGlobalUsersMessage] = useState([]);
 
+    const clearAuthState = () => {
+        setDataUser({});
+        setDataPayment(null);
+        setDataMessages([]);
+        setGlobalUsersMessage([]);
+    };
+
     const fetchAuth = async () => {
-        const res = await requestAuth();
-        const bytes = CryptoJS.AES.decrypt(res.metadata.auth, import.meta.env.VITE_SECRET_CRYPTO);
-        const originalText = bytes.toString(CryptoJS.enc.Utf8);
-        const user = JSON.parse(originalText);
-        setDataUser(user);
+        try {
+            const res = await requestAuth();
+            const bytes = CryptoJS.AES.decrypt(res.metadata.auth, import.meta.env.VITE_SECRET_CRYPTO);
+            const originalText = bytes.toString(CryptoJS.enc.Utf8);
+            const user = JSON.parse(originalText);
+            setDataUser(user);
+        } catch (error) {
+            clearAuthState();
+        }
     };
 
     useEffect(() => {
         const token = cookies.get('logged');
 
         if (!token) {
+            clearAuthState();
             return;
         }
+
         fetchAuth();
     }, []);
 
@@ -41,6 +53,7 @@ export function Provider({ children }) {
             const res = await requestSearch(debouncedSearch);
             setDataSearch(res.metadata);
         };
+
         fetchData();
     }, [debouncedSearch]);
 
@@ -48,9 +61,11 @@ export function Provider({ children }) {
         <Context.Provider
             value={{
                 dataUser,
+                setDataUser,
                 dataPayment,
                 setDataPayment,
                 fetchAuth,
+                clearAuthState,
                 dataSearch,
                 setValueSearch,
                 dataMessages,

@@ -2,6 +2,7 @@ import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } fro
 import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PersonalInfo from './Components/PersonalInfo/PersonalInfo';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import { useStore } from '../../hooks/useStore';
@@ -14,7 +15,9 @@ const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
 function InfoUser() {
-    const [selectedMenu, setSelectedMenu] = useState('personal');
+    const [searchParams] = useSearchParams();
+    const initialTab = searchParams.get('tab');
+    const [selectedMenu, setSelectedMenu] = useState(initialTab || 'personal');
 
     const { dataUser } = useStore();
 

@@ -60,6 +60,7 @@ function DetailPost() {
     }, []);
 
     const { dataUser, setDataMessages } = useStore();
+    const isFavourite = userHeart.find((item) => item === dataUser._id);
     const { usersMessage, setUsersMessage } = useSocket();
 
     const handleCreateFavourite = async () => {
@@ -194,12 +195,8 @@ function DetailPost() {
 
                             <div className={cx('action-buttons')}>
                                 <button
-                                    onClick={
-                                        userHeart.find((item) => item === dataUser._id)
-                                            ? handleDeleteFavourite
-                                            : handleCreateFavourite
-                                    }
-                                    className={cx('action-btn')}
+                                    onClick={isFavourite ? handleDeleteFavourite : handleCreateFavourite}
+                                    className={cx('action-btn', { saved: isFavourite })}
                                 >
                                     <FontAwesomeIcon icon={faHeart} />
                                     {userHeart.find((item) => item === dataUser._id) ? 'Đã lưu' : 'Lưu tin'}

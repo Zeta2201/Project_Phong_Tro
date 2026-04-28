@@ -168,6 +168,15 @@
             align-items: center;
             gap: 16px;
 
+            :global {
+                .ant-btn {
+                    height: 40px;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    box-shadow: 0 6px 16px rgba(207, 19, 34, 0.18);
+                }
+            }
+
             .notification {
                 :global {
                     .ant-badge-count {

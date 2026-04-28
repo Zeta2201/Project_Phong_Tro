@@ -4,7 +4,15 @@ import styles from './Header.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/logo.png';
 import { Dropdown, Menu, Avatar, Space } from 'antd';
-import { UserOutlined, LogoutOutlined, ProfileOutlined, SearchOutlined, DashboardOutlined } from '@ant-design/icons';
+import {
+    UserOutlined,
+    LogoutOutlined,
+    ProfileOutlined,
+    SearchOutlined,
+    DashboardOutlined,
+    HeartOutlined,
+    PlusCircleOutlined,
+} from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
 import { useState } from 'react';
@@ -14,7 +22,7 @@ import { useSocket } from '../../hooks/useSocket';
 const cx = classNames.bind(styles);
 
 function Header() {
-    const { dataUser, dataSearch, setValueSearch } = useStore();
+    const { dataUser, dataSearch, setValueSearch, clearAuthState } = useStore();
     const { dataMessagersUser } = useSocket();
 
     const navigate = useNavigate();
@@ -24,9 +32,7 @@ function Header() {
     const handleLogout = async () => {
         try {
             await requestLogout();
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            clearAuthState();
             navigate('/');
         } catch (error) {
             console.log(error);
@@ -41,7 +47,7 @@ function Header() {
                           {
                               key: 'admin',
                               icon: <DashboardOutlined />,
-                              label: <Link to="/admin">Trang quan tri</Link>,
+                              label: <Link to="/admin">Trang quản trị</Link>,
                           },
                       ]
                     : []),
@@ -108,6 +114,16 @@ function Header() {
                 <div className={cx('actions')}>
                     {dataUser._id ? (
                         <>
+                            <Link to="/trang-ca-nhan?tab=posts" className={cx('post-link')}>
+                                <PlusCircleOutlined />
+                                <span>Đăng tin</span>
+                            </Link>
+
+                            <Link to="/tin-yeu-thich" className={cx('favourite-link')}>
+                                <HeartOutlined />
+                                <span>Tin yêu thích</span>
+                            </Link>
+
                             <Dropdown overlay={menu} placement="bottomRight">
                                 <a onClick={(e) => e.preventDefault()} className={cx('user-menu-link')}>
                                     <Space>

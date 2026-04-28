@@ -328,7 +328,9 @@
 
 .action-btn {
     background: none;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    padding: 10px 14px;
     font-size: 13px;
     color: #666;
     cursor: pointer;
@@ -345,6 +347,24 @@
 
     &:hover {
         color: #333;
+        background: #f8fafc;
+    }
+
+    &.saved {
+        color: #e11d48;
+        background: #fff1f2;
+        border-color: rgba(225, 29, 72, 0.18);
+        box-shadow: 0 10px 24px rgba(225, 29, 72, 0.12);
+
+        svg {
+            color: #e11d48;
+            transform: scale(1.08);
+        }
+    }
+
+    &.saved:hover {
+        color: #be123c;
+        background: #ffe4e8;
     }
 }
 
