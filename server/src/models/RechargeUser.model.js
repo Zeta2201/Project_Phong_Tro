@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const modelRechargeUser = new Schema(
     {
-        userId: { type: String, require: true, ref: 'user' },
+        userId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'user' },
         amount: { type: Number, require: true },
         typePayment: { type: String, require: true },
         status: { type: String, require: true },

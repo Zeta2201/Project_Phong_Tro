@@ -21,8 +21,9 @@ const modelPost = new Schema(
             required: true,
         },
         userId: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
             required: true,
+            ref: 'user',
         },
         category: {
             type: String,
@@ -52,7 +53,7 @@ const modelPost = new Schema(
         status: {
             type: String,
             required: true,
-            enum: ['active', 'inactive'],
+            enum: ['active', 'inactive', 'rejected'],
         },
         typeNews: {
             type: String,

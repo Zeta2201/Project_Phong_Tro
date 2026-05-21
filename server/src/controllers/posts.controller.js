@@ -243,8 +243,11 @@ class controllerPosts {
 
     async getAllPosts(req, res) {
         const { status } = req.query;
-        const filter = { status: status };
-        const data = await modelPost.find(filter);
+        const filter = {};
+        if (status) {
+            filter.status = status;
+        }
+        const data = await modelPost.find(filter).sort({ createdAt: -1 });
         return new OK({
             message: 'Posts fetched successfully',
             metadata: data,
@@ -254,10 +257,10 @@ class controllerPosts {
     async approvePost(req, res) {
         const { id } = req.body;
         const findPost = await modelPost.findById(id);
-        const findUser = await modelUser.findById(findPost.userId);
         if (!findPost) {
             throw new BadRequestError('Post not found');
         }
+        const findUser = await modelUser.findById(findPost.userId);
         await modelPost.findByIdAndUpdate(id, { status: 'active' });
         await SendMailApprove(findUser.email, findPost);
         return new OK({
@@ -269,8 +272,11 @@ class controllerPosts {
     async rejectPost(req, res) {
         const { id, reason } = req.body;
         const findPost = await modelPost.findById(id);
+        if (!findPost) {
+            throw new BadRequestError('Post not found');
+        }
         const findUser = await modelUser.findById(findPost.userId);
-        await modelPost.findByIdAndUpdate(id, { status: 'cancel' });
+        await modelPost.findByIdAndUpdate(id, { status: 'rejected' });
         await SendMailReject(findUser.email, findPost, reason);
         return new OK({
             message: 'Từ chối bài viết thành công',

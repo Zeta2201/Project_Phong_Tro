@@ -13,6 +13,7 @@ router.get('/api/logout', authUser, asyncHandler(controllerUsers.logout));
 router.get('/api/refresh-token', asyncHandler(controllerUsers.refreshToken));
 router.get('/api/recharge-user', authUser, asyncHandler(controllerUsers.getRechargeUser));
 router.post('/api/update-user', authUser, asyncHandler(controllerUsers.updateUser));
+router.post('/api/update-user-admin', authAdmin, asyncHandler(controllerUsers.updateUserAdmin));
 router.post('/api/change-password', authUser, asyncHandler(controllerUsers.changePassword));
 router.post('/api/forgot-password', asyncHandler(controllerUsers.forgotPassword));
 router.post('/api/reset-password', asyncHandler(controllerUsers.resetPassword));

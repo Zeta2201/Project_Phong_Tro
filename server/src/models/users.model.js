@@ -11,7 +11,7 @@ const modelUser = new Schema(
         avatar: { type: String, require: true },
         phone: { type: String, require: true },
         isAdmin: { type: Boolean, default: false },
-        isActive: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: true },
         balance: { type: Number, default: 0 },
         typeLogin: { type: String, enum: ['email', 'google'] },
     },

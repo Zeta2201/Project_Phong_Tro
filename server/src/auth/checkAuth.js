@@ -11,9 +11,15 @@ const asyncHandler = (fn) => {
 const authUser = async (req, res, next) => {
     try {
         const user = req.cookies.token;
-        if (!user) throw new BadUserRequestError('Vui lòng đăng nhập');
-        const token = user;
-        const decoded = await verifyToken(token);
+        if (!user) throw new BadUserRequestError('Vui long dang nhap');
+
+        const decoded = await verifyToken(user);
+        const findUser = await modelUser.findById(decoded.id);
+
+        if (!findUser || findUser.isActive === false) {
+            throw new BadUserRequestError('Tai khoan cua ban da bi khoa');
+        }
+
         req.user = decoded;
         next();
     } catch (error) {
@@ -24,14 +30,19 @@ const authUser = async (req, res, next) => {
 const authAdmin = async (req, res, next) => {
     try {
         const user = req.cookies.token;
-        if (!user) throw new BadUserRequestError('Bạn không có quyền truy cập');
-        const token = user;
-        const decoded = await verifyToken(token);
-        const { id } = decoded;
-        const findUser = await modelUser.findById(id);
-        if (findUser.isAdmin === false) {
-            throw new BadUser2RequestError('Bạn không có quyền truy cập');
+        if (!user) throw new BadUserRequestError('Ban khong co quyen truy cap');
+
+        const decoded = await verifyToken(user);
+        const findUser = await modelUser.findById(decoded.id);
+
+        if (!findUser || findUser.isActive === false) {
+            throw new BadUserRequestError('Tai khoan cua ban da bi khoa');
         }
+
+        if (findUser.isAdmin === false) {
+            throw new BadUser2RequestError('Ban khong co quyen truy cap');
+        }
+
         req.user = decoded;
         next();
     } catch (error) {

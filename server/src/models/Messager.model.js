@@ -4,8 +4,8 @@ const Schema = mongoose.Schema;
 
 const modelMessager = new Schema(
     {
-        senderId: { type: String, require: true, ref: 'user' },
-        receiverId: { type: String, require: true, ref: 'user' },
+        senderId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'user' },
+        receiverId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'user' },
         message: { type: String, require: true },
         status: { type: String, require: true },
         isRead: { type: Boolean, require: true, default: false },

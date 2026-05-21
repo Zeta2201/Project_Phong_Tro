@@ -4,8 +4,8 @@ const Schema = mongoose.Schema;
 
 const modelFavourite = new Schema(
     {
-        userId: { type: String, require: true, ref: 'user' },
-        postId: { type: String, require: true, ref: 'post' },
+        userId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'user' },
+        postId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'posts' },
     },
     {
         timestamps: true,

@@ -103,4 +103,6 @@ TEST môi trường SANDBOX
 - Thanh toán với MOMO
   http://localhost:3000/api/check-payment-momo?orderInfo=nap%20tien%20<USER_ID>&resultCode=0&amount=20000
 - Thanh toán với VNPAY
-  http://localhost:3000/api/check-payment-vnpay?vnp_ResponseCode=00&vnp_OrderInfo=nap%20tien%20<USER_ID>&vnp_Amount=2000000
+  http://localhost:3000/api/check-payment-vnpay?vnp_ResponseCode=00&vnp_OrderInfo=nap%20tien%20<USER_ID>&vnp_Amount=20000
+
+

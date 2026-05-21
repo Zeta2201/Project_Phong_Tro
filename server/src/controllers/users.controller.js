@@ -46,6 +46,7 @@ class controllerUsers {
                 password: passwordHash,
                 typeLogin: 'email',
                 phone,
+                isActive: true,
             });
             await newUser.save();
             await createApiKey(newUser._id);
@@ -73,6 +74,10 @@ class controllerUsers {
             throw new BadRequestError('Tài khoản đăng nhập bằng google');
         }
 
+        if (user.isActive === false) {
+            throw new BadRequestError('Tai khoan cua ban da bi khoa');
+        }
+
         const checkPassword = bcrypt.compareSync(password, user.password);
         if (!checkPassword) {
             throw new BadRequestError('Tài khoản hoặc mật khẩu không chính xác');
@@ -96,6 +101,9 @@ class controllerUsers {
         const dataToken = jwtDecode(credential);
         const user = await modelUser.findOne({ email: dataToken.email });
         if (user) {
+            if (user.isActive === false) {
+                throw new BadRequestError('Tai khoan cua ban da bi khoa');
+            }
             await createApiKey(user._id);
             const token = await createToken({ id: user._id });
             const refreshToken = await createRefreshToken({ id: user._id });
@@ -108,6 +116,7 @@ class controllerUsers {
                 fullName: dataToken.name,
                 email: dataToken.email,
                 typeLogin: 'google',
+                isActive: true,
             });
             await newUser.save();
             await createApiKey(newUser._id);
@@ -147,6 +156,9 @@ class controllerUsers {
         const decoded = await verifyToken(refreshToken);
 
         const user = await modelUser.findById(decoded.id);
+        if (!user || user.isActive === false) {
+            throw new BadRequestError('Tai khoan cua ban da bi khoa');
+        }
         const token = await createToken({ id: user._id });
         res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
 
@@ -390,8 +402,50 @@ class controllerUsers {
         new OK({ message: 'Cập nhật thông tin thành công', metadata: user }).send(res);
     }
 
+    async updateUserAdmin(req, res) {
+        const { id, isActive, isAdmin } = req.body;
+        if (!id) {
+            throw new BadRequestError('Id người dùng bắt buộc');
+        }
+
+        const updateData = {};
+        if (typeof isActive === 'boolean') updateData.isActive = isActive;
+        if (typeof isAdmin === 'boolean') updateData.isAdmin = isAdmin;
+
+        const user = await modelUser.findByIdAndUpdate(id, updateData, { new: true });
+        if (!user) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        new OK({ message: 'Cập nhật người dùng thành công', metadata: user }).send(res);
+    }
+
     async getUsers(req, res) {
-        const dataUser = await modelUser.find();
+        const { q, status, role } = req.query;
+        const filter = {};
+
+        if (q) {
+            filter.$or = [
+                { fullName: { $regex: q, $options: 'i' } },
+                { email: { $regex: q, $options: 'i' } },
+                { phone: { $regex: q, $options: 'i' } },
+                { address: { $regex: q, $options: 'i' } },
+            ];
+        }
+
+        if (status === 'active') {
+            filter.isActive = true;
+        } else if (status === 'inactive') {
+            filter.isActive = false;
+        }
+
+        if (role === 'admin') {
+            filter.isAdmin = true;
+        } else if (role === 'user') {
+            filter.isAdmin = false;
+        }
+
+        const dataUser = await modelUser.find(filter).sort({ createdAt: -1 });
         const data = await Promise.all(
             dataUser.map(async (user) => {
                 const post = await modelPost.find({ userId: user._id, status: 'active' });

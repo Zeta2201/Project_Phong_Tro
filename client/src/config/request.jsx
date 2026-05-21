@@ -92,8 +92,28 @@ export const requestChangePassword = async (data) => {
     return res.data;
 };
 
-export const requestGetUsers = async () => {
-    const res = await request.get('/api/get-users');
+export const requestGetUsers = async (params = {}) => {
+    const res = await request.get('/api/get-users', { params });
+    return res.data;
+};
+
+export const requestGetReports = async (params = {}) => {
+    const res = await request.get('/api/get-reports', { params });
+    return res.data;
+};
+
+export const requestUpdateReportStatus = async (data) => {
+    const res = await request.post('/api/update-report', data);
+    return res.data;
+};
+
+export const requestReportPost = async (data) => {
+    const res = await request.post('/api/report-post', data);
+    return res.data;
+};
+
+export const requestUpdateUserAdmin = async (data) => {
+    const res = await request.post('/api/update-user-admin', data);
     return res.data;
 };
 

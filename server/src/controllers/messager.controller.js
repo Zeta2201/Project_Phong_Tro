@@ -124,6 +124,7 @@ class controllerMessager {
 
     async getMessagesByUserId(req, res) {
         const { id } = req.user;
+        const currentUserId = id.toString();
 
         // Get all messages where the current user is the receiver
         const messages = await modelMessager.find({
@@ -133,8 +134,12 @@ class controllerMessager {
         // Tạo danh sách các ID người dùng duy nhất mà người dùng hiện tại đã tương tác
         const uniqueUserIds = [
             ...new Set([
-                ...messages.filter((msg) => msg.senderId !== id).map((msg) => msg.senderId),
-                ...messages.filter((msg) => msg.receiverId !== id).map((msg) => msg.receiverId),
+                ...messages
+                    .filter((msg) => msg.senderId.toString() !== currentUserId)
+                    .map((msg) => msg.senderId.toString()),
+                ...messages
+                    .filter((msg) => msg.receiverId.toString() !== currentUserId)
+                    .map((msg) => msg.receiverId.toString()),
             ]),
         ];
 
@@ -163,7 +168,7 @@ class controllerMessager {
         // Count unread messages per user
         const unreadCounts = {};
         messages.forEach((msg) => {
-            if (msg.receiverId.toString() === id && !msg.isRead) {
+            if (msg.receiverId.toString() === currentUserId && !msg.isRead) {
                 const senderId = msg.senderId.toString();
                 if (!unreadCounts[senderId]) {
                     unreadCounts[senderId] = 0;
@@ -180,8 +185,8 @@ class controllerMessager {
                 // Find the most recent message between users
                 const userMessages = messages.filter(
                     (msg) =>
-                        (msg.senderId.toString() === userIdStr && msg.receiverId.toString() === id) ||
-                        (msg.senderId.toString() === id && msg.receiverId.toString() === userIdStr),
+                        (msg.senderId.toString() === userIdStr && msg.receiverId.toString() === currentUserId) ||
+                        (msg.senderId.toString() === currentUserId && msg.receiverId.toString() === userIdStr),
                 );
 
                 const lastMessage =

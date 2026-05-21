@@ -16,12 +16,13 @@ import {
     requestDeleteFavourite,
     requestGetPostById,
     requestGetPostVip,
+    requestReportPost,
 } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
 import { useSocket } from '../../hooks/useSocket';
 import Messager from '../../utils/Messager/Messager';
 import ChatButton from '../../utils/ChatButton/ChatButton';
-import { message } from 'antd';
+import { message, Modal, Select, Input } from 'antd';
 
 const cx = classNames.bind(styles);
 
@@ -60,8 +61,17 @@ function DetailPost() {
     }, []);
 
     const { dataUser, setDataMessages } = useStore();
-    const isFavourite = userHeart.find((item) => item === dataUser._id);
+    const isFavourite = userHeart.find((item) => item === dataUser?._id);
     const { usersMessage, setUsersMessage } = useSocket();
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [reportReason, setReportReason] = useState('');
+    const [reportDetails, setReportDetails] = useState('');
+    const reportOptions = [
+        { value: 'spam', label: 'Nội dung spam' },
+        { value: 'wrong-info', label: 'Thông tin sai sự thật' },
+        { value: 'scam', label: 'Nghi gian lận / lừa đảo' },
+        { value: 'other', label: 'Khác' },
+    ];
 
     const handleCreateFavourite = async () => {
         try {
@@ -85,7 +95,31 @@ function DetailPost() {
             fetchPost();
             message.error(res.message);
         } catch (error) {
-            message.error(error.response.data.message);
+            message.error(error.response?.data?.message || 'Xóa tin lưu thất bại');
+        }
+    };
+
+    const handleSubmitReport = async () => {
+        if (!dataUser?._id) {
+            message.warning('Vui lòng đăng nhập để báo cáo bài viết');
+            return;
+        }
+        if (!reportReason) {
+            message.warning('Vui lòng chọn lý do báo cáo');
+            return;
+        }
+        try {
+            await requestReportPost({
+                postId: post._id,
+                reason: reportReason,
+                details: reportDetails,
+            });
+            message.success('Báo cáo của bạn đã được gửi');
+            setReportModalOpen(false);
+            setReportReason('');
+            setReportDetails('');
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Gửi báo cáo thất bại');
         }
     };
 
@@ -199,16 +233,48 @@ function DetailPost() {
                                     className={cx('action-btn', { saved: isFavourite })}
                                 >
                                     <FontAwesomeIcon icon={faHeart} />
-                                    {userHeart.find((item) => item === dataUser._id) ? 'Đã lưu' : 'Lưu tin'}
+                                    {userHeart.find((item) => item === dataUser?._id) ? 'Đã lưu' : 'Lưu tin'}
                                 </button>
                                 <button className={cx('action-btn')}>
                                     <FontAwesomeIcon icon={faShareAlt} />
                                     Chia sẻ
                                 </button>
+                                <button className={cx('action-btn', 'report-btn')} onClick={() => setReportModalOpen(true)}>
+                                    <FontAwesomeIcon icon={faFlag} />
+                                    Báo cáo
+                                </button>
                             </div>
                         </div>
 
-                        <div className={cx('featured-listings')}>
+                        <Modal
+                        title="Báo cáo bài viết"
+                        open={reportModalOpen}
+                        onCancel={() => setReportModalOpen(false)}
+                        onOk={handleSubmitReport}
+                        okText="Gửi báo cáo"
+                        cancelText="Hủy"
+                    >
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ display: 'block', marginBottom: 8 }}>Lý do</label>
+                            <Select
+                                value={reportReason}
+                                onChange={(value) => setReportReason(value)}
+                                options={reportOptions}
+                                placeholder="Chọn lý do báo cáo"
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 8 }}>Chi tiết (không bắt buộc)</label>
+                            <Input.TextArea
+                                value={reportDetails}
+                                onChange={(e) => setReportDetails(e.target.value)}
+                                rows={4}
+                                placeholder="Mô tả thêm thông tin về vấn đề"
+                            />
+                        </div>
+                    </Modal>
+                    <div className={cx('featured-listings')}>
                             <h3 className={cx('featured-title')}>Tin đăng nổi bật</h3>
                             {postVip.map((item, index) => (
                                 <div className={cx('listing-item')} key={index}>

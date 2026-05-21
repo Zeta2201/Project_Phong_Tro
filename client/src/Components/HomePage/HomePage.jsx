@@ -175,12 +175,12 @@ function HomePage() {
                     <div className={cx('heroContent')}>
                         <span className={cx('eyebrow')}>
                             <CompassOutlined />
-                            Nen tang tim phong tro va nha cho thue hang dau Viet Nam.
+                            Nền tảng tìm phòng trọ và nhà cho thuê hàng đầu Việt Nam.
                         </span>
                         <h1 className={cx('heroTitle')}>Tìm phòng nhanh, chính xác, ra quyết định tự tin hơn.</h1>
                         <p className={cx('heroDescription')}>
-                            Khong gian tim phong duoc thiet ke lai theo huong ro rang, de dung va tao cam giac chuyen nghiep
-                            hon cho nguoi thue nha.
+                            Không gian tìm phòng được thiết kế lại theo hướng rõ ràng, dễ dùng và tạo cảm giác chuyên nghiệp
+                            hơn cho người thuê nhà.
                         </p>
 
                         <div className={cx('heroActions')}>
@@ -205,50 +205,50 @@ function HomePage() {
                                     <ApartmentOutlined />
                                 </span>
                                 <strong>{dataPost.length}</strong>
-                                <span>Tin phu hop dang hien thi</span>
+                                <span>Tin phù hợp đang hiển thị</span>
                             </div>
                             <div className={cx('statCard')}>
                                 <span className={cx('statIcon', 'warm')}>
                                     <FireOutlined />
                                 </span>
                                 <strong>{dataNewPost.length}</strong>
-                                <span>Tin moi trong khu vuc quan tam</span>
+                                <span>Tin mới trong khu vực quan tâm</span>
                             </div>
                             <div className={cx('statCard')}>
                                 <span className={cx('statIcon', 'soft')}>
                                     <AimOutlined />
                                 </span>
                                 <strong>{dataPostSuggest.length}</strong>
-                                <span>Goi y gan vi tri cua ban</span>
+                                <span>Gợi ý gần vị trí của bạn</span>
                             </div>
                         </div>
 
                         <div className={cx('heroNote')}>
-                            <span className={cx('heroNoteLabel')}>Trang thai hien tai</span>
+                            <span className={cx('heroNoteLabel')}>Trạng thái hiện tại</span>
                             <div className={cx('heroNoteRow')}>
                                 <strong>{activeFilterCount}</strong>
-                                <span>bo loc dang duoc ap dung</span>
+                                <span>bộ lọc đang được áp dụng</span>
                             </div>
-                            <p>Chon nhanh bo loc o cot ben trai de thu hep ket qua ma khong can cuon lai qua nhieu.</p>
+                            <p>Chọn nhanh bộ lọc ở cột bên trái để thu hẹp kết quả mà không cần cuộn lại quá nhiều.</p>
                         </div>
                     </div>
                 </section>
 
                 <section className={cx('overviewBar')}>
                     <div className={cx('overviewIntro')}>
-                        <span className={cx('panelEyebrow')}>Dieu huong nhanh</span>
-                        <h2>Trang chu duoc sap xep lai de xem tin, loc tin va theo doi goi y de hon.</h2>
+                        <span className={cx('panelEyebrow')}>Điều hướng nhanh</span>
+                        <h2>Trang chủ được sắp xếp lại để xem tin, lọc tin và theo dõi gợi ý để tốt hơn.</h2>
                     </div>
 
                     <div className={cx('activeFilterPanel')}>
                         <div className={cx('activeFilterHeader')}>
                             <span>
                                 <ThunderboltOutlined />
-                                {activeFilterCount} bo loc dang bat
+                                {activeFilterCount} bộ lọc đang bật
                             </span>
                             {activeFilterCount > 0 ? (
                                 <button type="button" className={cx('ghostButton')} onClick={resetFilters}>
-                                    Xoa tat ca
+                                    Xóa tất cả bộ lọc
                                 </button>
                             ) : null}
                         </div>
@@ -263,7 +263,7 @@ function HomePage() {
                                 ))}
                             </div>
                         ) : (
-                            <p className={cx('activeFilterEmpty')}>Chua chon bo loc. Ban co the bat dau tu loai hinh, gia hoac dien tich.</p>
+                            <p className={cx('activeFilterEmpty')}>Chưa chọn bộ lọc. Bạn có thể bắt đầu từ loại hình, giá hoặc diện tích.</p>
                         )}
                     </div>
                 </section>
@@ -273,12 +273,12 @@ function HomePage() {
                         <section className={cx('filtersPanel')}>
                             <div className={cx('panelHeader')}>
                                 <div>
-                                    <span className={cx('panelEyebrow')}>Bo loc nhanh</span>
-                                    <h2>Loc ket qua theo nhu cau thuc te</h2>
+                                    <span className={cx('panelEyebrow')}>Bộ lọc nhanh</span>
+                                    <h2>Lọc kết quả theo nhu cầu thực tế</h2>
                                 </div>
                                 <button type="button" className={cx('resetButton')} onClick={resetFilters}>
                                     <ReloadOutlined />
-                                    Dat lai bo loc
+                                    Đặt lại bộ lọc
                                 </button>
                             </div>
 
@@ -286,7 +286,7 @@ function HomePage() {
                                 <div className={cx('filterGroup')}>
                                 <div className={cx('filterTitle')}>
                                     <ApartmentOutlined />
-                                    Loai hinh
+                                    Loại hình cho thuê
                                 </div>
                                     <div className={cx('pillList')}>
                                         {categoryOptions.map((item) => (
@@ -305,7 +305,7 @@ function HomePage() {
                                 <div className={cx('filterGroup')}>
                                 <div className={cx('filterTitle')}>
                                     <TagOutlined />
-                                    Muc gia
+                                    Mức giá
                                 </div>
                                     <div className={cx('pillList')}>
                                         {priceOptions.map((item) => (
@@ -324,7 +324,7 @@ function HomePage() {
                                 <div className={cx('filterGroup')}>
                                 <div className={cx('filterTitle')}>
                                     <BorderOutlined />
-                                    Dien tich
+                                    Diện tích
                                 </div>
                                     <div className={cx('pillList')}>
                                         {areaOptions.map((item) => (
@@ -343,7 +343,7 @@ function HomePage() {
                         </section>
 
                         <div className={cx('sidebarCard')}>
-                            <h3>Danh muc pho bien</h3>
+                            <h3>Danh mục phổ biến</h3>
                             <div className={cx('sidebarLinks')}>
                                 {categoryOptions.map((item) => (
                                     <button
@@ -353,7 +353,7 @@ function HomePage() {
                                         onClick={() => setCategory(category === item.value ? '' : item.value)}
                                     >
                                         <span>{item.label}</span>
-                                        <small>Loc nhanh theo nhu cau</small>
+                                        <small>Lọc nhanh theo nhu cầu</small>
                                     </button>
                                 ))}
                             </div>
@@ -364,17 +364,17 @@ function HomePage() {
                         <section className={cx('listingSection')}>
                             <div className={cx('sectionHeader')}>
                                 <div>
-                                    <span className={cx('panelEyebrow')}>Danh sach phong tro</span>
-                                    <h2>Ket qua da duoc loc va sap xep ro rang</h2>
+                                    <span className={cx('panelEyebrow')}>Danh sách phòng trọ</span>
+                                    <h2>Kết quả đã được đọc và được sắp xếp rõ ràng</h2>
                                 </div>
                                 <div className={cx('sectionMeta')}>
                                     <span className={cx('metaBadge')}>
                                         <ThunderboltOutlined />
-                                        {activeFilterCount} bo loc dang ap dung
+                                        {activeFilterCount} bộ lọc đang áp dụng
                                     </span>
                                     <span className={cx('metaBadge')}>
                                         <ClockCircleOutlined />
-                                        Cap nhat lien tuc theo du lieu moi
+                                        Cập nhật liên tục theo dữ liệu mới
                                     </span>
                                 </div>
                             </div>
@@ -384,10 +384,10 @@ function HomePage() {
                                     dataPost.map((post) => <CardBody key={post._id} post={post} />)
                                 ) : (
                                     <div className={cx('emptyState')}>
-                                        <h3>Chua co ket qua phu hop</h3>
+                                        <h3>Chưa có kết quả phù hợp</h3>
                                         <p>Thu doi bo loc gia, dien tich hoac loai tin de tim duoc nhieu lua chon hon.</p>
                                         <button type="button" onClick={resetFilters}>
-                                            Xoa bo loc va xem tat ca
+                                            Xóa bộ lọc và xem tất cả
                                         </button>
                                     </div>
                                 )}

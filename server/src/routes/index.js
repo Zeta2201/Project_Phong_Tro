@@ -3,6 +3,7 @@ const postRoutes = require('./posts.routes');
 const paymentsRoutes = require('./payments.routes');
 const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
+const reportRoutes = require('./report.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -27,6 +28,7 @@ function routes(app) {
     app.get('/api/refresh-token', userRoutes);
     app.get('/api/recharge-user', userRoutes);
     app.post('/api/update-user', userRoutes);
+    app.post('/api/update-user-admin', userRoutes);
     app.post('/api/change-password', userRoutes);
 
     app.get('/api/get-users', userRoutes);
@@ -41,6 +43,10 @@ function routes(app) {
 
     app.post('/api/forgot-password', userRoutes);
     app.post('/api/reset-password', userRoutes);
+
+    app.post('/api/report-post', reportRoutes);
+    app.get('/api/get-reports', reportRoutes);
+    app.post('/api/update-report', reportRoutes);
 
     /// posts
     app.post('/api/create-post', postRoutes);

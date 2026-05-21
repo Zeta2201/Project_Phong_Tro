@@ -20,6 +20,7 @@ import styles from './Index.module.scss';
 import ManagerUser from './Components/ManagerUser/ManagerUser';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import ManagerRechange from './Components/ManagerRechange/ManagerRechange';
+import ManagerReports from './Components/ManagerReports/ManagerReports';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -75,6 +76,12 @@ function Admin() {
             onClick: () => setType('posts'),
         },
         {
+            key: 'reports',
+            icon: <GlobalOutlined />,
+            label: 'Quản lý báo cáo',
+            onClick: () => setType('reports'),
+        },
+        {
             key: 'transactions',
             icon: <DollarOutlined />,
             label: 'Quản lý giao dịch',
@@ -123,6 +130,7 @@ function Admin() {
                     {type === 'dashboard' && <Dashboard />}
                     {type === 'users' && <ManagerUser />}
                     {type === 'posts' && <ManagerPost />}
+                    {type === 'reports' && <ManagerReports />}
                     {type === 'transactions' && <ManagerRechange />}
                 </Content>
             </Layout>

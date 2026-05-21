@@ -15,6 +15,7 @@ export function Provider({ children }) {
     const [globalUsersMessage, setGlobalUsersMessage] = useState([]);
 
     const clearAuthState = () => {
+        cookies.remove('logged');
         setDataUser({});
         setDataPayment(null);
         setDataMessages([]);

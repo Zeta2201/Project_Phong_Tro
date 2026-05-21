@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const modelApiKey = new Schema(
     {
-        userId: { type: String, require: true, ref: 'user' },
+        userId: { type: mongoose.Schema.Types.ObjectId, require: true, ref: 'user' },
         publicKey: { type: String, require: true },
         privateKey: { type: String, require: true },
     },
