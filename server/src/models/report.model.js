@@ -17,6 +17,14 @@ const reportSchema = new Schema(
         },
         handledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null },
         note: { type: String, default: '' },
+        actionTaken: {
+            type: String,
+            enum: ['none', 'hide_post', 'takedown_post'],
+            default: 'none',
+        },
+        actionAt: { type: Date, default: null },
+        postStatusBefore: { type: String, default: '' },
+        postStatusAfter: { type: String, default: '' },
     },
     {
         timestamps: true,

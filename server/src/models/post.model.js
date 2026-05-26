@@ -55,6 +55,12 @@ const modelPost = new Schema(
             required: true,
             enum: ['active', 'inactive', 'rejected'],
         },
+        availabilityStatus: {
+            type: String,
+            required: true,
+            enum: ['available', 'unavailable'],
+            default: 'available',
+        },
         typeNews: {
             type: String,
             required: true,

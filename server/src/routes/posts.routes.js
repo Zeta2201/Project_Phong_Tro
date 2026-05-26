@@ -12,6 +12,7 @@ router.get('/api/get-post-by-user-id', authUser, asyncHandler(controllerPosts.ge
 router.get('/api/get-new-post', asyncHandler(controllerPosts.getNewPost));
 router.get('/api/get-post-vip', asyncHandler(controllerPosts.getPostVip));
 router.post('/api/delete-post', authUser, asyncHandler(controllerPosts.deletePost));
+router.post('/api/update-post-availability', authUser, asyncHandler(controllerPosts.updatePostAvailability));
 
 router.get('/api/get-all-posts', authAdmin, asyncHandler(controllerPosts.getAllPosts));
 router.post('/api/approve-post', authAdmin, asyncHandler(controllerPosts.approvePost));

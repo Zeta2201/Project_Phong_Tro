@@ -4,6 +4,7 @@ const paymentsRoutes = require('./payments.routes');
 const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
 const reportRoutes = require('./report.routes');
+const reservationRoutes = require('./reservation.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -48,6 +49,11 @@ function routes(app) {
     app.get('/api/get-reports', reportRoutes);
     app.post('/api/update-report', reportRoutes);
 
+    /// reservations
+    app.post('/api/create-reservation', reservationRoutes);
+    app.get('/api/get-reservations', reservationRoutes);
+    app.post('/api/update-reservation', reservationRoutes);
+
     /// posts
     app.post('/api/create-post', postRoutes);
     app.get('/api/get-posts', postRoutes);
@@ -56,6 +62,7 @@ function routes(app) {
     app.get('/api/get-new-post', postRoutes);
     app.get('/api/get-post-vip', postRoutes);
     app.post('/api/delete-post', postRoutes);
+    app.post('/api/update-post-availability', postRoutes);
 
     //// admin post
     app.get('/api/get-all-posts', postRoutes);

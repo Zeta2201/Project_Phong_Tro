@@ -6,6 +6,27 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 const modelPost = require('../../models/post.model');
 
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const findPostsByKeyword = async (question, limit = 20) => {
+    const keyword = String(question || '').trim();
+    const baseFilter = { status: 'active' };
+
+    if (!keyword) {
+        return modelPost.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean();
+    }
+
+    const regex = new RegExp(escapeRegex(keyword), 'i');
+    return modelPost
+        .find({
+            ...baseFilter,
+            $or: [{ title: regex }, { location: regex }, { category: regex }, { description: regex }],
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+};
+
 async function AiSearchKeyword(question) {
     try {
         const prompt = `
@@ -33,14 +54,15 @@ async function AiSearchKeyword(question) {
         return suggestions;
     } catch (error) {
         console.log('Lỗi khi gọi Gemini hoặc parse JSON:', error);
-        return [];
+        const posts = await findPostsByKeyword(question, 10);
+        return posts.map((post) => ({ title: post.title }));
     }
 }
 
 async function AiSearch(question) {
     console.log('question', question);
     try {
-        const posts = await modelPost.find({}).limit(20); // Hoặc query trước nếu có AI location
+        const posts = await modelPost.find({ status: 'active' }).limit(20); // Hoặc query trước nếu có AI location
         const postData = posts.map((post) => JSON.stringify(post)).join(',\n');
 
         const prompt = `
@@ -62,10 +84,10 @@ async function AiSearch(question) {
             .replace(/```json|```/g, '')
             .trim();
         const parsed = JSON.parse(text);
-        return parsed;
+        return Array.isArray(parsed) && parsed.length ? parsed : await findPostsByKeyword(question);
     } catch (err) {
         console.error('Lỗi AI search:', err);
-        return [];
+        return findPostsByKeyword(question);
     }
 }
 

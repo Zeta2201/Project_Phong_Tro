@@ -109,6 +109,12 @@ function ManagerPost() {
         );
     };
 
+    const getAvailabilityConfig = (availabilityStatus) => {
+        return availabilityStatus === 'unavailable'
+            ? { color: 'red', text: 'Het phong' }
+            : { color: 'green', text: 'Con phong' };
+    };
+
     const columns = [
         {
             title: 'Tieu de',
@@ -155,6 +161,15 @@ function ManagerPost() {
             key: 'status',
             render: (status) => {
                 const config = getStatusConfig(status);
+                return <Tag color={config.color}>{config.text}</Tag>;
+            },
+        },
+        {
+            title: 'Tinh trang phong',
+            dataIndex: 'availabilityStatus',
+            key: 'availabilityStatus',
+            render: (availabilityStatus) => {
+                const config = getAvailabilityConfig(availabilityStatus);
                 return <Tag color={config.color}>{config.text}</Tag>;
             },
         },
@@ -306,6 +321,12 @@ function ManagerPost() {
                             </Descriptions.Item>
                             <Descriptions.Item label="Trang thai">
                                 <Tag color={selectedPostStatus.color}>{selectedPostStatus.text}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Tinh trang phong">
+                                {(() => {
+                                    const availabilityConfig = getAvailabilityConfig(selectedPost.availabilityStatus);
+                                    return <Tag color={availabilityConfig.color}>{availabilityConfig.text}</Tag>;
+                                })()}
                             </Descriptions.Item>
                             <Descriptions.Item label="Ngay dang">
                                 <Space>

@@ -1,8 +1,7 @@
 import classNames from 'classnames/bind';
 import styles from './AISearch.module.scss';
 import { useEffect, useState } from 'react';
-import Header from '../../Components/Header/Header';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { requestAddSearch, requestAISearch } from '../../config/request';
 import { Spin } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
@@ -16,7 +15,7 @@ const cx = classNames.bind(styles);
 function AISearch() {
     const [loading, setLoading] = useState(true);
 
-    const { value } = useParams();
+    const { value = '' } = useParams();
 
     const [dataSearch, setDataSearch] = useState([]);
 
@@ -26,14 +25,14 @@ function AISearch() {
             document.title = `Tìm kiếm cho "${value}"`;
             try {
                 const res = await requestAISearch(value);
-                setDataSearch(res);
-                document.title = `Tìm thấy ${res.length} kết quả cho "${value}"`;
-                const data = {
-                    title: value,
-                };
-                await requestAddSearch(data);
+                setDataSearch(Array.isArray(res) ? res : []);
+                document.title = `Tìm thấy ${Array.isArray(res) ? res.length : 0} kết quả cho "${value}"`;
+                if (value.trim()) {
+                    await requestAddSearch({ title: value });
+                }
             } catch (error) {
                 console.error('Error fetching data:', error);
+                setDataSearch([]);
             } finally {
                 setLoading(false);
             }
@@ -47,10 +46,6 @@ function AISearch() {
 
     return (
         <div>
-            <header>
-                <Header />
-            </header>
-
             <main className={cx('main')}>
                 {loading ? (
                     <div className={cx('loading-container')}>
@@ -61,37 +56,42 @@ function AISearch() {
                         <p className={cx('loading-text')}>Đang tìm kiếm kết quả phù hợp cho "{value}"</p>
                         <p className={cx('loading-subtext')}>Vui lòng đợi trong giây lát...</p>
                     </div>
+                ) : dataSearch.length === 0 ? (
+                    <div className={cx('loading-container')}>
+                        <p className={cx('loading-text')}>Không tìm thấy kết quả phù hợp cho "{value}"</p>
+                        <p className={cx('loading-subtext')}>Thử tìm theo khu vực, mức giá hoặc loại phòng khác.</p>
+                    </div>
                 ) : (
                     <div className={cx('new-posts')}>
                         {dataSearch.map((item) => (
-                            <div onClick={() => handleOpenTab(item._id)} className={cx('list-item')}>
+                            <div onClick={() => handleOpenTab(item._id)} className={cx('list-item')} key={item._id}>
                                 <div className={cx('parent')}>
                                     <div className={cx('div1')}>
                                         <img
-                                            src={item.images[0] || imgDefault}
+                                            src={item.images?.[0] || imgDefault}
                                             alt=""
-                                            className={!item.images[0] ? cx('defaultImage') : undefined}
+                                            className={!item.images?.[0] ? cx('defaultImage') : undefined}
                                         />
                                     </div>
                                     <div className={cx('div2')}>
                                         <img
-                                            src={item.images[1] || imgDefault}
+                                            src={item.images?.[1] || imgDefault}
                                             alt=""
-                                            className={!item.images[1] ? cx('defaultImage') : undefined}
+                                            className={!item.images?.[1] ? cx('defaultImage') : undefined}
                                         />
                                     </div>
                                     <div className={cx('div3')}>
                                         <img
-                                            src={item.images[2] || imgDefault}
+                                            src={item.images?.[2] || imgDefault}
                                             alt=""
-                                            className={!item.images[2] ? cx('defaultImage') : undefined}
+                                            className={!item.images?.[2] ? cx('defaultImage') : undefined}
                                         />
                                     </div>
                                     <div className={cx('div4')}>
                                         <img
-                                            src={item.images[3] || imgDefault}
+                                            src={item.images?.[3] || imgDefault}
                                             alt=""
-                                            className={!item.images[3] ? cx('defaultImage') : undefined}
+                                            className={!item.images?.[3] ? cx('defaultImage') : undefined}
                                         />
                                     </div>
                                 </div>
@@ -103,7 +103,7 @@ function AISearch() {
                                     <div className={cx('room-meta')}>
                                         <span className={cx('price')}>
                                             <DollarOutlined className={cx('icon')} />
-                                            {item.price.toLocaleString()} VNĐ/tháng
+                                            {item.price?.toLocaleString('vi-VN')} VNĐ/tháng
                                         </span>
                                         <span className={cx('area')}>
                                             <HomeOutlined className={cx('icon')} />

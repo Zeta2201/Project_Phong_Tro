@@ -51,8 +51,12 @@ export function Provider({ children }) {
     const [dataSearch, setDataSearch] = useState([]);
     useEffect(() => {
         const fetchData = async () => {
-            const res = await requestSearch(debouncedSearch);
-            setDataSearch(res.metadata);
+            try {
+                const res = await requestSearch(debouncedSearch);
+                setDataSearch(res.metadata || []);
+            } catch (error) {
+                setDataSearch([]);
+            }
         };
 
         fetchData();

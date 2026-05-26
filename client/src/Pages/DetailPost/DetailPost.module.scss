@@ -71,6 +71,22 @@
     font-size: 14px;
 }
 
+.availability-tag {
+    display: inline-block;
+    background-color: #16a34a;
+    color: white;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-right: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+
+    &.unavailable {
+        background-color: #dc2626;
+    }
+}
+
 .property-title {
     font-size: 20px;
     font-weight: bold;
@@ -315,6 +331,21 @@
 
         i {
             font-size: 16px;
+        }
+    }
+
+    &.btn-reserve {
+        background-color: #f97316;
+        color: white;
+
+        &:hover {
+            background-color: #ea580c;
+        }
+
+        &:disabled {
+            background-color: #d1d5db;
+            color: #6b7280;
+            cursor: not-allowed;
         }
     }
 }

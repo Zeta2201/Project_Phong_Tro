@@ -1,12 +1,38 @@
 const modelPost = require('../models/post.model');
 const modelUser = require('../models/users.model');
 const modelFavourite = require('../models/favourite.model');
+const modelReservation = require('../models/reservation.model');
 
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 const SendMailApprove = require('../utils/SendMail/SendMailApprove');
 const SendMailReject = require('../utils/SendMail/SendMailReject');
 const { getPostingFeeByPlan, inferPostingFeeFromPost } = require('../utils/postingFee');
+
+const expireAcceptedReservations = async () => {
+    const now = new Date();
+    const expiredReservations = await modelReservation.find({
+        status: 'accepted',
+        expiresAt: { $lte: now },
+    });
+
+    for (const reservation of expiredReservations) {
+        reservation.status = 'expired';
+        reservation.ownerNote = reservation.ownerNote || 'Yeu cau giu cho da het han sau 24 gio';
+        reservation.handledAt = now;
+        await reservation.save();
+
+        const activeReservation = await modelReservation.findOne({
+            postId: reservation.postId,
+            status: 'accepted',
+            expiresAt: { $gt: now },
+        });
+
+        if (!activeReservation) {
+            await modelPost.findByIdAndUpdate(reservation.postId, { availabilityStatus: 'available' });
+        }
+    }
+};
 
 const pricePostVip = [
     { date: 3, price: 50000 },
@@ -71,24 +97,41 @@ class controllerPosts {
             throw new BadRequestError('Số dư không đủ');
         }
 
-        const post = await modelPost.create({
-            title,
-            description,
-            price,
-            location,
-            images,
-            category,
-            area,
-            username,
-            phone,
-            options,
-            status: 'inactive',
-            userId: id,
-            endDate: endDate ? endDate : null,
-            typeNews,
-            postingFee,
-        });
-        await modelUser.findByIdAndUpdate(id, { $inc: { balance: -postingFee } });
+        const chargedUser = await modelUser.findOneAndUpdate(
+            { _id: id, balance: { $gte: postingFee } },
+            { $inc: { balance: -postingFee } },
+            { new: true },
+        );
+
+        if (!chargedUser) {
+            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
+        }
+
+        let post;
+        try {
+            post = await modelPost.create({
+                title,
+                description,
+                price,
+                location,
+                images,
+                category,
+                area,
+                username,
+                phone,
+                options,
+                status: 'inactive',
+                availabilityStatus: 'available',
+                userId: id,
+                endDate: endDate ? endDate : null,
+                typeNews,
+                postingFee,
+            });
+        } catch (error) {
+            await modelUser.findByIdAndUpdate(id, { $inc: { balance: postingFee } });
+            throw error;
+        }
+
         return new Created({
             message: 'Post created successfully',
             metadata: post,
@@ -96,6 +139,7 @@ class controllerPosts {
     }
 
     async getPosts(req, res) {
+        await expireAcceptedReservations();
         const { category, priceRange, areaRange, typeNews } = req.query;
 
         const filter = { status: 'active' };
@@ -155,6 +199,7 @@ class controllerPosts {
     }
 
     async getPostById(req, res) {
+        await expireAcceptedReservations();
         const { id } = req.query;
         const data = await modelPost.findById(id);
         const findUser = await modelUser.findById(data.userId);
@@ -201,6 +246,7 @@ class controllerPosts {
     }
 
     async getNewPost(req, res) {
+        await expireAcceptedReservations();
         const fiveDaysAgo = new Date();
         fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 3);
 
@@ -219,7 +265,8 @@ class controllerPosts {
     }
 
     async getPostVip(req, res) {
-        const data = await modelPost.find({ typeNews: 'vip' }).limit(5);
+        await expireAcceptedReservations();
+        const data = await modelPost.find({ typeNews: 'vip', status: 'active' }).limit(5);
         return new OK({
             message: 'Post fetched successfully',
             metadata: data,
@@ -238,6 +285,30 @@ class controllerPosts {
         return new OK({
             message: 'Xoá bài viết thành công',
             metadata: findPost,
+        }).send(res);
+    }
+
+    async updatePostAvailability(req, res) {
+        const { id: userId } = req.user;
+        const { id, availabilityStatus } = req.body;
+
+        if (!id || !['available', 'unavailable'].includes(availabilityStatus)) {
+            throw new BadRequestError('Trạng thái phòng không hợp lệ');
+        }
+
+        const findPost = await modelPost.findById(id);
+        if (!findPost) {
+            throw new BadRequestError('Post not found');
+        }
+
+        if (findPost.userId.toString() !== userId) {
+            throw new BadRequestError('Bạn không có quyền cập nhật bài viết này');
+        }
+
+        const updatedPost = await modelPost.findByIdAndUpdate(id, { availabilityStatus }, { new: true });
+        return new OK({
+            message: availabilityStatus === 'available' ? 'Đã cập nhật còn phòng' : 'Đã cập nhật hết phòng',
+            metadata: updatedPost,
         }).send(res);
     }
 
@@ -285,6 +356,7 @@ class controllerPosts {
     }
 
     async postSuggest(req, res) {
+        await expireAcceptedReservations();
         const { id } = req.user;
         const findUser = await modelUser.findById(id);
         const address = findUser.address;
@@ -302,10 +374,10 @@ class controllerPosts {
 
             return new OK({
                 message: 'Post fetched successfully',
-                metadata: data.length ? data : await modelPost.find({}),
+                metadata: data.length ? data : await modelPost.find({ status: 'active' }).sort({ createdAt: -1 }).limit(8),
             }).send(res);
         } else {
-            const data = await modelPost.find({ status: 'active' });
+            const data = await modelPost.find({ status: 'active' }).sort({ createdAt: -1 }).limit(8);
             return new OK({
                 message: 'Post fetched successfully',
                 metadata: data,

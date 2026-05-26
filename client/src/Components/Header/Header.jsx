@@ -28,6 +28,7 @@ function Header() {
     const navigate = useNavigate();
 
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [searchValue, setSearchValue] = useState('');
 
     const handleLogout = async () => {
         try {
@@ -66,8 +67,12 @@ function Header() {
         />
     );
 
-    const handleNavigateSearch = (value) => {
-        navigate(`/search/${value}`);
+    const handleNavigateSearch = (value = searchValue) => {
+        const keyword = value.trim();
+        if (!keyword) return;
+        setSearchValue(keyword);
+        setValueSearch(keyword);
+        navigate(`/search/${encodeURIComponent(keyword)}`);
     };
 
     return (
@@ -84,23 +89,27 @@ function Header() {
                         <input
                             type="text"
                             placeholder="Tìm kiếm...."
-                            onChange={(e) => setValueSearch(e.target.value)}
+                            value={searchValue}
+                            onChange={(e) => {
+                                setSearchValue(e.target.value);
+                                setValueSearch(e.target.value);
+                            }}
                             onFocus={() => setIsSearchFocused(true)}
                             onBlur={() => {
                                 setTimeout(() => setIsSearchFocused(false), 200);
                             }}
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                                 if (e.key === 'Enter' && e.target.value.trim()) {
                                     handleNavigateSearch(e.target.value.trim());
                                 }
                             }}
                         />
-                        <SearchOutlined className={cx('search-icon')} />
+                        <SearchOutlined className={cx('search-icon')} onClick={() => handleNavigateSearch()} />
                     </div>
                     {isSearchFocused && (
                         <div className={cx('result-search')}>
                             <ul>
-                                {dataSearch.map((item, index) => (
+                                {(dataSearch || []).map((item, index) => (
                                     <li onClick={() => handleNavigateSearch(item.title)} key={index}>
                                         <span>
                                             <SearchOutlined /> {item.title}

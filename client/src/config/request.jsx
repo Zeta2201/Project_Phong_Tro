@@ -159,6 +159,11 @@ export const requestDeletePost = async (data) => {
     return res.data;
 };
 
+export const requestUpdatePostAvailability = async (data) => {
+    const res = await request.post('/api/update-post-availability', data);
+    return res.data;
+};
+
 export const requestGetAllPosts = async (data) => {
     const res = await request.get('/api/get-all-posts', { params: data });
     return res.data;
@@ -216,6 +221,23 @@ export const requestGetRechargeUser = async () => {
 
 export const requestGetPostByUserId = async () => {
     const res = await request.get('/api/get-post-by-user-id');
+    return res.data;
+};
+
+//// reservations
+
+export const requestCreateReservation = async (data) => {
+    const res = await request.post('/api/create-reservation', data);
+    return res.data;
+};
+
+export const requestGetReservations = async (params = {}) => {
+    const res = await request.get('/api/get-reservations', { params });
+    return res.data;
+};
+
+export const requestUpdateReservation = async (data) => {
+    const res = await request.post('/api/update-reservation', data);
     return res.data;
 };
 

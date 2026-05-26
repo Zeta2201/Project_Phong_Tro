@@ -10,17 +10,17 @@ class controllerReport {
         const { postId, reason, details } = req.body;
 
         if (!postId || !reason) {
-            throw new BadRequestError('Post ID và lý do báo cáo bắt buộc');
+            throw new BadRequestError('Post ID va ly do bao cao bat buoc');
         }
 
         const post = await modelPost.findById(postId);
         if (!post) {
-            throw new BadRequestError('Bài viết không tồn tại');
+            throw new BadRequestError('Bai viet khong ton tai');
         }
 
         const user = await modelUser.findById(id);
         if (!user) {
-            throw new BadRequestError('Người dùng không hợp lệ');
+            throw new BadRequestError('Nguoi dung khong hop le');
         }
 
         const report = await modelReport.create({
@@ -32,7 +32,7 @@ class controllerReport {
             details: details || '',
         });
 
-        new Created({ message: 'Báo cáo bài viết thành công', metadata: report }).send(res);
+        new Created({ message: 'Bao cao bai viet thanh cong', metadata: report }).send(res);
     }
 
     async getReports(req, res) {
@@ -56,7 +56,7 @@ class controllerReport {
             .find(filter)
             .sort({ createdAt: -1 })
             .populate('reporterId', 'fullName email')
-            .populate('postId', 'title');
+            .populate('postId', 'title status availabilityStatus location price');
 
         const metadata = reports.map((report) => ({
             ...report._doc,
@@ -64,22 +64,41 @@ class controllerReport {
             post: report.postId,
         }));
 
-        new OK({ message: 'Lấy danh sách báo cáo thành công', metadata }).send(res);
+        new OK({ message: 'Lay danh sach bao cao thanh cong', metadata }).send(res);
     }
 
     async updateReport(req, res) {
-        const { id, status, note } = req.body;
+        const { id, status, note, postAction = 'none' } = req.body;
         if (!id || !status) {
-            throw new BadRequestError('Id báo cáo và trạng thái bắt buộc');
+            throw new BadRequestError('Id bao cao va trang thai bat buoc');
         }
 
         if (!['pending', 'resolved', 'rejected'].includes(status)) {
-            throw new BadRequestError('Trạng thái không hợp lệ');
+            throw new BadRequestError('Trang thai khong hop le');
+        }
+
+        if (!['none', 'hide_post', 'takedown_post'].includes(postAction)) {
+            throw new BadRequestError('Hanh dong xu ly bai viet khong hop le');
         }
 
         const report = await modelReport.findById(id);
         if (!report) {
-            throw new BadRequestError('Báo cáo không tồn tại');
+            throw new BadRequestError('Bao cao khong ton tai');
+        }
+
+        let postStatusBefore = report.postStatusBefore || '';
+        let postStatusAfter = report.postStatusAfter || '';
+
+        if (status === 'resolved' && postAction !== 'none') {
+            const post = await modelPost.findById(report.postId);
+            if (!post) {
+                throw new BadRequestError('Bai viet duoc bao cao khong ton tai');
+            }
+
+            postStatusBefore = post.status;
+            post.status = postAction === 'hide_post' ? 'inactive' : 'rejected';
+            postStatusAfter = post.status;
+            await post.save();
         }
 
         const updated = await modelReport.findByIdAndUpdate(
@@ -88,11 +107,15 @@ class controllerReport {
                 status,
                 note: note || report.note,
                 handledBy: req.user.id,
+                actionTaken: status === 'resolved' ? postAction : report.actionTaken,
+                actionAt: status === 'resolved' ? new Date() : report.actionAt,
+                postStatusBefore,
+                postStatusAfter,
             },
             { new: true },
         );
 
-        new OK({ message: 'Cập nhật báo cáo thành công', metadata: updated }).send(res);
+        new OK({ message: 'Cap nhat bao cao thanh cong', metadata: updated }).send(res);
     }
 }
 

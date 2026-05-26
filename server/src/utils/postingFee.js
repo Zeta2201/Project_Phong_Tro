@@ -12,15 +12,17 @@ const postingFeeTable = {
 };
 
 const resolveDurationBucket = (durationInDays) => {
-    if (!durationInDays || Number.isNaN(durationInDays)) {
+    const duration = Number(durationInDays);
+
+    if (!duration || Number.isNaN(duration)) {
         return null;
     }
 
-    if (durationInDays <= 3) {
+    if (duration <= 3) {
         return 3;
     }
 
-    if (durationInDays <= 7) {
+    if (duration <= 7) {
         return 7;
     }
 
@@ -38,7 +40,7 @@ const getPostingFeeByPlan = (typeNews, durationInDays) => {
 };
 
 const inferPostingFeeFromPost = (post) => {
-    if (typeof post.postingFee === 'number') {
+    if (typeof post.postingFee === 'number' && post.postingFee > 0) {
         return post.postingFee;
     }
 

@@ -20,6 +20,7 @@ export const publicRoutes = [
             { path: '', element: <HomePage /> },
             { path: 'chi-tiet-tin-dang/:id', element: <DetailPost /> },
             { path: 'trang-ca-nhan', element: <InfoUser /> },
+            { path: 'search', element: <HomePage /> },
             { path: 'search/:value', element: <AISearch /> },
             { path: 'contact', element: <Contact /> },
             { path: 'terms', element: <Terms /> },

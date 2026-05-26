@@ -50,7 +50,7 @@ const dataSource = [
         key: '2',
         typeNews: 'Tin thường',
         '3 ngày': 10000,
-        '7 ngày': 50000,
+        '7 ngày': 60000,
         '30 ngày': 1000000,
     },
 ];
@@ -112,8 +112,6 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [dataSearch, setDataSearch] = useState([]);
     const debouncedSearch = useDebounce(valueSearch, 500);
     const [mapQuery, setMapQuery] = useState(initialValues?.address || 'Lăng Chủ tịch Hồ Chí Minh');
-    const [dateEnd, setDateEnd] = useState(null);
-
     // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
 
@@ -134,7 +132,6 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
 
             if (selectedTier) {
                 const durationKey = `${selectedDuration} ngày`;
-                setDateEnd(selectedDuration);
                 calculatedCost = selectedTier[durationKey] || 0;
             }
         }
@@ -223,7 +220,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 typeNews: values.typeNews,
                 endDate: endDate,
                 images: resImages.images,
-                dateEnd,
+                dateEnd: values.duration,
             };
 
             await requestCreatePost(data);
@@ -234,7 +231,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             setEstimatedCost(0);
             onFinish(data);
         } catch (error) {
-            message.error(error.response.data.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
+            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
         }
     };
 
@@ -301,6 +298,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                             'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
                     }}
                     initialValue="Mô tả phòng trọ"
+                    // eslint-disable-next-line no-unused-vars
                     onEditorChange={(content, editor) => setDescription(content)}
                 />
             </div>

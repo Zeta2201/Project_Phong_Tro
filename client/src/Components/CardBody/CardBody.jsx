@@ -12,21 +12,26 @@ import dayjs from 'dayjs';
 const cx = classNames.bind(styles);
 
 function CardBody({ post }) {
+    const isAvailable = (post.availabilityStatus || 'available') === 'available';
+
     return (
         <div className={cx('list-item')}>
             <Link to={`/chi-tiet-tin-dang/${post._id}`}>
                 <div className={cx('parent')}>
+                    <span className={cx('availability-badge', { unavailable: !isAvailable })}>
+                        {isAvailable ? 'Còn phòng' : 'Hết phòng'}
+                    </span>
                     <div className={cx('div1')}>
-                        <img src={post.images[0] || imgDefault} alt="" />
+                        <img src={post.images?.[0] || imgDefault} alt={post.title} />
                     </div>
                     <div className={cx('div2')}>
-                        <img src={post.images[1] || imgDefault} alt="" />
+                        <img src={post.images?.[1] || imgDefault} alt={post.title} />
                     </div>
                     <div className={cx('div3')}>
-                        <img src={post.images[2] || imgDefault} alt="" />
+                        <img src={post.images?.[2] || imgDefault} alt={post.title} />
                     </div>
                     <div className={cx('div4')}>
-                        <img src={post.images[3] || imgDefault} alt="" />
+                        <img src={post.images?.[3] || imgDefault} alt={post.title} />
                     </div>
                 </div>
             </Link>
@@ -38,7 +43,7 @@ function CardBody({ post }) {
                 <div className={cx('room-meta')}>
                     <span className={cx('price')}>
                         <DollarOutlined className={cx('icon')} />
-                        {post.price.toLocaleString()} VNĐ/tháng
+                        {post.price?.toLocaleString('vi-VN')} VNĐ/tháng
                     </span>
                     <span className={cx('area')}>
                         <HomeOutlined className={cx('icon')} />
@@ -55,7 +60,7 @@ function CardBody({ post }) {
                 <div className={cx('info-container')}>
                     <div className={cx('user-header')}>
                         <h4>{post.user?.fullName}</h4>
-                        <span>{dayjs(post.createdAt).format('HH:MM DD/MM/YYYY')}</span>
+                        <span>{dayjs(post.createdAt).format('HH:mm DD/MM/YYYY')}</span>
                     </div>
                     <div className={cx('user-actions')}>
                         <span>{post.phone}</span>

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Card, Typography, Button, Table, Space, Popconfirm, message, Row, Col, Statistic, Tag } from 'antd';
+import { Card, Typography, Button, Table, Space, Popconfirm, message, Row, Col, Statistic, Tag, Switch } from 'antd';
 import { FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerPost.module.scss';
 import AddPostForm from './AddPostForm'; // Import the form component
-import { requestDeletePost, requestGetPostByUserId } from '../../../../config/request';
+import { requestDeletePost, requestGetPostByUserId, requestUpdatePostAvailability } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
 
 const cx = classNames.bind(styles);
@@ -70,28 +70,24 @@ function ManagerPost() {
             fetchPosts();
             fetchAuth();
         } catch (error) {
-            message.error(error.response.data.message);
+            message.error(error.response?.data?.message || 'Xóa bài viết thất bại');
         }
     };
 
-    const handleFormFinish = (formData) => {
-        if (editingPost) {
-            // Editing existing post
-            console.log('Updating Post:', editingPost.id, formData);
-            setPosts(
-                posts.map((post) =>
-                    post.id === editingPost.id
-                        ? { ...post, ...formData } // Update existing post
-                        : post,
-                ),
-            );
-            message.success('Post updated successfully! (Check Console)');
-        } else {
-            // Adding new post
-            const newPost = { ...formData, id: Date.now() }; // Add a temporary ID
-            setPosts([...posts, newPost]);
-            message.success('Post added successfully! (Check Console)');
+    const handleUpdateAvailability = async (postId, checked) => {
+        try {
+            const availabilityStatus = checked ? 'available' : 'unavailable';
+            const res = await requestUpdatePostAvailability({ id: postId, availabilityStatus });
+            message.success(res.message);
+            fetchPosts();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Cập nhật trạng thái phòng thất bại');
         }
+    };
+
+    const handleFormFinish = async () => {
+        await fetchPosts();
+        await fetchAuth();
         setIsFormVisible(false);
         setEditingPost(null);
     };
@@ -150,6 +146,26 @@ function ManagerPost() {
                     text = 'Đã hủy';
                 }
                 return <Tag color={color}>{text}</Tag>;
+            },
+        },
+        {
+            title: 'Tình trạng phòng',
+            dataIndex: 'availabilityStatus',
+            key: 'availabilityStatus',
+            render: (availabilityStatus, record) => {
+                const isAvailable = (availabilityStatus || 'available') === 'available';
+                return (
+                    <Space direction="vertical" size={4}>
+                        <Tag color={isAvailable ? 'green' : 'red'}>{isAvailable ? 'Còn phòng' : 'Hết phòng'}</Tag>
+                        <Switch
+                            size="small"
+                            checked={isAvailable}
+                            checkedChildren="Còn"
+                            unCheckedChildren="Hết"
+                            onChange={(checked) => handleUpdateAvailability(record._id, checked)}
+                        />
+                    </Space>
+                );
             },
         },
         {
@@ -224,7 +240,7 @@ function ManagerPost() {
                             <Title level={5} style={{ marginBottom: 16 }}>
                                 Danh sách chi tiết
                             </Title>
-                            <Table columns={columns} dataSource={posts} rowKey="id" bordered pagination={false} />
+                            <Table columns={columns} dataSource={posts} rowKey="_id" bordered pagination={false} />
                         </>
                     ) : (
                         // Placeholder when no posts exist

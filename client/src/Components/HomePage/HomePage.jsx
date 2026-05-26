@@ -6,61 +6,66 @@ import {
     BorderOutlined,
     ClockCircleOutlined,
     CompassOutlined,
+    EnvironmentOutlined,
     FireOutlined,
     ReloadOutlined,
+    SearchOutlined,
     TagOutlined,
     ThunderboltOutlined,
 } from '@ant-design/icons';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import CardBody from '../CardBody/CardBody';
+import imgDefault from '../../assets/images/img_default.png';
 import { requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
 
 const cx = classNames.bind(styles);
 
 const categoryOptions = [
-    { value: 'phong-tro', label: 'Phong tro' },
-    { value: 'nha-nguyen-can', label: 'Nha nguyen can' },
-    { value: 'can-ho-chung-cu', label: 'Can ho chung cu' },
-    { value: 'can-ho-mini', label: 'Can ho mini' },
+    { value: 'phong-tro', label: 'Phòng trọ' },
+    { value: 'nha-nguyen-can', label: 'Nhà nguyên căn' },
+    { value: 'can-ho-chung-cu', label: 'Căn hộ chung cư' },
+    { value: 'can-ho-mini', label: 'Căn hộ mini' },
 ];
 
 const priceOptions = [
-    { value: 'duoi-1-trieu', label: 'Duoi 1 trieu' },
-    { value: 'tu-1-2-trieu', label: 'Tu 1 - 2 trieu' },
-    { value: 'tu-2-3-trieu', label: 'Tu 2 - 3 trieu' },
-    { value: 'tu-3-5-trieu', label: 'Tu 3 - 5 trieu' },
-    { value: 'tu-5-7-trieu', label: 'Tu 5 - 7 trieu' },
-    { value: 'tu-7-10-trieu', label: 'Tu 7 - 10 trieu' },
-    { value: 'tu-10-15-trieu', label: 'Tu 10 - 15 trieu' },
-    { value: 'tren-15-trieu', label: 'Tren 15 trieu' },
+    { value: 'duoi-1-trieu', label: 'Dưới 1 triệu' },
+    { value: 'tu-1-2-trieu', label: '1 - 2 triệu' },
+    { value: 'tu-2-3-trieu', label: '2 - 3 triệu' },
+    { value: 'tu-3-5-trieu', label: '3 - 5 triệu' },
+    { value: 'tu-5-7-trieu', label: '5 - 7 triệu' },
+    { value: 'tu-7-10-trieu', label: '7 - 10 triệu' },
+    { value: 'tu-10-15-trieu', label: '10 - 15 triệu' },
+    { value: 'tren-15-trieu', label: 'Trên 15 triệu' },
 ];
 
 const areaOptions = [
-    { value: 'duoi-20', label: 'Duoi 20 m2' },
-    { value: 'tu-20-30', label: 'Tu 20 - 30 m2' },
-    { value: 'tu-30-50', label: 'Tu 30 - 50 m2' },
-    { value: 'tu-50-70', label: 'Tu 50 - 70 m2' },
-    { value: 'tu-70-90', label: 'Tu 70 - 90 m2' },
-    { value: 'tren-90', label: 'Tren 90 m2' },
+    { value: 'duoi-20', label: 'Dưới 20 m²' },
+    { value: 'tu-20-30', label: '20 - 30 m²' },
+    { value: 'tu-30-50', label: '30 - 50 m²' },
+    { value: 'tu-50-70', label: '50 - 70 m²' },
+    { value: 'tu-70-90', label: '70 - 90 m²' },
+    { value: 'tren-90', label: 'Trên 90 m²' },
 ];
 
 const typeNewsOptions = [
     {
         value: 'vip',
-        label: 'De xuat',
-        description: 'Tin noi bat duoc uu tien hien thi',
+        label: 'Tin nổi bật',
+        description: 'Ưu tiên các tin chất lượng, dễ xem nhanh.',
     },
     {
         value: 'normal',
-        label: 'Moi dang',
-        description: 'Cap nhat nhung tin vua dang gan day',
+        label: 'Tin mới đăng',
+        description: 'Theo dõi các lựa chọn vừa được cập nhật.',
     },
 ];
 
 const getOptionLabel = (options, value) => options.find((option) => option.value === value)?.label || '';
+
+const publicPostsOnly = (posts = []) => posts.filter((post) => post?.status === 'active');
 
 function HomePage() {
     const [dataPost, setDataPost] = useState([]);
@@ -68,7 +73,7 @@ function HomePage() {
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
 
     useEffect(() => {
-        document.title = 'Trang chu';
+        document.title = 'Trang chủ';
     }, []);
 
     const getQueryParam = (param) => new URLSearchParams(window.location.search).get(param);
@@ -76,7 +81,7 @@ function HomePage() {
     const [category, setCategory] = useState(() => getQueryParam('category') || '');
     const [priceRange, setPriceRange] = useState(() => getQueryParam('priceRange') || '');
     const [areaRange, setAreaRange] = useState(() => getQueryParam('areaRange') || '');
-    const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews'));
+    const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews') || '');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -87,7 +92,7 @@ function HomePage() {
                 typeNews,
             };
             const res = await requestGetPosts(params);
-            setDataPost(res.metadata);
+            setDataPost(publicPostsOnly(res.metadata || []));
 
             const queryParams = new URLSearchParams();
             if (category) queryParams.set('category', category);
@@ -106,8 +111,8 @@ function HomePage() {
         const fetchData = async () => {
             const res = await requestGetNewPost();
             const resSuggest = await requestPostSuggest();
-            setDataNewPost(res.metadata);
-            setDataPostSuggest(resSuggest.metadata);
+            setDataNewPost(publicPostsOnly(res.metadata || []));
+            setDataPostSuggest(publicPostsOnly(resSuggest.metadata || []));
         };
         fetchData();
     }, []);
@@ -117,29 +122,35 @@ function HomePage() {
     const activeFilters = [
         {
             key: 'category',
-            label: 'Loai hinh',
+            label: 'Loại hình',
             value: getOptionLabel(categoryOptions, category),
             onClear: () => setCategory(''),
         },
         {
             key: 'price',
-            label: 'Muc gia',
+            label: 'Mức giá',
             value: getOptionLabel(priceOptions, priceRange),
             onClear: () => setPriceRange(''),
         },
         {
             key: 'area',
-            label: 'Dien tich',
+            label: 'Diện tích',
             value: getOptionLabel(areaOptions, areaRange),
             onClear: () => setAreaRange(''),
         },
         {
             key: 'typeNews',
-            label: 'Loai tin',
+            label: 'Loại tin',
             value: getOptionLabel(typeNewsOptions, typeNews),
             onClear: () => setTypeNews(''),
         },
     ].filter((item) => item.value);
+
+    const featuredPosts = useMemo(() => {
+        const posts = [...dataPost, ...dataNewPost, ...dataPostSuggest];
+        const uniquePosts = posts.filter((post, index, array) => array.findIndex((item) => item._id === post._id) === index);
+        return uniquePosts.slice(0, 4);
+    }, [dataPost, dataNewPost, dataPostSuggest]);
 
     const resetFilters = () => {
         setCategory('');
@@ -149,17 +160,17 @@ function HomePage() {
     };
 
     const renderMiniPosts = (posts) =>
-        posts.map((item) => (
+        posts.slice(0, 5).map((item) => (
             <Link to={`/chi-tiet-tin-dang/${item._id}`} key={item._id}>
-                <div className={cx('postItem')}>
-                    <div className={cx('postImage')}>
-                        <img src={item.images[0]} alt={item.title} />
+                <div className={cx('miniPost')}>
+                    <div className={cx('miniPostImage')}>
+                        <img src={item.images?.[0] || imgDefault} alt={item.title} />
                     </div>
-                    <div className={cx('postInfo')}>
-                        <h4 className={cx('postTitle')}>{item.title}</h4>
-                        <div className={cx('postMeta')}>
-                            <span className={cx('postPrice')}>{item.price.toLocaleString('vi-VN')} VND</span>
-                            <span className={cx('postTime')}>{dayjs(item.createdAt).format('DD/MM/YYYY')}</span>
+                    <div className={cx('miniPostInfo')}>
+                        <h4>{item.title}</h4>
+                        <div>
+                            <span>{item.price?.toLocaleString('vi-VN')} VNĐ</span>
+                            <small>{dayjs(item.createdAt).format('DD/MM/YYYY')}</small>
                         </div>
                     </div>
                 </div>
@@ -167,248 +178,275 @@ function HomePage() {
         ));
 
     return (
-        <div className={cx('pageShell')}>
-            <div className={cx('pageBackdrop')} />
-
-            <div className={cx('page')}>
-                <section className={cx('hero')}>
-                    <div className={cx('heroContent')}>
+        <main className={cx('pageShell')}>
+            <section className={cx('hero')}>
+                <div className={cx('heroContent')}>
+                    <div className={cx('heroText')}>
                         <span className={cx('eyebrow')}>
                             <CompassOutlined />
-                            Nền tảng tìm phòng trọ và nhà cho thuê hàng đầu Việt Nam.
+                            Tìm phòng trọ và nhà cho thuê
                         </span>
-                        <h1 className={cx('heroTitle')}>Tìm phòng nhanh, chính xác, ra quyết định tự tin hơn.</h1>
-                        <p className={cx('heroDescription')}>
-                            Không gian tìm phòng được thiết kế lại theo hướng rõ ràng, dễ dùng và tạo cảm giác chuyên nghiệp
-                            hơn cho người thuê nhà.
+                        <h1>Tìm nơi ở phù hợp nhanh hơn, rõ ràng hơn.</h1>
+                        <p>
+                            Lọc theo loại hình, mức giá và diện tích ngay trên trang chủ. Kết quả được trình bày gọn,
+                            dễ so sánh và ưu tiên những thông tin quan trọng khi thuê phòng.
                         </p>
-
-                        <div className={cx('heroActions')}>
-                            {typeNewsOptions.map((option) => (
-                                <button
-                                    key={option.value}
-                                    type="button"
-                                    className={cx('heroAction', { active: typeNews === option.value })}
-                                    onClick={() => setTypeNews(typeNews === option.value ? '' : option.value)}
-                                >
-                                    <strong>{option.label}</strong>
-                                    <span>{option.description}</span>
-                                </button>
-                            ))}
-                        </div>
                     </div>
 
-                    <div className={cx('heroAside')}>
-                        <div className={cx('heroStats')}>
-                            <div className={cx('statCard')}>
-                                <span className={cx('statIcon', 'accent')}>
-                                    <ApartmentOutlined />
-                                </span>
-                                <strong>{dataPost.length}</strong>
-                                <span>Tin phù hợp đang hiển thị</span>
-                            </div>
-                            <div className={cx('statCard')}>
-                                <span className={cx('statIcon', 'warm')}>
-                                    <FireOutlined />
-                                </span>
-                                <strong>{dataNewPost.length}</strong>
-                                <span>Tin mới trong khu vực quan tâm</span>
-                            </div>
-                            <div className={cx('statCard')}>
-                                <span className={cx('statIcon', 'soft')}>
-                                    <AimOutlined />
-                                </span>
-                                <strong>{dataPostSuggest.length}</strong>
-                                <span>Gợi ý gần vị trí của bạn</span>
-                            </div>
+                    <div className={cx('quickSearch')}>
+                        <div className={cx('quickSearchHeader')}>
+                            <SearchOutlined />
+                            <span>Bắt đầu lọc tin</span>
                         </div>
 
-                        <div className={cx('heroNote')}>
-                            <span className={cx('heroNoteLabel')}>Trạng thái hiện tại</span>
-                            <div className={cx('heroNoteRow')}>
-                                <strong>{activeFilterCount}</strong>
-                                <span>bộ lọc đang được áp dụng</span>
-                            </div>
-                            <p>Chọn nhanh bộ lọc ở cột bên trái để thu hẹp kết quả mà không cần cuộn lại quá nhiều.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section className={cx('overviewBar')}>
-                    <div className={cx('overviewIntro')}>
-                        <span className={cx('panelEyebrow')}>Điều hướng nhanh</span>
-                        <h2>Trang chủ được sắp xếp lại để xem tin, lọc tin và theo dõi gợi ý để tốt hơn.</h2>
-                    </div>
-
-                    <div className={cx('activeFilterPanel')}>
-                        <div className={cx('activeFilterHeader')}>
-                            <span>
-                                <ThunderboltOutlined />
-                                {activeFilterCount} bộ lọc đang bật
-                            </span>
-                            {activeFilterCount > 0 ? (
-                                <button type="button" className={cx('ghostButton')} onClick={resetFilters}>
-                                    Xóa tất cả bộ lọc
-                                </button>
-                            ) : null}
-                        </div>
-
-                        {activeFilters.length > 0 ? (
-                            <div className={cx('activeFilterList')}>
-                                {activeFilters.map((item) => (
-                                    <button key={item.key} type="button" className={cx('activeFilterChip')} onClick={item.onClear}>
-                                        <span>{item.label}</span>
-                                        <strong>{item.value}</strong>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className={cx('activeFilterEmpty')}>Chưa chọn bộ lọc. Bạn có thể bắt đầu từ loại hình, giá hoặc diện tích.</p>
-                        )}
-                    </div>
-                </section>
-
-                <div className={cx('workspaceGrid')}>
-                    <aside className={cx('controlRail')}>
-                        <section className={cx('filtersPanel')}>
-                            <div className={cx('panelHeader')}>
-                                <div>
-                                    <span className={cx('panelEyebrow')}>Bộ lọc nhanh</span>
-                                    <h2>Lọc kết quả theo nhu cầu thực tế</h2>
-                                </div>
-                                <button type="button" className={cx('resetButton')} onClick={resetFilters}>
-                                    <ReloadOutlined />
-                                    Đặt lại bộ lọc
-                                </button>
+                        <div className={cx('quickSelectGrid')}>
+                            <div className={cx('quickSelect')}>
+                                <label>Loại hình</label>
+                                <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                                    <option value="">Tất cả loại hình</option>
+                                    {categoryOptions.map((item) => (
+                                        <option key={item.value} value={item.value}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            <div className={cx('filtersGrid')}>
-                                <div className={cx('filterGroup')}>
-                                <div className={cx('filterTitle')}>
-                                    <ApartmentOutlined />
-                                    Loại hình cho thuê
-                                </div>
-                                    <div className={cx('pillList')}>
-                                        {categoryOptions.map((item) => (
-                                            <button
-                                                key={item.value}
-                                                type="button"
-                                                className={cx('pill', { selected: category === item.value })}
-                                                onClick={() => setCategory(category === item.value ? '' : item.value)}
-                                            >
-                                                {item.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className={cx('filterGroup')}>
-                                <div className={cx('filterTitle')}>
-                                    <TagOutlined />
-                                    Mức giá
-                                </div>
-                                    <div className={cx('pillList')}>
-                                        {priceOptions.map((item) => (
-                                            <button
-                                                key={item.value}
-                                                type="button"
-                                                className={cx('pill', { selected: priceRange === item.value })}
-                                                onClick={() => setPriceRange(priceRange === item.value ? '' : item.value)}
-                                            >
-                                                {item.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className={cx('filterGroup')}>
-                                <div className={cx('filterTitle')}>
-                                    <BorderOutlined />
-                                    Diện tích
-                                </div>
-                                    <div className={cx('pillList')}>
-                                        {areaOptions.map((item) => (
-                                            <button
-                                                key={item.value}
-                                                type="button"
-                                                className={cx('pill', { selected: areaRange === item.value })}
-                                                onClick={() => setAreaRange(areaRange === item.value ? '' : item.value)}
-                                            >
-                                                {item.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <div className={cx('sidebarCard')}>
-                            <h3>Danh mục phổ biến</h3>
-                            <div className={cx('sidebarLinks')}>
-                                {categoryOptions.map((item) => (
-                                    <button
-                                        key={item.value}
-                                        type="button"
-                                        className={cx('sidebarLink', { selected: category === item.value })}
-                                        onClick={() => setCategory(category === item.value ? '' : item.value)}
-                                    >
-                                        <span>{item.label}</span>
-                                        <small>Lọc nhanh theo nhu cầu</small>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </aside>
-
-                    <div className={cx('resultsColumn')}>
-                        <section className={cx('listingSection')}>
-                            <div className={cx('sectionHeader')}>
-                                <div>
-                                    <span className={cx('panelEyebrow')}>Danh sách phòng trọ</span>
-                                    <h2>Kết quả đã được đọc và được sắp xếp rõ ràng</h2>
-                                </div>
-                                <div className={cx('sectionMeta')}>
-                                    <span className={cx('metaBadge')}>
-                                        <ThunderboltOutlined />
-                                        {activeFilterCount} bộ lọc đang áp dụng
-                                    </span>
-                                    <span className={cx('metaBadge')}>
-                                        <ClockCircleOutlined />
-                                        Cập nhật liên tục theo dữ liệu mới
-                                    </span>
-                                </div>
+                            <div className={cx('quickSelect')}>
+                                <label>Mức giá</label>
+                                <select value={priceRange} onChange={(event) => setPriceRange(event.target.value)}>
+                                    <option value="">Tất cả mức giá</option>
+                                    {priceOptions.map((item) => (
+                                        <option key={item.value} value={item.value}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            <div className={cx('listContent')}>
-                                {dataPost.length > 0 ? (
-                                    dataPost.map((post) => <CardBody key={post._id} post={post} />)
-                                ) : (
-                                    <div className={cx('emptyState')}>
-                                        <h3>Chưa có kết quả phù hợp</h3>
-                                        <p>Thu doi bo loc gia, dien tich hoac loai tin de tim duoc nhieu lua chon hon.</p>
-                                        <button type="button" onClick={resetFilters}>
-                                            Xóa bộ lọc và xem tất cả
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        <div className={cx('supportGrid')}>
-                            <div className={cx('sidebarCard')}>
-                                <h3>Tin moi dang</h3>
-                                <div className={cx('miniPosts')}>{renderMiniPosts(dataNewPost)}</div>
-                            </div>
-
-                            <div className={cx('sidebarCard')}>
-                                <h3>Goi y gan ban</h3>
-                                <div className={cx('miniPosts')}>{renderMiniPosts(dataPostSuggest)}</div>
+                            <div className={cx('quickSelect')}>
+                                <label>Diện tích</label>
+                                <select value={areaRange} onChange={(event) => setAreaRange(event.target.value)}>
+                                    <option value="">Tất cả diện tích</option>
+                                    {areaOptions.map((item) => (
+                                        <option key={item.value} value={item.value}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div className={cx('heroPreview')} aria-label="Một số tin đăng nổi bật">
+                    {featuredPosts.length > 0 ? (
+                        featuredPosts.map((post, index) => (
+                            <Link
+                                to={`/chi-tiet-tin-dang/${post._id}`}
+                                key={post._id}
+                                className={cx('previewTile', { large: index === 0 })}
+                            >
+                                <img src={post.images?.[0] || imgDefault} alt={post.title} />
+                                <span>{post.price?.toLocaleString('vi-VN')} VNĐ/tháng</span>
+                            </Link>
+                        ))
+                    ) : (
+                        <div className={cx('previewEmpty')}>
+                            <ApartmentOutlined />
+                            <span>Đang tải tin đăng</span>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <section className={cx('summaryBar')}>
+                <div className={cx('summaryItem')}>
+                    <ApartmentOutlined />
+                    <strong>{dataPost.length}</strong>
+                    <span>Tin đang hiển thị</span>
+                </div>
+                <div className={cx('summaryItem')}>
+                    <FireOutlined />
+                    <strong>{dataNewPost.length}</strong>
+                    <span>Tin mới đăng</span>
+                </div>
+                <div className={cx('summaryItem')}>
+                    <AimOutlined />
+                    <strong>{dataPostSuggest.length}</strong>
+                    <span>Gợi ý gần bạn</span>
+                </div>
+                <div className={cx('summaryItem')}>
+                    <ThunderboltOutlined />
+                    <strong>{activeFilterCount}</strong>
+                    <span>Bộ lọc đang bật</span>
+                </div>
+            </section>
+
+            <section className={cx('activeFilters')}>
+                <div>
+                    <span className={cx('sectionKicker')}>Bộ lọc hiện tại</span>
+                    <h2>Kết quả thay đổi ngay khi bạn chọn tiêu chí</h2>
+                </div>
+
+                <div className={cx('activeFilterActions')}>
+                    {activeFilters.length > 0 ? (
+                        activeFilters.map((item) => (
+                            <button key={item.key} type="button" className={cx('filterChip')} onClick={item.onClear}>
+                                <span>{item.label}</span>
+                                <strong>{item.value}</strong>
+                            </button>
+                        ))
+                    ) : (
+                        <p>Chưa chọn bộ lọc. Bạn có thể lọc theo loại hình, giá hoặc diện tích để thu hẹp kết quả.</p>
+                    )}
+                    {activeFilterCount > 0 ? (
+                        <button type="button" className={cx('resetButton')} onClick={resetFilters}>
+                            <ReloadOutlined />
+                            Đặt lại
+                        </button>
+                    ) : null}
+                </div>
+            </section>
+
+            <div className={cx('contentGrid')}>
+                <aside className={cx('filterColumn')}>
+                    <section className={cx('filterPanel')}>
+                        <div className={cx('panelHeader')}>
+                            <div>
+                                <span className={cx('sectionKicker')}>Lọc nhanh</span>
+                                <h2>Chọn tiêu chí thuê phòng</h2>
+                            </div>
+                            <button type="button" onClick={resetFilters} aria-label="Đặt lại bộ lọc">
+                                <ReloadOutlined />
+                            </button>
+                        </div>
+
+                        <div className={cx('filterGroup')}>
+                            <h3>
+                                <ApartmentOutlined />
+                                Loại hình
+                            </h3>
+                            <div className={cx('pillList')}>
+                                {categoryOptions.map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        className={cx('pill', { selected: category === item.value })}
+                                        onClick={() => setCategory(category === item.value ? '' : item.value)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={cx('filterGroup')}>
+                            <h3>
+                                <TagOutlined />
+                                Mức giá
+                            </h3>
+                            <div className={cx('pillList')}>
+                                {priceOptions.map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        className={cx('pill', { selected: priceRange === item.value })}
+                                        onClick={() => setPriceRange(priceRange === item.value ? '' : item.value)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={cx('filterGroup')}>
+                            <h3>
+                                <BorderOutlined />
+                                Diện tích
+                            </h3>
+                            <div className={cx('pillList')}>
+                                {areaOptions.map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        className={cx('pill', { selected: areaRange === item.value })}
+                                        onClick={() => setAreaRange(areaRange === item.value ? '' : item.value)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={cx('filterGroup')}>
+                            <h3>
+                                <ClockCircleOutlined />
+                                Loại tin
+                            </h3>
+                            <div className={cx('typeList')}>
+                                {typeNewsOptions.map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        className={cx('typeOption', { selected: typeNews === item.value })}
+                                        onClick={() => setTypeNews(typeNews === item.value ? '' : item.value)}
+                                    >
+                                        <strong>{item.label}</strong>
+                                        <span>{item.description}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+
+                <section className={cx('resultsPanel')}>
+                    <div className={cx('resultsHeader')}>
+                        <div>
+                            <span className={cx('sectionKicker')}>Danh sách tin đăng</span>
+                            <h2>{dataPost.length} lựa chọn phù hợp</h2>
+                        </div>
+                        <div className={cx('resultsMeta')}>
+                            <span>
+                                <EnvironmentOutlined />
+                                Ưu tiên tin còn hoạt động
+                            </span>
+                            <span>
+                                <ClockCircleOutlined />
+                                Cập nhật theo dữ liệu mới
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className={cx('postList')}>
+                        {dataPost.length > 0 ? (
+                            dataPost.map((post) => <CardBody key={post._id} post={post} />)
+                        ) : (
+                            <div className={cx('emptyState')}>
+                                <h3>Chưa có kết quả phù hợp</h3>
+                                <p>Hãy thử nới mức giá, diện tích hoặc bỏ bớt bộ lọc để xem thêm lựa chọn.</p>
+                                <button type="button" onClick={resetFilters}>
+                                    Xem tất cả tin
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                <aside className={cx('sideColumn')}>
+                    <section className={cx('sidePanel')}>
+                        <h2>Tin mới đăng</h2>
+                        <div className={cx('miniPostList')}>{renderMiniPosts(dataNewPost)}</div>
+                    </section>
+
+                    <section className={cx('sidePanel')}>
+                        <h2>Gợi ý gần bạn</h2>
+                        <div className={cx('miniPostList')}>{renderMiniPosts(dataPostSuggest)}</div>
+                    </section>
+                </aside>
             </div>
-        </div>
+        </main>
     );
 }
 

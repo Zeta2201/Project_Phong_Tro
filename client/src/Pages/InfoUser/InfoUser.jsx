@@ -1,13 +1,14 @@
 import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PersonalInfo from './Components/PersonalInfo/PersonalInfo';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import { useStore } from '../../hooks/useStore';
 import RechargeUser from './Components/RechargeUser/RechargeUser';
 import ChangePassword from './Components/ChangePassword/ChangePassword';
+import ManagerReservation from './Components/ManagerReservation/ManagerReservation';
 
 import userNotFound from '../../assets/images/img_default.png';
 
@@ -19,7 +20,11 @@ function InfoUser() {
     const initialTab = searchParams.get('tab');
     const [selectedMenu, setSelectedMenu] = useState(initialTab || 'personal');
 
-    const { dataUser } = useStore();
+    const { dataUser, fetchAuth } = useStore();
+
+    useEffect(() => {
+        fetchAuth();
+    }, []);
 
     const menuItems = [
         {
@@ -36,6 +41,11 @@ function InfoUser() {
             key: 'posts',
             icon: <FileTextOutlined />,
             label: 'Quản lý bài viết',
+        },
+        {
+            key: 'reservations',
+            icon: <ScheduleOutlined />,
+            label: 'Quản lý giữ chỗ',
         },
         {
             key: 'recharge',
@@ -71,7 +81,6 @@ function InfoUser() {
                     <div
                         style={{
                             textAlign: 'center',
-                            padding: '0 20px 20px',
                             background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
                             margin: '-20px -20px 20px -20px',
                             padding: '30px 20px',
@@ -126,6 +135,7 @@ function InfoUser() {
                                 <Title level={3} style={{ margin: 0 }}>
                                     {selectedMenu === 'personal' && 'Thông tin cá nhân'}
                                     {selectedMenu === 'posts' && 'Quản lý bài viết'}
+                                    {selectedMenu === 'reservations' && 'Quản lý giữ chỗ'}
                                     {selectedMenu === 'recharge' && 'Nạp tiền'}
                                     {selectedMenu === 'change-password' && 'Đổi mật khẩu'}
                                 </Title>
@@ -134,6 +144,7 @@ function InfoUser() {
                     >
                         {selectedMenu === 'personal' && <PersonalInfo />}
                         {selectedMenu === 'posts' && <ManagerPost />}
+                        {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
                         {selectedMenu === 'change-password' && <ChangePassword />}
                     </Card>

@@ -12,6 +12,7 @@ import userDefault from '../../assets/images/user-default.svg';
 import dayjs from 'dayjs';
 
 import {
+    requestCreateReservation,
     requestCreateFavourite,
     requestDeleteFavourite,
     requestGetPostById,
@@ -22,7 +23,7 @@ import { useStore } from '../../hooks/useStore';
 import { useSocket } from '../../hooks/useSocket';
 import Messager from '../../utils/Messager/Messager';
 import ChatButton from '../../utils/ChatButton/ChatButton';
-import { message, Modal, Select, Input } from 'antd';
+import { message, Modal, Select, Input, DatePicker } from 'antd';
 
 const cx = classNames.bind(styles);
 
@@ -38,6 +39,7 @@ function DetailPost() {
     const [userHeart, setUserHeart] = useState([]);
 
     const [postVip, setPostVip] = useState([]);
+    const isAvailable = (post?.availabilityStatus || 'available') === 'available';
 
     const fetchPost = async () => {
         const res = await requestGetPostById(id);
@@ -55,7 +57,7 @@ function DetailPost() {
     useEffect(() => {
         const fetchPostVip = async () => {
             const res = await requestGetPostVip();
-            setPostVip(res.metadata);
+            setPostVip((res.metadata || []).filter((item) => item?.status === 'active'));
         };
         fetchPostVip();
     }, []);
@@ -66,6 +68,9 @@ function DetailPost() {
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
+    const [reservationModalOpen, setReservationModalOpen] = useState(false);
+    const [reservationNote, setReservationNote] = useState('');
+    const [reservationVisitDate, setReservationVisitDate] = useState(null);
     const reportOptions = [
         { value: 'spam', label: 'Nội dung spam' },
         { value: 'wrong-info', label: 'Thông tin sai sự thật' },
@@ -123,6 +128,30 @@ function DetailPost() {
         }
     };
 
+    const handleSubmitReservation = async () => {
+        if (!dataUser?._id) {
+            message.warning('Vui lòng đăng nhập để gửi yêu cầu giữ chỗ');
+            return;
+        }
+        if (!isAvailable) {
+            message.warning('Phòng này hiện không còn trống');
+            return;
+        }
+        try {
+            await requestCreateReservation({
+                postId: post._id,
+                note: reservationNote,
+                visitDate: reservationVisitDate ? reservationVisitDate.toISOString() : null,
+            });
+            message.success('Đã gửi yêu cầu giữ chỗ cho chủ bài viết');
+            setReservationModalOpen(false);
+            setReservationNote('');
+            setReservationVisitDate(null);
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Gửi yêu cầu giữ chỗ thất bại');
+        }
+    };
+
     return (
         <div className={cx('wrapper')}>
             <main className={cx('container')}>
@@ -141,6 +170,9 @@ function DetailPost() {
 
                         <div className={cx('property-details')}>
                             <div className={cx('property-header')}>
+                                <span className={cx('availability-tag', { unavailable: !isAvailable })}>
+                                    {isAvailable ? 'Còn phòng' : 'Hết phòng'}
+                                </span>
                                 {post?.typeNews === 'vip' && <span className={cx('vip-tag')}>TIN VIP NỔI BẬT</span>}
                                 <h1 className={cx('property-title')}> {post?.title}</h1>
                                 <div className={cx('property-location')}>
@@ -217,6 +249,13 @@ function DetailPost() {
                                     <FontAwesomeIcon icon={faPhoneAlt} />
                                     {user?.phone || 'chưa cập nhật'}
                                 </a>
+                                <button
+                                    className={cx('btn', 'btn-reserve')}
+                                    disabled={!isAvailable}
+                                    onClick={() => setReservationModalOpen(true)}
+                                >
+                                    Giữ chỗ
+                                </button>
                                 <ChatButton
                                     userId={user._id}
                                     username={user.username || user.fullName}
@@ -245,6 +284,35 @@ function DetailPost() {
                                 </button>
                             </div>
                         </div>
+
+                        <Modal
+                            title="Yêu cầu giữ chỗ"
+                            open={reservationModalOpen}
+                            onCancel={() => setReservationModalOpen(false)}
+                            onOk={handleSubmitReservation}
+                            okText="Gửi yêu cầu"
+                            cancelText="Hủy"
+                        >
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ display: 'block', marginBottom: 8 }}>Ngày muốn xem phòng</label>
+                                <DatePicker
+                                    value={reservationVisitDate}
+                                    onChange={setReservationVisitDate}
+                                    style={{ width: '100%' }}
+                                    format="DD/MM/YYYY"
+                                    placeholder="Chọn ngày xem phòng"
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 8 }}>Ghi chú cho chủ phòng</label>
+                                <Input.TextArea
+                                    value={reservationNote}
+                                    onChange={(e) => setReservationNote(e.target.value)}
+                                    rows={4}
+                                    placeholder="Ví dụ: Tôi muốn giữ chỗ và hẹn xem phòng buổi tối..."
+                                />
+                            </div>
+                        </Modal>
 
                         <Modal
                         title="Báo cáo bài viết"
