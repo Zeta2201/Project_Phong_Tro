@@ -451,6 +451,264 @@
     }
 }
 
+.review-section {
+    margin: 10px 0;
+    padding: 20px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.review-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+    }
+}
+
+.review-score {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+
+    strong {
+        color: #0f766e;
+        font-size: 28px;
+        line-height: 1;
+    }
+
+    span {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+}
+
+.review-create-btn {
+    min-height: 40px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 6px;
+    background: #0f766e;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background: #115e59;
+    }
+}
+
+.rating-breakdown {
+    display: grid;
+    gap: 8px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.rating-row {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) 32px;
+    gap: 10px;
+    align-items: center;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 700;
+
+    div {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e7eb;
+    }
+
+    i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #f59e0b;
+    }
+
+    strong {
+        text-align: right;
+    }
+}
+
+.review-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.review-card {
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+
+    p {
+        margin: 12px 0 0;
+        color: #334155;
+        line-height: 1.6;
+    }
+}
+
+.review-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.review-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    img {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #f1f5f9;
+    }
+
+    div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    strong {
+        color: #111827;
+        font-size: 14px;
+    }
+
+    span {
+        color: #64748b;
+        font-size: 12px;
+    }
+}
+
+.review-subratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+
+    span {
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+    }
+}
+
+.review-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+
+    img {
+        width: 92px;
+        height: 72px;
+        border-radius: 6px;
+        object-fit: cover;
+    }
+}
+
+.review-reply {
+    margin-top: 12px;
+    padding: 12px;
+    border-left: 3px solid #0f766e;
+    border-radius: 6px;
+    background: #ecfdf5;
+
+    strong {
+        color: #0f766e;
+        font-size: 13px;
+    }
+
+    p {
+        margin-top: 6px;
+    }
+}
+
+.review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+
+    button {
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #fff;
+        color: #334155;
+        font-weight: 700;
+        cursor: pointer;
+
+        &:hover {
+            border-color: #0f766e;
+            color: #0f766e;
+        }
+    }
+}
+
+.review-empty {
+    padding: 18px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    text-align: center;
+}
+
+.review-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    span {
+        color: #334155;
+        font-weight: 700;
+    }
+}
+
+.review-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+
+    span {
+        color: #334155;
+        font-weight: 700;
+    }
+}
+
 .map-frame {
     border-radius: 8px;
     overflow: hidden;

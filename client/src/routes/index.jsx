@@ -11,6 +11,7 @@ import Layout from '../Components/Layout/Layout';
 import HomePage from '../Components/HomePage/HomePage';
 import Terms from '../Pages/Terms/Terms';
 import FavouritePosts from '../Pages/FavouritePosts/FavouritePosts';
+import Pricing from '../Pages/Pricing/Pricing';
 
 export const publicRoutes = [
     {
@@ -24,6 +25,7 @@ export const publicRoutes = [
             { path: 'search/:value', element: <AISearch /> },
             { path: 'contact', element: <Contact /> },
             { path: 'terms', element: <Terms /> },
+            { path: 'bang-gia', element: <Pricing /> },
             { path: 'tin-yeu-thich', element: <FavouritePosts /> },
         ],
     },

@@ -5,6 +5,7 @@ const messengerRoutes = require('./messenger.routes');
 const favouriteRoutes = require('./favourite.routes');
 const reportRoutes = require('./report.routes');
 const reservationRoutes = require('./reservation.routes');
+const reviewRoutes = require('./review.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -53,6 +54,16 @@ function routes(app) {
     app.post('/api/create-reservation', reservationRoutes);
     app.get('/api/get-reservations', reservationRoutes);
     app.post('/api/update-reservation', reservationRoutes);
+
+    /// reviews
+    app.get('/api/get-reviews-by-room', reviewRoutes);
+    app.post('/api/create-review', reviewRoutes);
+    app.post('/api/update-review', reviewRoutes);
+    app.post('/api/delete-review', reviewRoutes);
+    app.post('/api/reply-review', reviewRoutes);
+    app.post('/api/report-review', reviewRoutes);
+    app.get('/api/admin/reviews', reviewRoutes);
+    app.post('/api/admin/update-review-status', reviewRoutes);
 
     /// posts
     app.post('/api/create-post', postRoutes);

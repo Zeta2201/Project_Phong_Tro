@@ -186,7 +186,7 @@ function HomePage() {
                             <CompassOutlined />
                             Tìm phòng trọ và nhà cho thuê
                         </span>
-                        <h1>Tìm nơi ở phù hợp nhanh hơn, rõ ràng hơn.</h1>
+                        <h2>Tìm nơi ở phù hợp nhanh hơn, rõ ràng hơn.</h2>
                         <p>
                             Lọc theo loại hình, mức giá và diện tích ngay trên trang chủ. Kết quả được trình bày gọn,
                             dễ so sánh và ưu tiên những thông tin quan trọng khi thuê phòng.

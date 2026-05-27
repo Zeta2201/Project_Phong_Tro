@@ -74,6 +74,14 @@ const modelPost = new Schema(
             type: Date,
             required: true,
         },
+        ratingAverage: {
+            type: Number,
+            default: 0,
+        },
+        ratingCount: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,

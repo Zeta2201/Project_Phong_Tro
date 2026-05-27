@@ -33,24 +33,24 @@ function FavouritePosts() {
 
     return (
         <div className={cx('page')}>
-            <section className={cx('hero')}>
-                <span className={cx('eyebrow')}>Khong gian rieng cua ban</span>
-                <h1>Tin yeu thich</h1>
+            {/* <section className={cx('hero')}>
+                <span className={cx('eyebrow')}>Không gian riêng của bạn </span>
+                <h2>Tin yêu thích</h2>
                 <p>Luu lai nhung bai dang ban quan tam de xem lai nhanh hon va so sanh de dang hon.</p>
-            </section>
+            </section> */}
 
             <section className={cx('content')}>
                 <div className={cx('headerRow')}>
                     <div>
-                        <h2>Danh sach da luu</h2>
-                        <span>{loading ? 'Dang tai du lieu...' : `${posts.length} tin dang trong danh sach yeu thich`}</span>
+                        <h2>Danh sách đã lưu</h2>
+                        <span>{loading ? 'Dang tải dữ liệu...' : `${posts.length} tin đang trong danh sách yêu thích`}</span>
                     </div>
                 </div>
 
                 {loading ? (
                     <div className={cx('emptyState')}>
-                        <h3>Dang tai tin yeu thich</h3>
-                        <p>Du lieu dang duoc cap nhat, vui long doi trong giay lat.</p>
+                        <h3>Đang tải tin yêu thích</h3>
+                        <p>Dữ liệu đang được cập nhật, vui lòng đợi trong giây lát.</p>
                     </div>
                 ) : posts.length > 0 ? (
                     <div className={cx('list')}>
@@ -60,8 +60,8 @@ function FavouritePosts() {
                     </div>
                 ) : (
                     <div className={cx('emptyState')}>
-                        <h3>Ban chua luu tin nao</h3>
-                        <p>Hay mo mot bai dang va bam nut luu tin de dua vao danh sach yeu thich.</p>
+                        <h3>Bạn chưa lưu tin nào</h3>
+                        <p>Hãy mở một bài đăng và bấm nút "Lưu tin" để đưa vào danh sách yêu thích.</p>
                     </div>
                 )}
             </section>

@@ -10,6 +10,7 @@ import {
     DollarOutlined,
     GlobalOutlined,
     LogoutOutlined,
+    StarOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { requestGetAdmin, requestLogout } from '../../config/request';
@@ -21,6 +22,7 @@ import ManagerUser from './Components/ManagerUser/ManagerUser';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import ManagerRechange from './Components/ManagerRechange/ManagerRechange';
 import ManagerReports from './Components/ManagerReports/ManagerReports';
+import ManagerReviews from './Components/ManagerReviews/ManagerReviews';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -30,17 +32,16 @@ function Admin() {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const { clearAuthState } = useStore();
-
     const [type, setType] = useState('dashboard');
 
     const handleLogout = async () => {
         try {
             await requestLogout();
             clearAuthState();
-            message.success('Đăng xuất thành công');
+            message.success('Dang xuat thanh cong');
             navigate('/login');
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Đăng xuất thất bại');
+            message.error(error?.response?.data?.message || 'Dang xuat that bai');
         }
     };
 
@@ -60,31 +61,37 @@ function Admin() {
         {
             key: 'dashboard',
             icon: <DashboardOutlined />,
-            label: 'Trang chủ',
+            label: 'Trang chu',
             onClick: () => setType('dashboard'),
         },
         {
             key: 'users',
             icon: <UserOutlined />,
-            label: 'Quản lý người dùng',
+            label: 'Quan ly nguoi dung',
             onClick: () => setType('users'),
         },
         {
             key: 'posts',
             icon: <HomeOutlined />,
-            label: 'Quản lý bài viết',
+            label: 'Quan ly bai viet',
             onClick: () => setType('posts'),
         },
         {
             key: 'reports',
             icon: <GlobalOutlined />,
-            label: 'Quản lý báo cáo',
+            label: 'Quan ly bao cao',
             onClick: () => setType('reports'),
+        },
+        {
+            key: 'reviews',
+            icon: <StarOutlined />,
+            label: 'Quan ly danh gia',
+            onClick: () => setType('reviews'),
         },
         {
             key: 'transactions',
             icon: <DollarOutlined />,
-            label: 'Quản lý giao dịch',
+            label: 'Quan ly giao dich',
             onClick: () => setType('transactions'),
         },
     ];
@@ -103,13 +110,7 @@ function Admin() {
                         </div>
                     )}
                 </div>
-                <Menu
-                    theme="dark"
-                    mode="inline"
-                    defaultSelectedKeys={['dashboard']}
-                    items={menuItems}
-                    className={cx('menu')}
-                />
+                <Menu theme="dark" mode="inline" defaultSelectedKeys={['dashboard']} items={menuItems} className={cx('menu')} />
             </Sider>
             <Layout>
                 <Header className={cx('header')}>
@@ -122,7 +123,7 @@ function Admin() {
                     </div>
                     <div className={cx('header-right')}>
                         <Button type="primary" icon={<LogoutOutlined />} danger onClick={handleLogout}>
-                            Đăng xuất
+                            Dang xuat
                         </Button>
                     </div>
                 </Header>
@@ -131,6 +132,7 @@ function Admin() {
                     {type === 'users' && <ManagerUser />}
                     {type === 'posts' && <ManagerPost />}
                     {type === 'reports' && <ManagerReports />}
+                    {type === 'reviews' && <ManagerReviews />}
                     {type === 'transactions' && <ManagerRechange />}
                 </Content>
             </Layout>

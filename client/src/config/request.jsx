@@ -241,6 +241,48 @@ export const requestUpdateReservation = async (data) => {
     return res.data;
 };
 
+//// reviews
+
+export const requestGetReviewsByRoom = async (roomId) => {
+    const res = await request.get('/api/get-reviews-by-room', { params: { roomId } });
+    return res.data;
+};
+
+export const requestCreateReview = async (data) => {
+    const res = await request.post('/api/create-review', data);
+    return res.data;
+};
+
+export const requestUpdateReview = async (data) => {
+    const res = await request.post('/api/update-review', data);
+    return res.data;
+};
+
+export const requestDeleteReview = async (data) => {
+    const res = await request.post('/api/delete-review', data);
+    return res.data;
+};
+
+export const requestReplyReview = async (data) => {
+    const res = await request.post('/api/reply-review', data);
+    return res.data;
+};
+
+export const requestReportReview = async (data) => {
+    const res = await request.post('/api/report-review', data);
+    return res.data;
+};
+
+export const requestGetAdminReviews = async (params = {}) => {
+    const res = await request.get('/api/admin/reviews', { params });
+    return res.data;
+};
+
+export const requestUpdateReviewStatus = async (data) => {
+    const res = await request.post('/api/admin/update-review-status', data);
+    return res.data;
+};
+
 //// messenger
 
 export const requestCreateMessage = async (data) => {
