@@ -11,6 +11,10 @@ import {
     GlobalOutlined,
     LogoutOutlined,
     StarOutlined,
+    MailOutlined,
+    CommentOutlined,
+    SafetyCertificateOutlined,
+    FilterOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { requestGetAdmin, requestLogout } from '../../config/request';
@@ -23,6 +27,10 @@ import ManagerPost from './Components/ManagerPost/ManagerPost';
 import ManagerRechange from './Components/ManagerRechange/ManagerRechange';
 import ManagerReports from './Components/ManagerReports/ManagerReports';
 import ManagerReviews from './Components/ManagerReviews/ManagerReviews';
+import ManagerContacts from './Components/ManagerContacts/ManagerContacts';
+import ManagerComments from './Components/ManagerComments/ManagerComments';
+import ManagerDeposits from './Components/ManagerDeposits/ManagerDeposits';
+import ManagerFilters from './Components/ManagerFilters/ManagerFilters';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -61,38 +69,62 @@ function Admin() {
         {
             key: 'dashboard',
             icon: <DashboardOutlined />,
-            label: 'Trang chu',
+            label: 'Trang chủ',
             onClick: () => setType('dashboard'),
         },
         {
             key: 'users',
             icon: <UserOutlined />,
-            label: 'Quan ly nguoi dung',
+            label: 'Quản lý người dùng',
             onClick: () => setType('users'),
         },
         {
             key: 'posts',
             icon: <HomeOutlined />,
-            label: 'Quan ly bai viet',
+            label: 'Quản lý bài viết',
             onClick: () => setType('posts'),
         },
         {
             key: 'reports',
             icon: <GlobalOutlined />,
-            label: 'Quan ly bao cao',
+            label: 'Quản lý báo cáo',
             onClick: () => setType('reports'),
         },
         {
             key: 'reviews',
             icon: <StarOutlined />,
-            label: 'Quan ly danh gia',
+            label: 'Quản lý đánh giá',
             onClick: () => setType('reviews'),
         },
         {
             key: 'transactions',
             icon: <DollarOutlined />,
-            label: 'Quan ly giao dich',
+            label: 'Quản lý giao dịch',
             onClick: () => setType('transactions'),
+        },
+        {
+            key: 'contacts',
+            icon: <MailOutlined />,
+            label: 'Quản lý liên hệ',
+            onClick: () => setType('contacts'),
+        },
+        {
+            key: 'comments',
+            icon: <CommentOutlined />,
+            label: 'Quản lý bình luận',
+            onClick: () => setType('comments'),
+        },
+        {
+            key: 'deposits',
+            icon: <SafetyCertificateOutlined />,
+            label: 'Quản lý giao dịch cọc',
+            onClick: () => setType('deposits'),
+        },
+        {
+            key: 'filters',
+            icon: <FilterOutlined />,
+            label: 'Quản lý bộ lọc',
+            onClick: () => setType('filters'),
         },
     ];
 
@@ -123,7 +155,7 @@ function Admin() {
                     </div>
                     <div className={cx('header-right')}>
                         <Button type="primary" icon={<LogoutOutlined />} danger onClick={handleLogout}>
-                            Dang xuat
+                            Đăng xuất
                         </Button>
                     </div>
                 </Header>
@@ -134,6 +166,10 @@ function Admin() {
                     {type === 'reports' && <ManagerReports />}
                     {type === 'reviews' && <ManagerReviews />}
                     {type === 'transactions' && <ManagerRechange />}
+                    {type === 'contacts' && <ManagerContacts />}
+                    {type === 'comments' && <ManagerComments />}
+                    {type === 'deposits' && <ManagerDeposits />}
+                    {type === 'filters' && <ManagerFilters />}
                 </Content>
             </Layout>
         </Layout>

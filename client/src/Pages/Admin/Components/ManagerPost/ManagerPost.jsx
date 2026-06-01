@@ -110,9 +110,14 @@ function ManagerPost() {
     };
 
     const getAvailabilityConfig = (availabilityStatus) => {
-        return availabilityStatus === 'unavailable'
-            ? { color: 'red', text: 'Het phong' }
-            : { color: 'green', text: 'Con phong' };
+        return (
+            {
+                available: { color: 'green', text: 'Con phong' },
+                unavailable: { color: 'red', text: 'Het phong' },
+                reserved: { color: 'orange', text: 'Da giu coc' },
+                rented: { color: 'blue', text: 'Da cho thue' },
+            }[availabilityStatus || 'available'] || { color: 'default', text: availabilityStatus }
+        );
     };
 
     const columns = [

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { message } from 'antd';
 import styles from './Contact.module.scss';
+import { requestCreateContact } from '../../config/request';
 
 function Contact() {
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
+    const [submitting, setSubmitting] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!formData.name || !formData.email || !formData.message) {
@@ -17,8 +19,16 @@ function Contact() {
             return;
         }
 
-        message.success('Cám ơn bạn! Thông tin đã được gửi.');
-        setFormData({ name: '', email: '', phone: '', message: '' });
+        try {
+            setSubmitting(true);
+            const res = await requestCreateContact(formData);
+            message.success(res.message);
+            setFormData({ name: '', email: '', phone: '', message: '' });
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể gửi yêu cầu liên hệ');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -76,7 +86,9 @@ function Contact() {
                             Nội dung
                             <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Nhập nội dung cần hỗ trợ" rows="6" />
                         </label> 
-                        <button type="submit">Gửi</button>
+                        <button type="submit" disabled={submitting}>
+                            {submitting ? 'Đang gửi...' : 'Gửi'}
+                        </button>
                     </form>
                 </div>
             </div>

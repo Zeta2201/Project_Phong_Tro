@@ -2,12 +2,14 @@ const modelPost = require('../models/post.model');
 const modelUser = require('../models/users.model');
 const modelFavourite = require('../models/favourite.model');
 const modelReservation = require('../models/reservation.model');
+const modelDeposit = require('../models/deposit.model');
 
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 const SendMailApprove = require('../utils/SendMail/SendMailApprove');
 const SendMailReject = require('../utils/SendMail/SendMailReject');
 const { getPostingFeeByPlan, inferPostingFeeFromPost } = require('../utils/postingFee');
+const { buildNumericCondition, ensureDefaultFilterOptions, getActiveFilterOption } = require('../services/filterOption.service');
 
 const expireAcceptedReservations = async () => {
     const now = new Date();
@@ -29,7 +31,10 @@ const expireAcceptedReservations = async () => {
         });
 
         if (!activeReservation) {
-            await modelPost.findByIdAndUpdate(reservation.postId, { availabilityStatus: 'available' });
+            await modelPost.findOneAndUpdate(
+                { _id: reservation.postId, availabilityStatus: 'unavailable' },
+                { availabilityStatus: 'available' },
+            );
         }
     }
 };
@@ -140,48 +145,22 @@ class controllerPosts {
 
     async getPosts(req, res) {
         await expireAcceptedReservations();
+        await ensureDefaultFilterOptions();
         const { category, priceRange, areaRange, typeNews } = req.query;
 
         const filter = { status: 'active' };
 
-        if (category) {
-            filter.category = category;
-        }
+        const [categoryOption, typeNewsOption, priceOption, areaOption] = await Promise.all([
+            getActiveFilterOption('category', category),
+            getActiveFilterOption('typeNews', typeNews),
+            getActiveFilterOption('priceRange', priceRange),
+            getActiveFilterOption('areaRange', areaRange),
+        ]);
 
-        if (typeNews) {
-            filter.typeNews = typeNews;
-        }
-
-        if (priceRange) {
-            const priceConditions = {
-                'duoi-1-trieu': { $lt: 1000000 },
-                'tu-1-2-trieu': { $gte: 1000000, $lt: 2000000 },
-                'tu-2-3-trieu': { $gte: 2000000, $lt: 3000000 },
-                'tu-3-5-trieu': { $gte: 3000000, $lt: 5000000 },
-                'tu-5-7-trieu': { $gte: 5000000, $lt: 7000000 },
-                'tu-7-10-trieu': { $gte: 7000000, $lt: 10000000 },
-                'tu-10-15-trieu': { $gte: 10000000, $lt: 15000000 },
-                'tren-15-trieu': { $gte: 15000000 },
-            };
-            if (priceConditions[priceRange]) {
-                filter.price = priceConditions[priceRange];
-            }
-        }
-
-        // Implement area filtering now that 'area' field is Number type
-        if (areaRange) {
-            const areaConditions = {
-                'duoi-20': { $lt: 20 },
-                'tu-20-30': { $gte: 20, $lt: 30 },
-                'tu-30-50': { $gte: 30, $lt: 50 },
-                'tu-50-70': { $gte: 50, $lt: 70 },
-                'tu-70-90': { $gte: 70, $lt: 90 },
-                'tren-90': { $gte: 90 },
-            };
-            if (areaConditions[areaRange]) {
-                filter.area = areaConditions[areaRange];
-            }
-        }
+        if (categoryOption) filter.category = categoryOption.value;
+        if (typeNewsOption) filter.typeNews = typeNewsOption.value;
+        if (priceOption) filter.price = buildNumericCondition(priceOption);
+        if (areaOption) filter.area = buildNumericCondition(areaOption);
 
         const dataPost = await modelPost.find(filter).sort({ createdAt: -1 });
 
@@ -274,10 +253,21 @@ class controllerPosts {
     }
 
     async deletePost(req, res) {
+        const { id: userId } = req.user;
         const { id } = req.body;
         const findPost = await modelPost.findById(id);
         if (!findPost) {
             throw new BadRequestError('Post not found');
+        }
+        if (findPost.userId.toString() !== userId) {
+            throw new BadRequestError('Bạn không có quyền xóa bài viết này');
+        }
+        const activeDeposit = await modelDeposit.exists({
+            roomId: id,
+            status: { $in: ['pending', 'holding', 'disputed'] },
+        });
+        if (activeDeposit) {
+            throw new BadRequestError('Phòng đang có giao dịch cọc, không thể xóa bài viết');
         }
         await modelPost.findByIdAndDelete(id);
         await modelFavourite.deleteMany({ postId: id });
@@ -303,6 +293,14 @@ class controllerPosts {
 
         if (findPost.userId.toString() !== userId) {
             throw new BadRequestError('Bạn không có quyền cập nhật bài viết này');
+        }
+
+        const activeDeposit = await modelDeposit.exists({
+            roomId: id,
+            status: { $in: ['holding', 'disputed'] },
+        });
+        if (activeDeposit) {
+            throw new BadRequestError('Phòng đang có giao dịch cọc, không thể cập nhật thủ công');
         }
 
         const updatedPost = await modelPost.findByIdAndUpdate(id, { availabilityStatus }, { new: true });

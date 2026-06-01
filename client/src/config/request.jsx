@@ -204,6 +204,33 @@ export const requestGetPosts = async (params) => {
     return res.data;
 };
 
+//// filter options
+
+export const requestGetFilterOptions = async () => {
+    const res = await request.get('/api/filter-options');
+    return res.data;
+};
+
+export const requestGetAdminFilterOptions = async (params = {}) => {
+    const res = await request.get('/api/admin/filter-options', { params });
+    return res.data;
+};
+
+export const requestCreateFilterOption = async (data) => {
+    const res = await request.post('/api/admin/filter-options', data);
+    return res.data;
+};
+
+export const requestUpdateFilterOption = async (data) => {
+    const res = await request.post('/api/admin/update-filter-option', data);
+    return res.data;
+};
+
+export const requestToggleFilterOption = async (data) => {
+    const res = await request.post('/api/admin/toggle-filter-option', data);
+    return res.data;
+};
+
 export const requestGetPostById = async (id) => {
     const res = await request.get(`/api/get-post-by-id`, { params: { id } });
     return res.data;
@@ -238,6 +265,58 @@ export const requestGetReservations = async (params = {}) => {
 
 export const requestUpdateReservation = async (data) => {
     const res = await request.post('/api/update-reservation', data);
+    return res.data;
+};
+
+//// deposits
+
+export const requestCreateDeposit = async (data) => {
+    const res = await request.post('/api/deposits', data);
+    return res.data;
+};
+
+export const requestPayDeposit = async (data) => {
+    const res = await request.post('/api/deposits/pay', data);
+    return res.data;
+};
+
+export const requestGetMyDeposits = async () => {
+    const res = await request.get('/api/deposits/my');
+    return res.data;
+};
+
+export const requestGetLandlordDeposits = async () => {
+    const res = await request.get('/api/deposits/landlord');
+    return res.data;
+};
+
+export const requestTenantConfirmDeposit = async (data) => {
+    const res = await request.post('/api/deposits/tenant-confirm', data);
+    return res.data;
+};
+
+export const requestLandlordConfirmDeposit = async (data) => {
+    const res = await request.post('/api/deposits/landlord-confirm', data);
+    return res.data;
+};
+
+export const requestCancelDeposit = async (data) => {
+    const res = await request.post('/api/deposits/cancel', data);
+    return res.data;
+};
+
+export const requestDisputeDeposit = async (data) => {
+    const res = await request.post('/api/deposits/dispute', data);
+    return res.data;
+};
+
+export const requestGetAdminDeposits = async (params = {}) => {
+    const res = await request.get('/api/admin/deposits', { params });
+    return res.data;
+};
+
+export const requestAdminDepositAction = async (data) => {
+    const res = await request.post('/api/admin/deposits/action', data);
     return res.data;
 };
 
@@ -280,6 +359,50 @@ export const requestGetAdminReviews = async (params = {}) => {
 
 export const requestUpdateReviewStatus = async (data) => {
     const res = await request.post('/api/admin/update-review-status', data);
+    return res.data;
+};
+
+//// comments
+
+export const requestGetCommentsByPost = async (postId) => {
+    const res = await request.get('/api/get-comments-by-post', { params: { postId } });
+    return res.data;
+};
+
+export const requestCreateComment = async (data) => {
+    const res = await request.post('/api/create-comment', data);
+    return res.data;
+};
+
+export const requestDeleteComment = async (data) => {
+    const res = await request.post('/api/delete-comment', data);
+    return res.data;
+};
+
+export const requestGetAdminComments = async (params = {}) => {
+    const res = await request.get('/api/admin/comments', { params });
+    return res.data;
+};
+
+export const requestUpdateCommentStatus = async (data) => {
+    const res = await request.post('/api/admin/update-comment-status', data);
+    return res.data;
+};
+
+//// contacts
+
+export const requestCreateContact = async (data) => {
+    const res = await request.post('/api/create-contact', data);
+    return res.data;
+};
+
+export const requestGetContacts = async (params = {}) => {
+    const res = await request.get('/api/get-contacts', { params });
+    return res.data;
+};
+
+export const requestUpdateContact = async (data) => {
+    const res = await request.post('/api/update-contact', data);
     return res.data;
 };
 

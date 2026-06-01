@@ -6,6 +6,10 @@ const favouriteRoutes = require('./favourite.routes');
 const reportRoutes = require('./report.routes');
 const reservationRoutes = require('./reservation.routes');
 const reviewRoutes = require('./review.routes');
+const commentRoutes = require('./comment.routes');
+const contactRoutes = require('./contact.routes');
+const depositRoutes = require('./deposit.routes');
+const filterOptionRoutes = require('./filterOption.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -64,6 +68,39 @@ function routes(app) {
     app.post('/api/report-review', reviewRoutes);
     app.get('/api/admin/reviews', reviewRoutes);
     app.post('/api/admin/update-review-status', reviewRoutes);
+
+    /// comments
+    app.get('/api/get-comments-by-post', commentRoutes);
+    app.post('/api/create-comment', commentRoutes);
+    app.post('/api/delete-comment', commentRoutes);
+    app.get('/api/admin/comments', commentRoutes);
+    app.post('/api/admin/update-comment-status', commentRoutes);
+
+    /// contacts
+    app.post('/api/create-contact', contactRoutes);
+    app.get('/api/get-contacts', contactRoutes);
+    app.post('/api/update-contact', contactRoutes);
+
+    /// deposits
+    app.post('/api/deposits', depositRoutes);
+    app.post('/api/deposits/pay', depositRoutes);
+    app.get('/api/deposits/payment/momo-return', depositRoutes);
+    app.get('/api/deposits/payment/vnpay-return', depositRoutes);
+    app.get('/api/deposits/my', depositRoutes);
+    app.get('/api/deposits/landlord', depositRoutes);
+    app.post('/api/deposits/tenant-confirm', depositRoutes);
+    app.post('/api/deposits/landlord-confirm', depositRoutes);
+    app.post('/api/deposits/cancel', depositRoutes);
+    app.post('/api/deposits/dispute', depositRoutes);
+    app.get('/api/admin/deposits', depositRoutes);
+    app.post('/api/admin/deposits/action', depositRoutes);
+
+    /// filter options
+    app.get('/api/filter-options', filterOptionRoutes);
+    app.get('/api/admin/filter-options', filterOptionRoutes);
+    app.post('/api/admin/filter-options', filterOptionRoutes);
+    app.post('/api/admin/update-filter-option', filterOptionRoutes);
+    app.post('/api/admin/toggle-filter-option', filterOptionRoutes);
 
     /// posts
     app.post('/api/create-post', postRoutes);

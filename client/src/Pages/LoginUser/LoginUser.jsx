@@ -17,6 +17,7 @@ import { requestAuth, requestLogin, requestLoginGoogle } from '../../config/requ
 
 function LoginUser() {
     const [form] = Form.useForm();
+    const googleClientId = import.meta.env.VITE_CLIENT_ID;
 
     const navigate = useNavigate();
 
@@ -92,12 +93,16 @@ function LoginUser() {
                                 </div>
 
                                 <Form.Item>
-                                    <GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
-                                        <GoogleLogin
-                                            onSuccess={handleSuccess}
-                                            onError={() => console.log('Login Failed')}
-                                        />
-                                    </GoogleOAuthProvider>
+                                    {googleClientId ? (
+                                        <GoogleOAuthProvider clientId={googleClientId}>
+                                            <GoogleLogin
+                                                onSuccess={handleSuccess}
+                                                onError={() => message.error('Dang nhap Google that bai')}
+                                            />
+                                        </GoogleOAuthProvider>
+                                    ) : (
+                                        <Text type="danger">Chua cau hinh VITE_CLIENT_ID cho dang nhap Google.</Text>
+                                    )}
                                 </Form.Item>
 
                                 <Form.Item>

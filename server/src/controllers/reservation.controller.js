@@ -34,7 +34,10 @@ const expireReservations = async (postId = null) => {
         });
 
         if (!activeReservation) {
-            await modelPost.findByIdAndUpdate(reservation.postId, { availabilityStatus: 'available' });
+            await modelPost.findOneAndUpdate(
+                { _id: reservation.postId, availabilityStatus: 'unavailable' },
+                { availabilityStatus: 'available' },
+            );
         }
     }
 };

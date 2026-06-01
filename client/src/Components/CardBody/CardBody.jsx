@@ -13,13 +13,20 @@ const cx = classNames.bind(styles);
 
 function CardBody({ post }) {
     const isAvailable = (post.availabilityStatus || 'available') === 'available';
+    const availabilityLabel =
+        {
+            available: 'Còn phòng',
+            unavailable: 'Hết phòng',
+            reserved: 'Đã giữ cọc',
+            rented: 'Đã cho thuê',
+        }[post.availabilityStatus || 'available'] || 'Hết phòng';
 
     return (
         <div className={cx('list-item')}>
             <Link to={`/chi-tiet-tin-dang/${post._id}`}>
                 <div className={cx('parent')}>
                     <span className={cx('availability-badge', { unavailable: !isAvailable })}>
-                        {isAvailable ? 'Còn phòng' : 'Hết phòng'}
+                        {availabilityLabel}
                     </span>
                     <div className={cx('div1')}>
                         <img src={post.images?.[0] || imgDefault} alt={post.title} />

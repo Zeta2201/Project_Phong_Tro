@@ -348,6 +348,21 @@
             cursor: not-allowed;
         }
     }
+
+    &.btn-deposit {
+        background-color: #0f766e;
+        color: white;
+
+        &:hover {
+            background-color: #115e59;
+        }
+
+        &:disabled {
+            background-color: #d1d5db;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+    }
 }
 
 .action-buttons {
@@ -684,16 +699,25 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 14px;
+}
 
-    label {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
+.review-rating-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 
-    span {
-        color: #334155;
-        font-weight: 700;
+.review-rating-label {
+    color: #334155;
+    font-weight: 700;
+}
+
+.review-rating-input {
+    width: fit-content;
+    cursor: pointer;
+
+    :global(.ant-rate-star) {
+        cursor: pointer;
     }
 }
 
@@ -720,105 +744,118 @@
     }
 }
 
-.featured-listings {
+.comment-card {
     margin-top: 20px;
     background-color: #fff;
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+
 }
 
-.featured-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 16px;
+.comment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding-bottom: 12px;
     border-bottom: 1px solid #f0f0f0;
+
+    h3 {
+        margin: 0;
+        color: #1f2937;
+        font-size: 18px;
+    }
+
+    span {
+        min-width: 28px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+    }
 }
 
-.listing-item {
-    display: flex;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+.comment-form {
+    display: grid;
+    gap: 8px;
+    padding: 14px 0;
     border-bottom: 1px solid #f0f0f0;
 
-    &:last-child {
-        margin-bottom: 0;
-        padding-bottom: 0;
-        border-bottom: none;
-    }
-
-    &:hover {
-        .listing-name {
-            color: #e03c31;
-        }
+    button {
+        justify-self: flex-end;
     }
 }
 
-.listing-image {
-    position: relative;
-    width: 100px;
-    height: 75px;
-    margin-right: 12px;
-    border-radius: 6px;
-    overflow: hidden;
-    flex-shrink: 0;
+.comment-login-note,
+.comment-empty {
+    padding: 14px 0;
+    color: #64748b;
+    font-size: 13px;
+}
 
-    img {
-        width: 100%;
-        height: 100%;
+.comment-list {
+    display: grid;
+    gap: 12px;
+    max-height: 520px;
+    margin-top: 14px;
+    overflow-y: auto;
+}
+
+.comment-item {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+
+    > img {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        border-radius: 50%;
         object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-
-    &:hover img {
-        transform: scale(1.05);
+        background: #f1f5f9;
     }
 }
 
-.listing-tag {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: #e03c31;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 3px 6px;
-    border-bottom-right-radius: 6px;
-}
-
-.listing-content {
+.comment-body {
+    min-width: 0;
     flex: 1;
+
+    p {
+        margin: 5px 0 0;
+        color: #334155;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    button {
+        margin-top: 5px;
+        border: none;
+        background: transparent;
+        color: #dc2626;
+        cursor: pointer;
+        font-size: 12px;
+    }
+}
+
+.comment-meta {
     display: flex;
     flex-direction: column;
-}
+    gap: 1px;
 
-.listing-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    margin: 0 0 6px 0;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.2s ease;
-}
+    strong {
+        color: #111827;
+        font-size: 13px;
+    }
 
-.listing-price {
-    font-size: 14px;
-    font-weight: 600;
-    color: #e03c31;
-    margin-bottom: 4px;
-}
-
-.listing-time {
-    font-size: 12px;
-    color: #999;
-    margin-top: auto;
+    span {
+        color: #94a3b8;
+        font-size: 11px;
+    }
 }
 
 .right {

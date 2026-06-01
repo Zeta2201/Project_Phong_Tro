@@ -19,18 +19,18 @@ import dayjs from 'dayjs';
 
 import CardBody from '../CardBody/CardBody';
 import imgDefault from '../../assets/images/img_default.png';
-import { requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
+import { requestGetFilterOptions, requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
 
 const cx = classNames.bind(styles);
 
-const categoryOptions = [
+const defaultFilterOptions = {
+    category: [
     { value: 'phong-tro', label: 'Phòng trọ' },
     { value: 'nha-nguyen-can', label: 'Nhà nguyên căn' },
     { value: 'can-ho-chung-cu', label: 'Căn hộ chung cư' },
     { value: 'can-ho-mini', label: 'Căn hộ mini' },
-];
-
-const priceOptions = [
+    ],
+    priceRange: [
     { value: 'duoi-1-trieu', label: 'Dưới 1 triệu' },
     { value: 'tu-1-2-trieu', label: '1 - 2 triệu' },
     { value: 'tu-2-3-trieu', label: '2 - 3 triệu' },
@@ -39,18 +39,16 @@ const priceOptions = [
     { value: 'tu-7-10-trieu', label: '7 - 10 triệu' },
     { value: 'tu-10-15-trieu', label: '10 - 15 triệu' },
     { value: 'tren-15-trieu', label: 'Trên 15 triệu' },
-];
-
-const areaOptions = [
+    ],
+    areaRange: [
     { value: 'duoi-20', label: 'Dưới 20 m²' },
     { value: 'tu-20-30', label: '20 - 30 m²' },
     { value: 'tu-30-50', label: '30 - 50 m²' },
     { value: 'tu-50-70', label: '50 - 70 m²' },
     { value: 'tu-70-90', label: '70 - 90 m²' },
     { value: 'tren-90', label: 'Trên 90 m²' },
-];
-
-const typeNewsOptions = [
+    ],
+    typeNews: [
     {
         value: 'vip',
         label: 'Tin nổi bật',
@@ -61,9 +59,11 @@ const typeNewsOptions = [
         label: 'Tin mới đăng',
         description: 'Theo dõi các lựa chọn vừa được cập nhật.',
     },
-];
+    ],
+};
 
 const getOptionLabel = (options, value) => options.find((option) => option.value === value)?.label || '';
+const keepActiveSelection = (options, value) => (options.some((option) => option.value === value) ? value : '');
 
 const publicPostsOnly = (posts = []) => posts.filter((post) => post?.status === 'active');
 
@@ -71,6 +71,7 @@ function HomePage() {
     const [dataPost, setDataPost] = useState([]);
     const [dataNewPost, setDataNewPost] = useState([]);
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
+    const [filterOptions, setFilterOptions] = useState(defaultFilterOptions);
 
     useEffect(() => {
         document.title = 'Trang chủ';
@@ -82,6 +83,33 @@ function HomePage() {
     const [priceRange, setPriceRange] = useState(() => getQueryParam('priceRange') || '');
     const [areaRange, setAreaRange] = useState(() => getQueryParam('areaRange') || '');
     const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews') || '');
+    const categoryOptions = filterOptions.category;
+    const priceOptions = filterOptions.priceRange;
+    const areaOptions = filterOptions.areaRange;
+    const typeNewsOptions = filterOptions.typeNews;
+
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const res = await requestGetFilterOptions();
+                const options = res.metadata || [];
+                const groupedOptions = {
+                    category: options.filter((item) => item.field === 'category'),
+                    priceRange: options.filter((item) => item.field === 'priceRange'),
+                    areaRange: options.filter((item) => item.field === 'areaRange'),
+                    typeNews: options.filter((item) => item.field === 'typeNews'),
+                };
+                setFilterOptions(groupedOptions);
+                setCategory((value) => keepActiveSelection(groupedOptions.category, value));
+                setPriceRange((value) => keepActiveSelection(groupedOptions.priceRange, value));
+                setAreaRange((value) => keepActiveSelection(groupedOptions.areaRange, value));
+                setTypeNews((value) => keepActiveSelection(groupedOptions.typeNews, value));
+            } catch {
+                setFilterOptions(defaultFilterOptions);
+            }
+        };
+        fetchFilterOptions();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {

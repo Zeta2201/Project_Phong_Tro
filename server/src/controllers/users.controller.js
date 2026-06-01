@@ -14,10 +14,12 @@ const bcrypt = require('bcrypt');
 const CryptoJS = require('crypto-js');
 const jwt = require('jsonwebtoken');
 const otpGenerator = require('otp-generator');
-const { jwtDecode } = require('jwt-decode');
+const { google } = require('googleapis');
 
 const { AiSearchKeyword } = require('../utils/AISearch/AISearch');
 const { inferPostingFeeFromPost } = require('../utils/postingFee');
+
+const googleOAuthClient = new google.auth.OAuth2();
 
 const buildCookieOptions = (maxAge, httpOnly = true) => ({
     httpOnly,
@@ -98,7 +100,29 @@ class controllerUsers {
 
     async loginGoogle(req, res) {
         const { credential } = req.body;
-        const dataToken = jwtDecode(credential);
+        const googleClientId = process.env.GOOGLE_CLIENT_ID;
+        if (!googleClientId) {
+            throw new BadRequestError('Chua cau hinh GOOGLE_CLIENT_ID');
+        }
+        if (!credential) {
+            throw new BadRequestError('Khong nhan duoc Google credential');
+        }
+
+        let dataToken;
+        try {
+            const ticket = await googleOAuthClient.verifyIdToken({
+                idToken: credential,
+                audience: googleClientId,
+            });
+            dataToken = ticket.getPayload();
+        } catch {
+            throw new BadRequestError('Google credential khong hop le');
+        }
+
+        if (!dataToken?.email || dataToken.email_verified !== true) {
+            throw new BadRequestError('Email Google chua duoc xac minh');
+        }
+
         const user = await modelUser.findOne({ email: dataToken.email });
         if (user) {
             if (user.isActive === false) {

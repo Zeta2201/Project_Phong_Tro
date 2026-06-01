@@ -58,7 +58,7 @@ const modelPost = new Schema(
         availabilityStatus: {
             type: String,
             required: true,
-            enum: ['available', 'unavailable'],
+            enum: ['available', 'unavailable', 'reserved', 'rented'],
             default: 'available',
         },
         typeNews: {

@@ -154,12 +154,20 @@ function ManagerPost() {
             key: 'availabilityStatus',
             render: (availabilityStatus, record) => {
                 const isAvailable = (availabilityStatus || 'available') === 'available';
+                const availabilityConfig =
+                    {
+                        available: { color: 'green', text: 'Còn phòng' },
+                        unavailable: { color: 'red', text: 'Hết phòng' },
+                        reserved: { color: 'orange', text: 'Đã giữ cọc' },
+                        rented: { color: 'blue', text: 'Đã cho thuê' },
+                    }[availabilityStatus || 'available'] || { color: 'default', text: availabilityStatus };
                 return (
                     <Space direction="vertical" size={4}>
-                        <Tag color={isAvailable ? 'green' : 'red'}>{isAvailable ? 'Còn phòng' : 'Hết phòng'}</Tag>
+                        <Tag color={availabilityConfig.color}>{availabilityConfig.text}</Tag>
                         <Switch
                             size="small"
                             checked={isAvailable}
+                            disabled={['reserved', 'rented'].includes(availabilityStatus)}
                             checkedChildren="Còn"
                             unCheckedChildren="Hết"
                             onChange={(checked) => handleUpdateAvailability(record._id, checked)}

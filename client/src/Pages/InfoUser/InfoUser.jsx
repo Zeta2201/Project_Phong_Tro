@@ -1,5 +1,5 @@
 import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined } from '@ant-design/icons';
+import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { useStore } from '../../hooks/useStore';
 import RechargeUser from './Components/RechargeUser/RechargeUser';
 import ChangePassword from './Components/ChangePassword/ChangePassword';
 import ManagerReservation from './Components/ManagerReservation/ManagerReservation';
+import ManagerDeposit from './Components/ManagerDeposit/ManagerDeposit';
 
 import userNotFound from '../../assets/images/img_default.png';
 
@@ -51,6 +52,16 @@ function InfoUser() {
             key: 'recharge',
             icon: <DollarCircleOutlined />,
             label: 'Nạp tiền',
+        },
+        {
+            key: 'tenant-deposits',
+            icon: <SafetyCertificateOutlined />,
+            label: 'Lịch sử đặt cọc',
+        },
+        {
+            key: 'landlord-deposits',
+            icon: <SafetyCertificateOutlined />,
+            label: 'Quản lý cọc chủ trọ',
         },
     ];
 
@@ -138,6 +149,8 @@ function InfoUser() {
                                     {selectedMenu === 'reservations' && 'Quản lý giữ chỗ'}
                                     {selectedMenu === 'recharge' && 'Nạp tiền'}
                                     {selectedMenu === 'change-password' && 'Đổi mật khẩu'}
+                                    {selectedMenu === 'tenant-deposits' && 'Lịch sử đặt cọc'}
+                                    {selectedMenu === 'landlord-deposits' && 'Quản lý cọc chủ trọ'}
                                 </Title>
                             </div>
                         }
@@ -147,6 +160,8 @@ function InfoUser() {
                         {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
                         {selectedMenu === 'change-password' && <ChangePassword />}
+                        {selectedMenu === 'tenant-deposits' && <ManagerDeposit role="tenant" />}
+                        {selectedMenu === 'landlord-deposits' && <ManagerDeposit role="landlord" />}
                     </Card>
                 </Content>
             </Layout>

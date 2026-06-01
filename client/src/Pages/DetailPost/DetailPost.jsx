@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import classNames from 'classnames/bind';
 import styles from './DetailPost.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,14 +12,18 @@ import dayjs from 'dayjs';
 
 import userDefault from '../../assets/images/user-default.svg';
 import {
+    requestCreateComment,
+    requestCreateDeposit,
     requestCreateFavourite,
     requestCreateReservation,
     requestCreateReview,
+    requestDeleteComment,
     requestDeleteFavourite,
     requestDeleteReview,
+    requestGetCommentsByPost,
     requestGetPostById,
-    requestGetPostVip,
     requestGetReviewsByRoom,
+    requestPayDeposit,
     requestReplyReview,
     requestReportPost,
     requestReportReview,
@@ -61,7 +66,9 @@ function DetailPost() {
     const [user, setUser] = useState({});
     const [post, setPost] = useState({});
     const [userHeart, setUserHeart] = useState([]);
-    const [postVip, setPostVip] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [commentContent, setCommentContent] = useState('');
+    const [commentSubmitting, setCommentSubmitting] = useState(false);
 
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [reportReason, setReportReason] = useState('');
@@ -70,6 +77,10 @@ function DetailPost() {
     const [reservationModalOpen, setReservationModalOpen] = useState(false);
     const [reservationNote, setReservationNote] = useState('');
     const [reservationVisitDate, setReservationVisitDate] = useState(null);
+    const [depositModalOpen, setDepositModalOpen] = useState(false);
+    const [depositAmount, setDepositAmount] = useState('');
+    const [depositPaymentMethod, setDepositPaymentMethod] = useState('SIMULATED');
+    const [depositSubmitting, setDepositSubmitting] = useState(false);
 
     const [reviewSummary, setReviewSummary] = useState({ ratingAverage: 0, ratingCount: 0, distribution: {} });
     const [reviews, setReviews] = useState([]);
@@ -88,6 +99,13 @@ function DetailPost() {
     const [replyContent, setReplyContent] = useState('');
 
     const isAvailable = (post?.availabilityStatus || 'available') === 'available';
+    const availabilityLabel =
+        {
+            available: 'Còn phòng',
+            unavailable: 'Hết phòng',
+            reserved: 'Đã giữ cọc',
+            rented: 'Đã cho thuê',
+        }[post?.availabilityStatus || 'available'] || 'Hết phòng';
     const isFavourite = userHeart.find((item) => item === dataUser?._id);
     const isPostOwner = post?.userId === dataUser?._id || post?.userId?._id === dataUser?._id;
 
@@ -107,18 +125,16 @@ function DetailPost() {
         setReviewSummary(res.metadata?.summary || { ratingAverage: 0, ratingCount: 0, distribution: {} });
     };
 
+    const fetchComments = async () => {
+        const res = await requestGetCommentsByPost(id);
+        setComments(res.metadata || []);
+    };
+
     useEffect(() => {
         fetchPost();
         fetchReviews();
+        fetchComments();
     }, [id]);
-
-    useEffect(() => {
-        const fetchPostVip = async () => {
-            const res = await requestGetPostVip();
-            setPostVip((res.metadata || []).filter((item) => item?.status === 'active'));
-        };
-        fetchPostVip();
-    }, []);
 
     const handleCreateFavourite = async () => {
         try {
@@ -138,6 +154,48 @@ function DetailPost() {
         } catch (error) {
             message.error(error.response?.data?.message || 'Xoa tin luu that bai');
         }
+    };
+
+    const handleSubmitComment = async () => {
+        if (!dataUser?._id) {
+            message.warning('Vui long dang nhap de binh luan');
+            return;
+        }
+        if (!commentContent.trim()) {
+            message.warning('Vui long nhap noi dung binh luan');
+            return;
+        }
+
+        try {
+            setCommentSubmitting(true);
+            await requestCreateComment({ postId: post._id, content: commentContent });
+            setCommentContent('');
+            await fetchComments();
+            message.success('Da gui binh luan');
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Khong the gui binh luan');
+        } finally {
+            setCommentSubmitting(false);
+        }
+    };
+
+    const handleDeleteComment = (commentId) => {
+        Modal.confirm({
+            title: 'Xoa binh luan',
+            content: 'Ban co chac muon xoa binh luan nay?',
+            okText: 'Xoa',
+            cancelText: 'Huy',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    await requestDeleteComment({ commentId });
+                    await fetchComments();
+                    message.success('Da xoa binh luan');
+                } catch (error) {
+                    message.error(error.response?.data?.message || 'Khong the xoa binh luan');
+                }
+            },
+        });
     };
 
     const handleSubmitReport = async () => {
@@ -184,6 +242,38 @@ function DetailPost() {
         }
     };
 
+    const handleSubmitDeposit = async () => {
+        if (!dataUser?._id) {
+            message.warning('Vui long dang nhap de dat coc');
+            return;
+        }
+        if (!isAvailable) {
+            message.warning('Phong nay hien khong con trong');
+            return;
+        }
+
+        try {
+            setDepositSubmitting(true);
+            const created = await requestCreateDeposit({
+                roomId: post._id,
+                amount: Number(depositAmount),
+                paymentMethod: depositPaymentMethod,
+            });
+            const payment = await requestPayDeposit({ depositId: created.metadata._id });
+            message.success(payment.message);
+            setDepositModalOpen(false);
+            setDepositAmount('');
+            await fetchPost();
+            if (payment.metadata?.redirectUrl) {
+                window.location.href = payment.metadata.redirectUrl;
+            }
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể tạo yêu cầu đặt cọc');
+        } finally {
+            setDepositSubmitting(false);
+        }
+    };
+
     const getReviewImages = async () => {
         const existedImages = reviewImageFiles.filter((file) => file.url && !file.originFileObj).map((file) => file.url);
         const newImages = reviewImageFiles.filter((file) => file.originFileObj);
@@ -226,6 +316,10 @@ function DetailPost() {
             })),
         );
         setReviewModalOpen(true);
+    };
+
+    const handleReviewRatingChange = (field, value) => {
+        setReviewForm((current) => ({ ...current, [field]: value }));
     };
 
     const handleSubmitReview = async () => {
@@ -350,7 +444,7 @@ function DetailPost() {
                         <div className={cx('property-details')}>
                             <div className={cx('property-header')}>
                                 <span className={cx('availability-tag', { unavailable: !isAvailable })}>
-                                    {isAvailable ? 'Còn phòng' : 'Hết phòng'}
+                                    {availabilityLabel}
                                 </span>
                                 {post?.typeNews === 'vip' && <span className={cx('vip-tag')}>TIN VIP NOI BAT</span>}
                                 <h1 className={cx('property-title')}>{post?.title}</h1>
@@ -382,7 +476,7 @@ function DetailPost() {
                         </div>
 
                         <div className={cx('map-section')}>
-                            <h3 className={cx('section-title')}>Vi tri va ban do</h3>
+                            <h3 className={cx('section-title')}>Vị trí và bản đồ</h3>
                             <div className={cx('map-container')}>
                                 <div className={cx('address-bar')}>
                                     <FontAwesomeIcon icon={faMapMarkerAlt} className={cx('location-icon')} />
@@ -406,15 +500,15 @@ function DetailPost() {
                         <section className={cx('review-section')}>
                             <div className={cx('review-header')}>
                                 <div>
-                                    <h2>Danh gia phong tro</h2>
+                                    <h2>Đánh giá phòng trọ</h2>
                                     <div className={cx('review-score')}>
                                         <strong>{reviewSummary.ratingAverage || 0}</strong>
                                         <Rate disabled allowHalf value={reviewSummary.ratingAverage || 0} />
-                                        <span>{reviewSummary.ratingCount || 0} luot danh gia</span>
+                                        <span>{reviewSummary.ratingCount || 0} lượt đánh giá</span>
                                     </div>
                                 </div>
                                 <button type="button" className={cx('review-create-btn')} onClick={handleOpenCreateReview}>
-                                    Tao danh gia
+                                    Tạo đánh giá
                                 </button>
                             </div>
 
@@ -450,10 +544,10 @@ function DetailPost() {
                                             </div>
 
                                             <div className={cx('review-subratings')}>
-                                                <span>Ve sinh: {review.cleanlinessRating}/5</span>
+                                                <span>Vệ sinh: {review.cleanlinessRating}/5</span>
                                                 <span>An ninh: {review.securityRating}/5</span>
-                                                <span>Vi tri: {review.locationRating}/5</span>
-                                                <span>Gia: {review.priceRating}/5</span>
+                                                <span>Vị trí: {review.locationRating}/5</span>
+                                                <span>Giá: {review.priceRating}/5</span>
                                             </div>
 
                                             <p>{review.content}</p>
@@ -468,7 +562,7 @@ function DetailPost() {
 
                                             {review.reply?.content && (
                                                 <div className={cx('review-reply')}>
-                                                    <strong>Phan hoi tu chu tro</strong>
+                                                    <strong>Phản hồi từ chủ trọ</strong>
                                                     <p>{review.reply.content}</p>
                                                 </div>
                                             )}
@@ -477,26 +571,26 @@ function DetailPost() {
                                                 {isReviewOwner(review) && (
                                                     <>
                                                         <button type="button" onClick={() => handleOpenEditReview(review)}>
-                                                            Sua
+                                                            Sửa
                                                         </button>
                                                         <button type="button" onClick={() => handleDeleteReview(review)}>
-                                                            Xoa
+                                                            Xóa
                                                         </button>
                                                     </>
                                                 )}
                                                 {isPostOwner && !review.reply?.content && (
                                                     <button type="button" onClick={() => handleOpenReplyReview(review)}>
-                                                        Phan hoi
+                                                        Phản hồi
                                                     </button>
                                                 )}
                                                 <button type="button" onClick={() => handleOpenReportReview(review)}>
-                                                    Bao cao
+                                                    Báo cáo
                                                 </button>
                                             </div>
                                         </article>
                                     ))
                                 ) : (
-                                    <div className={cx('review-empty')}>Chua co danh gia nao cho phong nay.</div>
+                                    <div className={cx('review-empty')}>Chưa có đánh giá nào cho phòng này.</div>
                                 )}
                             </div>
                         </section>
@@ -517,7 +611,7 @@ function DetailPost() {
                                     <div className={cx('user-stats')}>
                                         <span>{user?.lengthPost} tin dang</span>
                                         <span className={cx('dot-separator')}></span>
-                                        <span>Tham gia tu: {dayjs(user?.createdAt).format('DD/MM/YYYY')}</span>
+                                        <span>Tham gia từ: {dayjs(user?.createdAt).format('DD/MM/YYYY')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -529,6 +623,9 @@ function DetailPost() {
                                 </a>
                                 <button className={cx('btn', 'btn-reserve')} disabled={!isAvailable} onClick={() => setReservationModalOpen(true)}>
                                     Giữ chỗ
+                                </button>
+                                <button className={cx('btn', 'btn-deposit')} disabled={!isAvailable} onClick={() => setDepositModalOpen(true)}>
+                                    Đặt cọc trung gian
                                 </button>
                                 <ChatButton
                                     userId={user._id}
@@ -543,45 +640,115 @@ function DetailPost() {
                             <div className={cx('action-buttons')}>
                                 <button onClick={isFavourite ? handleDeleteFavourite : handleCreateFavourite} className={cx('action-btn', { saved: isFavourite })}>
                                     <FontAwesomeIcon icon={faHeart} />
-                                    {isFavourite ? 'Da luu' : 'Luu tin'}
+                                    {isFavourite ? 'Đã lưu' : 'Lưu tin'}
                                 </button>
                                 <button className={cx('action-btn')}>
                                     <FontAwesomeIcon icon={faShareAlt} />
-                                    Chia se
+                                    Chia sẻ
                                 </button>
                                 <button className={cx('action-btn', 'report-btn')} onClick={() => setReportModalOpen(true)}>
                                     <FontAwesomeIcon icon={faFlag} />
-                                    Bao cao
+                                   Báo cáo
                                 </button>
                             </div>
                         </div>
 
-                        <div className={cx('featured-listings')}>
-                            <h3 className={cx('featured-title')}>Tin đăng nổi bật</h3>
-                            {postVip.map((item, index) => (
-                                <div className={cx('listing-item')} key={index}>
-                                    <div className={cx('listing-image')}>
-                                        <img src={item.images[0]} alt="Phong tro cao cap" />
-                                    </div>
-                                    <div className={cx('listing-content')}>
-                                        <h4 className={cx('listing-name')}>{item.title}</h4>
-                                        <div className={cx('listing-price')}>{item.price.toLocaleString()} VND/thang</div>
-                                        <div className={cx('listing-time')}>{dayjs(item.createdAt).format('DD/MM/YYYY')}</div>
-                                    </div>
+                        <div className={cx('comment-card')}>
+                            <div className={cx('comment-header')}>
+                                <h3>Bình luận</h3>
+                                <span>{comments.length}</span>
+                            </div>
+
+                            {dataUser?._id ? (
+                                <div className={cx('comment-form')}>
+                                    <Input.TextArea
+                                        value={commentContent}
+                                        onChange={(event) => setCommentContent(event.target.value)}
+                                        maxLength={1000}
+                                        rows={3}
+                                        placeholder="Nhập bình luận của bạn..."
+                                    />
+                                    <Button type="primary" loading={commentSubmitting} onClick={handleSubmitComment}>
+                                        Gửi bình luận
+                                    </Button>
                                 </div>
-                            ))}
+                            ) : (
+                                <p className={cx('comment-login-note')}>Vui lòng đăng nhập để bình luận.</p>
+                            )}
+
+                            <div className={cx('comment-list')}>
+                                {comments.length > 0 ? (
+                                    comments.map((comment) => (
+                                        <article className={cx('comment-item')} key={comment._id}>
+                                            <img src={comment.userId?.avatar || userDefault} alt="" />
+                                            <div className={cx('comment-body')}>
+                                                <div className={cx('comment-meta')}>
+                                                    <strong>{comment.userId?.fullName || 'Nguoi dung'}</strong>
+                                                    <span>{dayjs(comment.createdAt).format('DD/MM/YYYY HH:mm')}</span>
+                                                </div>
+                                                <p>{comment.content}</p>
+                                                {comment.userId?._id === dataUser?._id && (
+                                                    <button type="button" onClick={() => handleDeleteComment(comment._id)}>
+                                                        Xoa
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </article>
+                                    ))
+                                ) : (
+                                    <p className={cx('comment-empty')}>Chua co binh luan nao.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             </main>
 
             <Modal
-                title="Yeu cau giu cho"
+                title="Đặt cọc trung gian"
+                open={depositModalOpen}
+                onCancel={() => setDepositModalOpen(false)}
+                onOk={handleSubmitDeposit}
+                okText="Tao yeu cau va thanh toan"
+                cancelText="Huy"
+                confirmLoading={depositSubmitting}
+            >
+                <p style={{ marginBottom: 16 }}>
+                    So du hien tai: <strong>{(dataUser?.balance || 0).toLocaleString('vi-VN')} VND</strong>. He thong se tam giu
+                    tien coc trong vi cua ban khi tao yeu cau.
+                </p>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', marginBottom: 8 }}>So tien coc</label>
+                    <Input
+                        type="number"
+                        min={1}
+                        value={depositAmount}
+                        onChange={(event) => setDepositAmount(event.target.value)}
+                        placeholder="Nhap so tien coc"
+                    />
+                </div>
+                <div>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Phuong thuc thanh toan</label>
+                    <Select
+                        value={depositPaymentMethod}
+                        onChange={setDepositPaymentMethod}
+                        style={{ width: '100%' }}
+                        options={[
+                            { value: 'SIMULATED', label: 'Thanh toan bang so du (gia lap)' },
+                            { value: 'MOMO', label: 'MoMo sandbox' },
+                            { value: 'VNPAY', label: 'VNPay sandbox' },
+                        ]}
+                    />
+                </div>
+            </Modal>
+
+            <Modal
+                title="Yêu cầu giữ chỗ"
                 open={reservationModalOpen}
                 onCancel={() => setReservationModalOpen(false)}
                 onOk={handleSubmitReservation}
-                okText="Gui yeu cau"
-                cancelText="Huy"
+                okText="Gửi yêu cầu"
+                cancelText="Hủy"
             >
                 <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', marginBottom: 8 }}>Ngay muon xem phong</label>
@@ -650,10 +817,14 @@ function DetailPost() {
                         ['locationRating', 'Vi tri'],
                         ['priceRating', 'Gia ca'],
                     ].map(([field, label]) => (
-                        <label key={field}>
-                            <span>{label}</span>
-                            <Rate value={reviewForm[field]} onChange={(value) => setReviewForm((current) => ({ ...current, [field]: value }))} />
-                        </label>
+                        <div className={cx('review-rating-field')} key={field}>
+                            <span className={cx('review-rating-label')}>{label}</span>
+                            <Rate
+                                className={cx('review-rating-input')}
+                                value={reviewForm[field]}
+                                onChange={(value) => handleReviewRatingChange(field, value)}
+                            />
+                        </div>
                     ))}
                 </div>
                 <label className={cx('review-form-field')}>

@@ -114,6 +114,11 @@
                     &:hover {
                         background: #1d4ed8;
                     }
+
+                    &:disabled {
+                        cursor: not-allowed;
+                        opacity: 0.65;
+                    }
                 }
             }
         }

@@ -13,10 +13,11 @@ const { Text } = Typography;
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { requestRegister } from '../../config/request';
+import { requestLoginGoogle, requestRegister } from '../../config/request';
 
 function RegisterUser() {
     const [form] = Form.useForm();
+    const googleClientId = import.meta.env.VITE_CLIENT_ID;
 
     const navigate = useNavigate();
 
@@ -43,7 +44,7 @@ function RegisterUser() {
     const handleSuccess = async (response) => {
         const { credential } = response; // Nhận ID Token từ Google
         try {
-            const res = await requestLoginGoogle(credential);
+            const res = await requestLoginGoogle({ credential });
             message.success(res.message);
             setTimeout(() => {
                 window.location.reload();
@@ -113,12 +114,16 @@ function RegisterUser() {
                                 </div>
 
                                 <Form.Item>
-                                    <GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
-                                        <GoogleLogin
-                                            onSuccess={handleSuccess}
-                                            onError={() => console.log('Login Failed')}
-                                        />
-                                    </GoogleOAuthProvider>
+                                    {googleClientId ? (
+                                        <GoogleOAuthProvider clientId={googleClientId}>
+                                            <GoogleLogin
+                                                onSuccess={handleSuccess}
+                                                onError={() => message.error('Dang nhap Google that bai')}
+                                            />
+                                        </GoogleOAuthProvider>
+                                    ) : (
+                                        <Text type="danger">Chua cau hinh VITE_CLIENT_ID cho dang nhap Google.</Text>
+                                    )}
                                 </Form.Item>
 
                                 <Form.Item>
