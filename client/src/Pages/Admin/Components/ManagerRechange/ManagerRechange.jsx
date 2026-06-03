@@ -1,10 +1,11 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Space } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Button, Card, Row, Col, Statistic, Table, Space, message } from 'antd';
+import { DownloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
 import { requestGetRechargeStats } from '../../../../config/request';
+import { exportRowsToExcel, formatCurrency } from '../../../../utils/exportReport';
 
 function ManagerRechange() {
     const [rechargeStats, setRechargeStats] = useState({
@@ -80,6 +81,43 @@ function ManagerRechange() {
         fetchRechargeData();
     }, []);
 
+    const handleExportExcel = async () => {
+        try {
+            const response = await requestGetRechargeStats({ export: 'all' });
+            const metadata = response.metadata || {};
+            const transactions = metadata.transactions || rechargeData;
+
+            exportRowsToExcel({
+                fileName: 'bao_cao_giao_dich',
+                sheets: [
+                    {
+                        name: 'Tổng quan',
+                        rows: [
+                            { 'Chi tiêu': 'Tổng số giao dịch', 'Giá trị': metadata.totalTransactions ?? rechargeStats.totalTransactions },
+                            { 'Chi tiêu': 'Tổng doanh thu', 'Giá trị': formatCurrency(metadata.totalRevenue ?? rechargeStats.totalRevenue) },
+                            { 'Chi tiêu': 'Giao dịch gần đây', 'Giá trị': metadata.recentTransactions ?? rechargeStats.recentTransactions },
+                            { 'Chi tiêu': 'Tăng trưởng giao dịch', 'Giá trị': `${metadata.transactionGrowth ?? rechargeStats.transactionGrowth}%` },
+                            { 'Chi tiêu': 'Doanh thu gần đây', 'Giá trị': formatCurrency(metadata.recentRevenue ?? rechargeStats.recentRevenue) },
+                            { 'Chi tiêu': 'Tăng trưởng doanh thu', 'Giá trị': `${metadata.revenueGrowth ?? rechargeStats.revenueGrowth}%` },
+                        ],
+                    },
+                    {
+                        name: 'Giao dịch',
+                        rows: transactions.map((item) => ({
+                            'Người dùng': item.username || '',
+                            'Số tiền': item.amount || 0,
+                            'Phương thức': item.typePayment || '',
+                            'Trạng thái': item.status || '',
+                            'Ngày tạo': item.createdAt ? moment(item.createdAt).format('DD/MM/YYYY HH:mm') : '',
+                        })),
+                    },
+                ],
+            });
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể xuất báo cáo giao dịch');
+        }
+    };
+
     return (
         <div style={{ padding: '24px' }}>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -105,7 +143,14 @@ function ManagerRechange() {
                     </Col>
                 </Row>
 
-                <Card title="Danh sách giao dịch gần đây">
+                <Card
+                    title="Danh sách giao dịch gần đây"
+                    extra={
+                        <Button icon={<DownloadOutlined />} onClick={handleExportExcel}>
+                            Xuất Excel
+                        </Button>
+                    }
+                >
                     <Table
                         columns={columns}
                         dataSource={rechargeData}

@@ -9,7 +9,7 @@ const reviewSchema = new Schema(
         rentalId: { type: mongoose.Schema.Types.ObjectId, required: true },
         rentalType: {
             type: String,
-            enum: ['reservation', 'rental', 'booking', 'contract'],
+            enum: ['reservation', 'deposit', 'rental', 'booking', 'contract'],
             default: 'reservation',
         },
         rating: { type: Number, required: true, min: 1, max: 5 },

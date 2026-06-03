@@ -78,7 +78,6 @@ function DetailPost() {
     const [reservationNote, setReservationNote] = useState('');
     const [reservationVisitDate, setReservationVisitDate] = useState(null);
     const [depositModalOpen, setDepositModalOpen] = useState(false);
-    const [depositAmount, setDepositAmount] = useState('');
     const [depositPaymentMethod, setDepositPaymentMethod] = useState('SIMULATED');
     const [depositSubmitting, setDepositSubmitting] = useState(false);
 
@@ -99,6 +98,7 @@ function DetailPost() {
     const [replyContent, setReplyContent] = useState('');
 
     const isAvailable = (post?.availabilityStatus || 'available') === 'available';
+    const requiredDepositAmount = Math.ceil(Number(post?.price || 0) * 0.1);
     const availabilityLabel =
         {
             available: 'Còn phòng',
@@ -256,13 +256,11 @@ function DetailPost() {
             setDepositSubmitting(true);
             const created = await requestCreateDeposit({
                 roomId: post._id,
-                amount: Number(depositAmount),
                 paymentMethod: depositPaymentMethod,
             });
             const payment = await requestPayDeposit({ depositId: created.metadata._id });
             message.success(payment.message);
             setDepositModalOpen(false);
-            setDepositAmount('');
             await fetchPost();
             if (payment.metadata?.redirectUrl) {
                 window.location.href = payment.metadata.redirectUrl;
@@ -689,14 +687,14 @@ function DetailPost() {
                                                 <p>{comment.content}</p>
                                                 {comment.userId?._id === dataUser?._id && (
                                                     <button type="button" onClick={() => handleDeleteComment(comment._id)}>
-                                                        Xoa
+                                                        Xóa
                                                     </button>
                                                 )}
                                             </div>
                                         </article>
                                     ))
                                 ) : (
-                                    <p className={cx('comment-empty')}>Chua co binh luan nao.</p>
+                                    <p className={cx('comment-empty')}>Chưa có bình luận nào.</p>
                                 )}
                             </div>
                         </div>
@@ -714,27 +712,21 @@ function DetailPost() {
                 confirmLoading={depositSubmitting}
             >
                 <p style={{ marginBottom: 16 }}>
-                    So du hien tai: <strong>{(dataUser?.balance || 0).toLocaleString('vi-VN')} VND</strong>. He thong se tam giu
-                    tien coc trong vi cua ban khi tao yeu cau.
+                    Số dư hiện tại: <strong>{(dataUser?.balance || 0).toLocaleString('vi-VN')} VND</strong>. Tiền cọc trung gian
+                    bắt buộc là 10% giá thuê phòng.
                 </p>
                 <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8 }}>So tien coc</label>
-                    <Input
-                        type="number"
-                        min={1}
-                        value={depositAmount}
-                        onChange={(event) => setDepositAmount(event.target.value)}
-                        placeholder="Nhap so tien coc"
-                    />
+                    <label style={{ display: 'block', marginBottom: 8 }}>Số tiền cọc cần thanh toán</label>
+                    <strong>{requiredDepositAmount.toLocaleString('vi-VN')} VND</strong>
                 </div>
                 <div>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Phuong thuc thanh toan</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Phương thức thanh toán</label>
                     <Select
                         value={depositPaymentMethod}
                         onChange={setDepositPaymentMethod}
                         style={{ width: '100%' }}
                         options={[
-                            { value: 'SIMULATED', label: 'Thanh toan bang so du (gia lap)' },
+                            { value: 'SIMULATED', label: 'Thanh toán bằng số dư (Giả lập).' },
                             { value: 'MOMO', label: 'MoMo sandbox' },
                             { value: 'VNPAY', label: 'VNPay sandbox' },
                         ]}
@@ -751,71 +743,71 @@ function DetailPost() {
                 cancelText="Hủy"
             >
                 <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Ngay muon xem phong</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Ngày muốn xem phòng</label>
                     <DatePicker
                         value={reservationVisitDate}
                         onChange={setReservationVisitDate}
                         style={{ width: '100%' }}
                         format="DD/MM/YYYY"
-                        placeholder="Chon ngay xem phong"
+                        placeholder="Chọn ngày xem phòng"
                     />
                 </div>
                 <div>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Ghi chu cho chu phong</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Ghi chú cho chủ phòng</label>
                     <Input.TextArea
                         value={reservationNote}
                         onChange={(e) => setReservationNote(e.target.value)}
                         rows={4}
-                        placeholder="Vi du: Toi muon giu cho va hen xem phong buoi toi..."
+                        placeholder="Ví dụ: Tôi muốn xem phòng vào cuối tuần này, vui lòng sắp xếp thời gian phù hợp. Cảm ơn!"
                     />
                 </div>
             </Modal>
 
             <Modal
-                title="Bao cao bai viet"
+                title="Báo cáo bài viết"
                 open={reportModalOpen}
                 onCancel={() => setReportModalOpen(false)}
                 onOk={handleSubmitReport}
-                okText="Gui bao cao"
-                cancelText="Huy"
+                okText="Gửi báo cáo"
+                cancelText="Hủy"
             >
                 <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Ly do</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Lý do</label>
                     <Select
                         value={reportReason}
                         onChange={(value) => setReportReason(value)}
                         options={postReportOptions}
-                        placeholder="Chon ly do bao cao"
+                        placeholder="Chon lý do báo cáo"
                         style={{ width: '100%' }}
                     />
                 </div>
                 <div>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Chi tiet</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Chi tiết</label>
                     <Input.TextArea
                         value={reportDetails}
                         onChange={(e) => setReportDetails(e.target.value)}
                         rows={4}
-                        placeholder="Mo ta them thong tin ve van de"
+                        placeholder="Mô tả thêm thông tin về vấn đề"
                     />
                 </div>
             </Modal>
 
             <Modal
-                title={editingReview ? 'Sua danh gia' : 'Tao danh gia'}
+                title={editingReview ? 'Sửa đánh giá' : 'Tạo đánh giá'}
                 open={reviewModalOpen}
                 onCancel={() => setReviewModalOpen(false)}
                 onOk={handleSubmitReview}
-                okText={editingReview ? 'Cap nhat' : 'Gui danh gia'}
-                cancelText="Huy"
+                okText={editingReview ? 'Cập nhật' : 'Gửi đánh giá'}
+                cancelText="Hủy"
                 width={720}
             >
                 <div className={cx('review-form-grid')}>
                     {[
-                        ['rating', 'Diem tong'],
-                        ['cleanlinessRating', 'Ve sinh'],
+                        ['rating', 'Điểm tổng'],
+                        ['cleanlinessRating', 'Vệ sinh'],
                         ['securityRating', 'An ninh'],
-                        ['locationRating', 'Vi tri'],
-                        ['priceRating', 'Gia ca'],
+                        ['locationRating', 'Vị trí'],
+                        ['priceRating', 'Giá cả'],
                     ].map(([field, label]) => (
                         <div className={cx('review-rating-field')} key={field}>
                             <span className={cx('review-rating-label')}>{label}</span>
@@ -828,16 +820,16 @@ function DetailPost() {
                     ))}
                 </div>
                 <label className={cx('review-form-field')}>
-                    <span>Noi dung danh gia</span>
+                    <span>Nội dung đánh giá</span>
                     <Input.TextArea
                         value={reviewForm.content}
                         onChange={(e) => setReviewForm((current) => ({ ...current, content: e.target.value }))}
                         rows={4}
-                        placeholder="Chia se trai nghiem thuc te khi thue hoac giu cho phong nay"
+                        placeholder="Chia sẻ trải nghiệm thực tế khi thuê phòng trọ này..."
                     />
                 </label>
                 <div className={cx('review-form-field')}>
-                    <span>Anh danh gia</span>
+                    <span>Ảnh đánh giá</span>
                     <Upload
                         listType="picture"
                         multiple
@@ -846,53 +838,53 @@ function DetailPost() {
                         beforeUpload={() => false}
                         onChange={({ fileList }) => setReviewImageFiles(fileList.slice(0, 8))}
                     >
-                        <Button icon={<UploadOutlined />}>Chon anh</Button>
+                        <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
                     </Upload>
                 </div>
             </Modal>
 
             <Modal
-                title="Bao cao danh gia"
+                title="Báo cáo đánh giá"
                 open={reviewReportModalOpen}
                 onCancel={() => setReviewReportModalOpen(false)}
                 onOk={handleSubmitReviewReport}
-                okText="Gui bao cao"
-                cancelText="Huy"
+                okText="Gửi báo cáo"
+                cancelText="Hủy"
             >
                 <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Ly do</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Lý do</label>
                     <Select
                         value={reviewReportReason}
                         onChange={(value) => setReviewReportReason(value)}
                         options={reviewReportOptions}
-                        placeholder="Chon ly do bao cao"
+                        placeholder="Chọn lý do báo cáo"
                         style={{ width: '100%' }}
                     />
                 </div>
                 <div>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Chi tiet</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Chi tiết</label>
                     <Input.TextArea
                         value={reviewReportDetails}
                         onChange={(e) => setReviewReportDetails(e.target.value)}
                         rows={4}
-                        placeholder="Mo ta them van de cua danh gia"
+                        placeholder="Mô tả thêm vấn đề của đánh giá"
                     />
                 </div>
             </Modal>
 
             <Modal
-                title="Phan hoi danh gia"
+                title="Phản hồi đánh giá"
                 open={replyModalOpen}
                 onCancel={() => setReplyModalOpen(false)}
                 onOk={handleSubmitReplyReview}
-                okText="Gui phan hoi"
-                cancelText="Huy"
+                okText="Gửi phản hồi"
+                cancelText="Hủy"
             >
                 <Input.TextArea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     rows={4}
-                    placeholder="Nhap phan hoi cua chu tro"
+                    placeholder="Nhập phản hồi của chủ trọ"
                 />
             </Modal>
         </div>

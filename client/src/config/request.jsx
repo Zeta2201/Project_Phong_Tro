@@ -122,8 +122,8 @@ export const requestGetAdminStats = async () => {
     return res.data;
 };
 
-export const requestGetRechargeStats = async () => {
-    const res = await request.get('/api/get-recharge-stats');
+export const requestGetRechargeStats = async (params = {}) => {
+    const res = await request.get('/api/get-recharge-stats', { params });
     return res.data;
 };
 
@@ -213,6 +213,31 @@ export const requestGetFilterOptions = async () => {
 
 export const requestGetAdminFilterOptions = async (params = {}) => {
     const res = await request.get('/api/admin/filter-options', { params });
+    return res.data;
+};
+
+export const requestGetPostingPlans = async () => {
+    const res = await request.get('/api/posting-plans');
+    return res.data;
+};
+
+export const requestGetAdminPostingPlans = async () => {
+    const res = await request.get('/api/admin/posting-plans');
+    return res.data;
+};
+
+export const requestCreatePostingPlan = async (data) => {
+    const res = await request.post('/api/admin/posting-plans', data);
+    return res.data;
+};
+
+export const requestUpdatePostingPlan = async (data) => {
+    const res = await request.post('/api/admin/update-posting-plan', data);
+    return res.data;
+};
+
+export const requestTogglePostingPlan = async (data) => {
+    const res = await request.post('/api/admin/toggle-posting-plan', data);
     return res.data;
 };
 

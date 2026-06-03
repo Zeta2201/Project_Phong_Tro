@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
     Form,
     Input,
@@ -22,7 +22,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 import { Editor } from '@tinymce/tinymce-react';
-import { requestCreatePost, requestUploadImages } from '../../../../config/request';
+import { requestCreatePost, requestGetPostingPlans, requestUploadImages } from '../../../../config/request';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -37,49 +37,6 @@ const normFile = (e) => {
     }
     return e && e.fileList;
 };
-
-const dataSource = [
-    {
-        key: '1',
-        typeNews: 'Tin VIP',
-        '3 ngày': 50000,
-        '7 ngày': 315000,
-        '30 ngày': 1200000,
-    },
-    {
-        key: '2',
-        typeNews: 'Tin thường',
-        '3 ngày': 10000,
-        '7 ngày': 60000,
-        '30 ngày': 1000000,
-    },
-];
-
-const columns = [
-    {
-        title: 'Loại Tin',
-        dataIndex: 'typeNews',
-        key: 'typeNews',
-    },
-    {
-        title: '3 ngày',
-        dataIndex: '3 ngày',
-        key: '3 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
-    },
-    {
-        title: '7 ngày',
-        dataIndex: '7 ngày',
-        key: '7 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
-    },
-    {
-        title: '30 ngày',
-        dataIndex: '30 ngày',
-        key: '30 ngày',
-        render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : price),
-    },
-];
 
 // Checkbox options list (from ManagerPost.jsx for consistency, or define here)
 const optionLabels = [
@@ -98,12 +55,6 @@ const optionLabels = [
 
 // Example suggestions for AutoComplete
 
-const durationOptions = [
-    { label: '3 ngày', value: 3 },
-    { label: '7 ngày', value: 7 },
-    { label: '30 ngày', value: 30 },
-];
-
 function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
@@ -114,29 +65,86 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [mapQuery, setMapQuery] = useState(initialValues?.address || 'Lăng Chủ tịch Hồ Chí Minh');
     // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
+    const [postingPlans, setPostingPlans] = useState([]);
 
     // Get form values to watch for changes
     const selectedDuration = Form.useWatch('duration', form);
     const selectedTypeNews = Form.useWatch('typeNews', form);
 
+    const typeNewsOptions = useMemo(() => {
+        const uniqueTypes = [...new Set(postingPlans.map((plan) => plan.typeNews))];
+        return uniqueTypes.map((value) => ({
+            value,
+            label: postingPlans.find((plan) => plan.typeNews === value)?.name || (value === 'vip' ? 'Tin VIP' : 'Tin thường'),
+        }));
+    }, [postingPlans]);
+
+    const activeDurationOptions = useMemo(
+        () =>
+            postingPlans
+                .filter((plan) => plan.typeNews === selectedTypeNews)
+                .map((plan) => ({ label: `${plan.durationDays} ngày`, value: plan.durationDays }))
+                .sort((a, b) => a.value - b.value),
+        [postingPlans, selectedTypeNews],
+    );
+
+    const pricingDurations = useMemo(
+        () => [...new Set(postingPlans.map((plan) => plan.durationDays))].sort((a, b) => a - b),
+        [postingPlans],
+    );
+
+    const pricingRows = useMemo(() => {
+        const grouped = postingPlans.reduce((acc, plan) => {
+            if (!acc[plan.typeNews]) {
+                acc[plan.typeNews] = {
+                    key: plan.typeNews,
+                    typeNews: plan.name || (plan.typeNews === 'vip' ? 'Tin VIP' : 'Tin thường'),
+                };
+            }
+            acc[plan.typeNews][`${plan.durationDays} ngày`] = plan.price;
+            return acc;
+        }, {});
+        return Object.values(grouped);
+    }, [postingPlans]);
+
+    const pricingColumns = useMemo(
+        () => [
+            {
+                title: 'Loại tin',
+                dataIndex: 'typeNews',
+                key: 'typeNews',
+            },
+            ...pricingDurations.map((duration) => ({
+                title: `${duration} ngày`,
+                dataIndex: `${duration} ngày`,
+                key: `${duration} ngày`,
+                render: (price) => (typeof price === 'number' ? `${price.toLocaleString('vi-VN')} VNĐ` : '-'),
+            })),
+        ],
+        [pricingDurations],
+    );
+
     // Effect to recalculate cost based on duration and typeNews
     useEffect(() => {
-        let calculatedCost = 0;
-        if (selectedDuration && selectedTypeNews) {
-            // Corrected Find Logic:
-            const selectedTier = dataSource.find((item) => {
-                // Check if the item matches the selected type ('vip' or 'normal')
-                const itemTypeKey = item.typeNews === 'Tin VIP' ? 'vip' : 'normal';
-                return itemTypeKey === selectedTypeNews;
-            });
-
-            if (selectedTier) {
-                const durationKey = `${selectedDuration} ngày`;
-                calculatedCost = selectedTier[durationKey] || 0;
-            }
-        }
+        const selectedPlan = postingPlans.find(
+            (plan) => plan.typeNews === selectedTypeNews && plan.durationDays === selectedDuration,
+        );
+        const calculatedCost = selectedPlan?.price || 0;
         setEstimatedCost(calculatedCost);
-    }, [selectedDuration, selectedTypeNews]);
+    }, [postingPlans, selectedDuration, selectedTypeNews]);
+
+    useEffect(() => {
+        const fetchPostingPlans = async () => {
+            try {
+                const res = await requestGetPostingPlans();
+                setPostingPlans(res.metadata || []);
+            } catch (error) {
+                message.error(error.response?.data?.message || 'Không thể lấy bảng giá đăng tin');
+            }
+        };
+
+        fetchPostingPlans();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -224,7 +232,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             };
 
             await requestCreatePost(data);
-            message.success(initialValues ? 'cập nhật bài viết thành công' : 'tạo bài viết thành công');
+            message.success(initialValues ? 'Cập nhật bài viết thành công' : 'Tạo bài viết thành công');
             form.resetFields();
             setFileList([]);
             setDescription('');
@@ -430,9 +438,12 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                         label="Loại tin"
                         rules={[{ required: true, message: 'Vui lòng chọn loại tin' }]}
                     >
-                        <Select placeholder="Chọn loại tin">
-                            <Option value="vip">Tin VIP</Option>
-                            <Option value="normal">Tin thường</Option>
+                        <Select placeholder="Chọn loại tin" onChange={() => form.setFieldValue('duration', undefined)}>
+                            {typeNewsOptions.map((opt) => (
+                                <Option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </Option>
+                            ))}
                         </Select>
                     </Form.Item>
                 </Col>
@@ -443,7 +454,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                         rules={[{ required: true, message: 'Vui lòng chọn thời gian đăng' }]}
                     >
                         <Select placeholder="Chọn số ngày">
-                            {durationOptions.map((opt) => (
+                            {activeDurationOptions.map((opt) => (
                                 <Option key={opt.value} value={opt.value}>
                                     {opt.label}
                                 </Option>
@@ -469,7 +480,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
 
             <div style={{ marginBottom: 24 }}>
                 <h4 style={{ marginBottom: 16 }}>Bảng giá dịch vụ</h4>
-                <Table dataSource={dataSource} columns={columns} pagination={false} size="small" bordered />
+                <Table dataSource={pricingRows} columns={pricingColumns} pagination={false} size="small" bordered />
             </div>
 
             <Form.Item style={{ marginTop: 24, textAlign: 'right' }}>
@@ -485,3 +496,5 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
 }
 
 export default AddPostForm;
+
+

@@ -1,11 +1,13 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Table, Card, Row, Col, Statistic, Button, Space, Tag, Input, Select, message } from 'antd';
-import { UserOutlined, UserAddOutlined, DollarOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UserOutlined, UserAddOutlined, DollarOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerUser.module.scss';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestGetAdminStats, requestGetUsers, requestUpdateUserAdmin } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
+import { exportRowsToExcel, formatCurrency } from '../../../../utils/exportReport';
 
 const cx = classNames.bind(styles);
 
@@ -89,7 +91,7 @@ function ManagerUser() {
                 isActive: nextIsActive,
             });
 
-            message.success(`Da ${record.user.isActive ? 'khoa' : 'mo khoa'} nguoi dung`);
+            message.success(`Đã ${record.user.isActive ? 'khóa' : 'mở khóa'} người dùng`);
 
             if (record.user._id === dataUser._id) {
                 if (!nextIsActive) {
@@ -103,7 +105,7 @@ function ManagerUser() {
 
             await fetchData();
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Cap nhat trang thai that bai');
+            message.error(error?.response?.data?.message || 'Không thể cập nhật trạng thái');
         }
     };
 
@@ -116,7 +118,7 @@ function ManagerUser() {
                 isAdmin: nextIsAdmin,
             });
 
-            message.success(`Da ${record.user.isAdmin ? 'go quyen admin' : 'dat quyen admin'} cho nguoi dung`);
+            message.success(`Đã ${record.user.isAdmin ? 'gỡ quyền admin' : 'cấp quyền admin'} cho người dùng`);
 
             if (record.user._id === dataUser._id) {
                 await fetchAuth();
@@ -129,13 +131,45 @@ function ManagerUser() {
 
             await fetchData();
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Cap nhat quyen that bai');
+            message.error(error?.response?.data?.message || 'Không thể cập nhật quyền');
         }
+    };
+
+    const handleExportExcel = () => {
+        exportRowsToExcel({
+            fileName: 'bao_cao_nguoi_dung',
+            sheets: [
+                {
+                    name: 'Tổng quan',
+                    rows: [
+                        { 'Chi tiêu': 'ổng số người dùng', 'Giá trị': stats.totalUsers },
+                        { 'Chi tiêu': 'Người dùng mới 30 ngày', 'Giá trị': stats.newUsers },
+                        { 'Chi tiêu': 'Người dùng hoạt động', 'Giá trị': stats.activeUsers },
+                        { 'Chi tiêu': 'Người dùng bị khóa', 'Giá trị': stats.inactiveUsers },
+                        { 'Chi tiêu': 'Tổng doanh thu', 'Giá trị': formatCurrency(stats.totalRevenue) },
+                    ],
+                },
+                {
+                    name: 'Người dùng',
+                    rows: userData.map((item) => ({
+                        'Họ và tên': item.user?.fullName || '',
+                        Email: item.user?.email || '',
+                        'Số điện thoại': item.user?.phone || '',
+                        'Địa chỉ': item.user?.address || '',
+                        'Vai trò': item.user?.isAdmin ? 'Admin' : 'User',
+                        'Trạng thái': item.user?.isActive ? 'Hoạt động' : 'Bị khóa',
+                        'Ngày tham gia': item.user?.createdAt ? new Date(item.user.createdAt).toLocaleString('vi-VN') : '',
+                        'Số bài đăng': item.totalPost || 0,
+                        'Tổng chi tiêu': item.totalSpent || 0,
+                    })),
+                },
+            ],
+        });
     };
 
     const columns = [
         {
-            title: 'Ho va ten',
+            title: 'Họ và tên',
             dataIndex: ['user', 'fullName'],
             key: 'fullName',
         },
@@ -145,57 +179,57 @@ function ManagerUser() {
             key: 'email',
         },
         {
-            title: 'So dien thoai',
+            title: 'Số điện thoại',
             dataIndex: ['user', 'phone'],
             key: 'phone',
         },
         {
-            title: 'Dia chi',
+            title: 'Địa chỉ',
             dataIndex: ['user', 'address'],
             key: 'address',
         },
         {
-            title: 'Vai tro',
+            title: 'Vai trò',
             dataIndex: ['user', 'isAdmin'],
             key: 'role',
             render: (isAdmin) => <Tag color={isAdmin ? 'purple' : 'blue'}>{isAdmin ? 'Admin' : 'User'}</Tag>,
         },
         {
-            title: 'Trang thai',
+            title: 'Trạng thái',
             key: 'activeStatus',
             render: (_, record) => (
                 <Tag color={record.user.isActive ? 'green' : 'red'}>
-                    {record.user.isActive ? 'Hoat dong' : 'Bi khoa'}
+                    {record.user.isActive ? 'Hoạt động' : 'Bị khóa'}
                 </Tag>
             ),
         },
         {
-            title: 'Ngay tham gia',
+            title: 'Ngày tham gia',
             dataIndex: ['user', 'createdAt'],
             key: 'joinDate',
             render: (date) => new Date(date).toLocaleDateString('vi-VN'),
         },
         {
-            title: 'So bai dang',
+            title: 'Số bài đăng',
             dataIndex: 'totalPost',
             key: 'totalPost',
         },
         {
-            title: 'Tong chi tieu',
+            title: 'Tổng chi tiêu',
             dataIndex: 'totalSpent',
             key: 'totalSpent',
             render: (amount) => `${amount.toLocaleString('vi-VN')} VND`,
         },
         {
-            title: 'Hanh dong',
+            title: 'Hành động',
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
                     <Button type="default" onClick={() => handleToggleActive(record)}>
-                        {record.user.isActive ? 'Khoa' : 'Mo khoa'}
+                        {record.user.isActive ? 'Khóa' : 'Mở khóa'}
                     </Button>
                     <Button type="primary" danger={record.user.isAdmin} onClick={() => handleToggleAdmin(record)}>
-                        {record.user.isAdmin ? 'Go admin' : 'Dat admin'}
+                        {record.user.isAdmin ? 'Gỡ admin' : 'Cấp admin'}
                     </Button>
                 </Space>
             ),
@@ -207,50 +241,55 @@ function ManagerUser() {
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                 <Col xs={24} sm={24} md={12} lg={8}>
                     <Input.Search
-                        placeholder="Tim theo ten, email hoac so dien thoai"
+                        placeholder="Tìm theo tên, email hoặc số điện thoại"
                         allowClear
-                        enterButton="Tim"
+                        enterButton="Tìm"
                         onSearch={handleSearch}
                     />
                 </Col>
                 <Col xs={24} sm={12} md={6} lg={4}>
                     <Select
-                        placeholder="Trang thai"
+                        placeholder="Trạng thái"
                         value={statusFilter}
                         onChange={(value) => setStatusFilter(value)}
                         options={[
-                            { label: 'Tat ca', value: '' },
-                            { label: 'Hoat dong', value: 'active' },
-                            { label: 'Khoa', value: 'inactive' },
+                            { label: 'Tất cả', value: '' },
+                            { label: 'Hoạt động', value: 'active' },
+                            { label: 'Bị khóa', value: 'inactive' },
                         ]}
                         style={{ width: '100%' }}
                     />
                 </Col>
                 <Col xs={24} sm={12} md={6} lg={4}>
                     <Select
-                        placeholder="Vai tro"
+                        placeholder="Vai trò"
                         value={roleFilter}
                         onChange={(value) => setRoleFilter(value)}
                         options={[
-                            { label: 'Tat ca', value: '' },
+                            { label: 'Tất cả', value: '' },
                             { label: 'Admin', value: 'admin' },
                             { label: 'User', value: 'user' },
                         ]}
                         style={{ width: '100%' }}
                     />
                 </Col>
+                <Col xs={24} sm={12} md={6} lg={4}>
+                    <Button icon={<DownloadOutlined />} onClick={handleExportExcel} block>
+                        Xuất Excel
+                    </Button>
+                </Col>
             </Row>
 
             <Row gutter={[16, 16]}>
                 <Col span={8}>
                     <Card>
-                        <Statistic title="Tong so nguoi dung" value={stats.totalUsers} prefix={<UserOutlined />} />
+                        <Statistic title="Tổng số người dùng" value={stats.totalUsers} prefix={<UserOutlined />} />
                     </Card>
                 </Col>
                 <Col span={8}>
                     <Card>
                         <Statistic
-                            title="Nguoi dung moi"
+                            title="Người dùng mới"
                             value={stats.newUsers}
                             prefix={<UserAddOutlined />}
                             valueStyle={{ color: '#3f8600' }}
@@ -261,7 +300,7 @@ function ManagerUser() {
                 <Col span={8}>
                     <Card>
                         <Statistic
-                            title="Tong doanh thu"
+                            title="Tổng doanh thu"
                             value={stats.totalRevenue}
                             prefix={<DollarOutlined />}
                             formatter={(value) => `${value.toLocaleString('vi-VN')} VND`}

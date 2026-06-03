@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Typography, Progress, Avatar, Tag, Tooltip } from 'antd';
+import { Button, Card, Row, Col, Statistic, Table, Typography, Progress, Avatar, Tag, Tooltip, message } from 'antd';
 import { Column } from '@ant-design/plots';
 import {
     UserOutlined,
@@ -11,10 +11,13 @@ import {
     CheckCircleOutlined,
     ClockCircleOutlined,
     CloseCircleOutlined,
+    DownloadOutlined,
+    FilePdfOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './Dashborad.module.scss';
-import { requestGetAdminStats } from '../../../../config/request';
+import { requestGetAdminStats, requestGetRechargeStats } from '../../../../config/request';
+import { exportRevenuePdf, exportRowsToExcel, formatCurrency } from '../../../../utils/exportReport';
 
 const { Title, Text } = Typography;
 const cx = classNames.bind(styles);
@@ -190,9 +193,87 @@ function Dashboard() {
         },
     ];
 
+    const handleExportSystemExcel = () => {
+        exportRowsToExcel({
+            fileName: 'bao_cao_tong_hop_he_thong',
+            sheets: [
+                {
+                    name: 'Tong quan',
+                    rows: [
+                        { 'Chi tieu': 'Tong nguoi dung', 'Gia tri': stats.totalUsers, 'Tang truong': `${stats.userGrowth}%` },
+                        { 'Chi tieu': 'Tong tin dang', 'Gia tri': stats.totalPosts, 'Tang truong': `${stats.postGrowth}%` },
+                        { 'Chi tieu': 'Tong giao dich', 'Gia tri': stats.totalTransactions, 'Tang truong': `${stats.transactionGrowth}%` },
+                        { 'Chi tieu': 'Tong doanh thu', 'Gia tri': formatCurrency(stats.totalRevenue), 'Tang truong': `${stats.revenueGrowth}%` },
+                    ],
+                },
+                {
+                    name: 'Giao dich gan day',
+                    rows: recentTransactions.map((item) => ({
+                        'Nguoi dung': item.username || '',
+                        'Ma nguoi dung': item.userId || '',
+                        'So tien': item.amount || 0,
+                        'Phuong thuc': item.typePayment || '',
+                        'Trang thai': item.status || '',
+                        'Ngay tao': item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '',
+                    })),
+                },
+                {
+                    name: 'Top nguoi dung',
+                    rows: topUsers.map((user, index) => ({
+                        Hang: index + 1,
+                        'Nguoi dung': user.name || '',
+                        'So tin dang': user.posts || 0,
+                    })),
+                },
+                {
+                    name: 'Tin dang 7 ngay',
+                    rows: postsData.map((item) => ({
+                        Ngay: item.date || '',
+                        'So tin': item.posts || 0,
+                    })),
+                },
+            ],
+        });
+    };
+
+    const handleExportRevenuePdf = async () => {
+        try {
+            const response = await requestGetRechargeStats({ export: 'all' });
+            const metadata = response.metadata || {};
+            const transactions = metadata.transactions || recentTransactions;
+
+            exportRevenuePdf({
+                fileName: 'bao_cao_doanh_thu',
+                title: 'Bao cao doanh thu he thong',
+                summaryRows: [
+                    ['Tong doanh thu', formatCurrency(metadata.totalRevenue ?? stats.totalRevenue)],
+                    ['Tong giao dich', String(metadata.totalTransactions ?? stats.totalTransactions)],
+                    ['Tang truong doanh thu', `${metadata.revenueGrowth ?? stats.revenueGrowth}%`],
+                    ['Tang truong giao dich', `${metadata.transactionGrowth ?? stats.transactionGrowth}%`],
+                ],
+                transactionRows: transactions.map((item) => [
+                    item.username || '',
+                    formatCurrency(item.amount),
+                    item.typePayment || '',
+                    item.status || '',
+                    item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '',
+                ]),
+            });
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Khong the xuat bao cao doanh thu');
+        }
+    };
+
     return (
         <div className={cx('wrapper')}>
-            <div className={cx('header')}></div>
+            <div className={cx('header')}>
+                <Button icon={<DownloadOutlined />} onClick={handleExportSystemExcel}>
+                    Xuat tong hop Excel
+                </Button>
+                <Button icon={<FilePdfOutlined />} onClick={handleExportRevenuePdf} style={{ marginLeft: 8 }}>
+                    Xuat doanh thu PDF
+                </Button>
+            </div>
 
             <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12} lg={6}>

@@ -551,11 +551,17 @@ class controllerUsers {
                     : 100;
 
             // Get recent transactions list with user details
-            const recentTransactionsList = await modelRechargeUser
+            const exportAll = req.query.export === 'all';
+            const recentTransactionsQuery = modelRechargeUser
                 .find()
                 .sort({ createdAt: -1 })
-                .limit(50)
                 .populate('userId', 'fullName');
+
+            if (!exportAll) {
+                recentTransactionsQuery.limit(50);
+            }
+
+            const recentTransactionsList = await recentTransactionsQuery;
 
             const formattedTransactions = recentTransactionsList.map((transaction) => ({
                 key: transaction._id.toString(),

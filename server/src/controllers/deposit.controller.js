@@ -12,11 +12,13 @@ const { BadRequestError } = require('../core/error.response');
 const ACTIVE_STATUSES = ['pending', 'holding', 'disputed'];
 const DEPOSIT_STATUSES = ['pending', 'holding', 'completed', 'refunded', 'cancelled', 'disputed'];
 const PAYMENT_METHODS = ['SIMULATED', 'MOMO', 'VNPAY'];
+const DEPOSIT_RATE = 0.1;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
 const getExpiredAt = () => new Date(Date.now() + 24 * 60 * 60 * 1000);
 const getHoldingExpiredAt = () => new Date(Date.now() + 72 * 60 * 60 * 1000);
 const normalizeNote = (value) => (typeof value === 'string' ? value.trim() : '');
+const calculateDepositAmount = (roomPrice) => Math.ceil(Number(roomPrice) * DEPOSIT_RATE);
 const createVnpayClient = () =>
     new VNPay({
         tmnCode: 'DH2F13SW',
@@ -87,6 +89,9 @@ const markDepositPaid = async (depositId, expectedAmount = null) => {
         { new: true },
     );
     if (!room) {
+        if (deposit.paymentMethod !== 'SIMULATED') {
+            deposit.balanceHeld = true;
+        }
         deposit.paymentStatus = 'failed';
         deposit.status = 'cancelled';
         deposit.adminNote = 'Phong khong con trong khi xac nhan thanh toan';
@@ -95,11 +100,9 @@ const markDepositPaid = async (depositId, expectedAmount = null) => {
         throw new BadRequestError('Phong khong con trong');
     }
 
-    if (deposit.paymentMethod !== 'SIMULATED') {
-        await releaseHeldBalance(deposit, deposit.tenantId);
-    }
     deposit.paymentStatus = 'paid';
     deposit.status = 'holding';
+    deposit.balanceHeld = true;
     deposit.expiredAt = getHoldingExpiredAt();
     await deposit.save();
     return deposit;
@@ -129,11 +132,9 @@ class controllerDeposit {
     async createDeposit(req, res) {
         await expirePendingDeposits();
         const { id: tenantId } = req.user;
-        const { roomId, amount, paymentMethod = 'SIMULATED' } = req.body;
-        const depositAmount = Number(amount);
+        const { roomId, paymentMethod = 'SIMULATED' } = req.body;
 
         if (!mongoose.isValidObjectId(roomId)) throw new BadRequestError('Phong khong hop le');
-        if (!Number.isFinite(depositAmount) || depositAmount <= 0) throw new BadRequestError('So tien coc khong hop le');
         if (!PAYMENT_METHODS.includes(paymentMethod)) throw new BadRequestError('Phuong thuc thanh toan khong hop le');
 
         const room = await modelPost.findById(roomId);
@@ -141,15 +142,22 @@ class controllerDeposit {
         if ((room.availabilityStatus || 'available') !== 'available') throw new BadRequestError('Phong hien khong con trong');
         if (room.userId.toString() === tenantId) throw new BadRequestError('Ban khong the dat coc phong cua chinh minh');
 
+        const depositAmount = calculateDepositAmount(room.price);
+        if (!Number.isFinite(depositAmount) || depositAmount <= 0) throw new BadRequestError('Gia phong khong hop le de tinh tien coc');
+
         const activeDeposit = await modelDeposit.findOne({ roomId, status: { $in: ACTIVE_STATUSES } });
         if (activeDeposit) throw new BadRequestError('Phong da co giao dich coc dang xu ly');
 
-        const tenant = await modelUser.findOneAndUpdate(
-            { _id: tenantId, balance: { $gte: depositAmount } },
-            { $inc: { balance: -depositAmount } },
-            { new: true },
-        );
-        if (!tenant) throw new BadRequestError('So du khong du de dat coc');
+        let walletCharged = false;
+        if (paymentMethod === 'SIMULATED') {
+            const tenant = await modelUser.findOneAndUpdate(
+                { _id: tenantId, balance: { $gte: depositAmount } },
+                { $inc: { balance: -depositAmount } },
+                { new: true },
+            );
+            if (!tenant) throw new BadRequestError('So du khong du de dat coc');
+            walletCharged = true;
+        }
 
         try {
             const deposit = await modelDeposit.create({
@@ -158,12 +166,14 @@ class controllerDeposit {
                 landlordId: room.userId,
                 amount: depositAmount,
                 paymentMethod,
-                balanceHeld: true,
+                balanceHeld: walletCharged,
                 expiredAt: getExpiredAt(),
             });
             new Created({ message: 'Da tao yeu cau dat coc', metadata: deposit }).send(res);
         } catch (error) {
-            await modelUser.findByIdAndUpdate(tenantId, { $inc: { balance: depositAmount } });
+            if (walletCharged) {
+                await modelUser.findByIdAndUpdate(tenantId, { $inc: { balance: depositAmount } });
+            }
             if (error.code === 11000) throw new BadRequestError('Phong da co giao dich coc dang xu ly');
             throw error;
         }

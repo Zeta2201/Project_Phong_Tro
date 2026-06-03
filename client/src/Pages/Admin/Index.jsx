@@ -15,6 +15,7 @@ import {
     CommentOutlined,
     SafetyCertificateOutlined,
     FilterOutlined,
+    TagsOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { requestGetAdmin, requestLogout } from '../../config/request';
@@ -31,6 +32,7 @@ import ManagerContacts from './Components/ManagerContacts/ManagerContacts';
 import ManagerComments from './Components/ManagerComments/ManagerComments';
 import ManagerDeposits from './Components/ManagerDeposits/ManagerDeposits';
 import ManagerFilters from './Components/ManagerFilters/ManagerFilters';
+import ManagerPostingPlans from './Components/ManagerPostingPlans/ManagerPostingPlans';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -121,6 +123,12 @@ function Admin() {
             onClick: () => setType('deposits'),
         },
         {
+            key: 'posting-plans',
+            icon: <TagsOutlined />,
+            label: 'Quản lý gói đăng tin',
+            onClick: () => setType('posting-plans'),
+        },
+        {
             key: 'filters',
             icon: <FilterOutlined />,
             label: 'Quản lý bộ lọc',
@@ -169,6 +177,7 @@ function Admin() {
                     {type === 'contacts' && <ManagerContacts />}
                     {type === 'comments' && <ManagerComments />}
                     {type === 'deposits' && <ManagerDeposits />}
+                    {type === 'posting-plans' && <ManagerPostingPlans />}
                     {type === 'filters' && <ManagerFilters />}
                 </Content>
             </Layout>

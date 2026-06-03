@@ -10,6 +10,7 @@ const commentRoutes = require('./comment.routes');
 const contactRoutes = require('./contact.routes');
 const depositRoutes = require('./deposit.routes');
 const filterOptionRoutes = require('./filterOption.routes');
+const postingPlanRoutes = require('./postingPlan.routes');
 
 const multer = require('multer');
 const path = require('path');
@@ -101,6 +102,13 @@ function routes(app) {
     app.post('/api/admin/filter-options', filterOptionRoutes);
     app.post('/api/admin/update-filter-option', filterOptionRoutes);
     app.post('/api/admin/toggle-filter-option', filterOptionRoutes);
+
+    /// posting plans
+    app.get('/api/posting-plans', postingPlanRoutes);
+    app.get('/api/admin/posting-plans', postingPlanRoutes);
+    app.post('/api/admin/posting-plans', postingPlanRoutes);
+    app.post('/api/admin/update-posting-plan', postingPlanRoutes);
+    app.post('/api/admin/toggle-posting-plan', postingPlanRoutes);
 
     /// posts
     app.post('/api/create-post', postRoutes);

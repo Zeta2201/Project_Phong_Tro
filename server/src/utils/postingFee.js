@@ -39,6 +39,8 @@ const getPostingFeeByPlan = (typeNews, durationInDays) => {
     return postingFeeTable[typeNews][bucket] || 0;
 };
 
+const { getPostingFeeByPlan: getPostingFeeByPlanFromDb } = require('../services/postingPlan.service');
+
 const inferPostingFeeFromPost = (post) => {
     if (typeof post.postingFee === 'number' && post.postingFee > 0) {
         return post.postingFee;
@@ -56,6 +58,6 @@ const inferPostingFeeFromPost = (post) => {
 };
 
 module.exports = {
-    getPostingFeeByPlan,
+    getPostingFeeByPlan: getPostingFeeByPlanFromDb,
     inferPostingFeeFromPost,
 };

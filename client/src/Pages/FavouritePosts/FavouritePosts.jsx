@@ -22,7 +22,7 @@ function FavouritePosts() {
                 const res = await requestGetFavourite();
                 setPosts(res.metadata || []);
             } catch (error) {
-                message.error(error?.response?.data?.message || 'Khong the tai danh sach yeu thich');
+                message.error(error?.response?.data?.message || 'Không thể tải danh sách yêu thích');
             } finally {
                 setLoading(false);
             }
@@ -43,7 +43,7 @@ function FavouritePosts() {
                 <div className={cx('headerRow')}>
                     <div>
                         <h2>Danh sách đã lưu</h2>
-                        <span>{loading ? 'Dang tải dữ liệu...' : `${posts.length} tin đang trong danh sách yêu thích`}</span>
+                        <span>{loading ? 'Đang tải dữ liệu...' : `${posts.length} tin đang trong danh sách yêu thích`}</span>
                     </div>
                 </div>
 

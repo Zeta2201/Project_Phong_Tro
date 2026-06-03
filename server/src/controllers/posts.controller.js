@@ -39,18 +39,6 @@ const expireAcceptedReservations = async () => {
     }
 };
 
-const pricePostVip = [
-    { date: 3, price: 50000 },
-    { date: 7, price: 315000 },
-    { date: 30, price: 1200000 },
-];
-
-const pricePostNormal = [
-    { date: 3, price: 10000 },
-    { date: 7, price: 60000 },
-    { date: 30, price: 1000000 },
-];
-
 class controllerPosts {
     async createPost(req, res) {
         const { id } = req.user;
@@ -92,7 +80,7 @@ class controllerPosts {
             throw new BadRequestError('User not found');
         }
 
-        const postingFee = getPostingFeeByPlan(typeNews, dateEnd);
+        const postingFee = await getPostingFeeByPlan(typeNews, dateEnd);
 
         if (!postingFee) {
             throw new BadRequestError('Goi dang tin khong hop le');

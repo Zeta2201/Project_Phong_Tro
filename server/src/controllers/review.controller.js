@@ -1,6 +1,7 @@
 const modelReview = require('../models/review.model');
 const modelPost = require('../models/post.model');
 const modelReservation = require('../models/reservation.model');
+const modelDeposit = require('../models/deposit.model');
 const modelUser = require('../models/users.model');
 const mongoose = require('mongoose');
 const { OK, Created } = require('../core/success.response');
@@ -67,6 +68,22 @@ const buildSummary = (reviews) => {
 };
 
 const findValidRental = async ({ roomId, userId, rentalId }) => {
+    const depositFilter = {
+        roomId,
+        tenantId: userId,
+        status: 'completed',
+        paymentStatus: 'paid',
+    };
+
+    if (rentalId) {
+        depositFilter._id = rentalId;
+    }
+
+    const completedDeposit = await modelDeposit.findOne(depositFilter).sort({ updatedAt: -1 });
+    if (completedDeposit) {
+        return { document: completedDeposit, type: 'deposit' };
+    }
+
     const optionalTransactions = [
         {
             modelName: 'rental',
