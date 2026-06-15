@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { MailOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
@@ -9,28 +9,50 @@ import { useNavigate } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
+const OTP_RESEND_COOLDOWN = 60;
 
 function ForgotPassword() {
     const [form] = Form.useForm();
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resendCooldown, setResendCooldown] = useState(0);
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (resendCooldown <= 0) {
+            return undefined;
+        }
+
+        const timer = setInterval(() => {
+            setResendCooldown((current) => Math.max(current - 1, 0));
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
 
     const handleSendOTP = async (values) => {
         try {
             setLoading(true);
-            // TODO: Call API to send OTP
             await requestForgotPassword({ email: values.email });
             message.success('Mã xác thực đã được gửi đến email của bạn');
             setEmail(values.email);
+            setResendCooldown(OTP_RESEND_COOLDOWN);
             setStep(2);
-            setLoading(false);
         } catch (error) {
-            message.error(error.response.data.message);
+            message.error(error.response?.data?.message || 'Không thể gửi mã xác thực');
+        } finally {
             setLoading(false);
         }
+    };
+
+    const handleResendOTP = async () => {
+        if (!email || resendCooldown > 0) {
+            return;
+        }
+
+        await handleSendOTP({ email });
     };
 
     const handleVerifyAndReset = async (values) => {
@@ -44,15 +66,11 @@ function ForgotPassword() {
             };
 
             await requestResetPassword(data);
+            message.success('Đặt lại mật khẩu thành công');
             navigate('/login');
-            // Simulate API call
-            setTimeout(() => {
-                message.success('Đặt lại mật khẩu thành công');
-                // TODO: Redirect to login page
-                setLoading(false);
-            }, 1000);
         } catch (error) {
-            message.error(error.response.data.message);
+            message.error(error.response?.data?.message || 'Không thể đặt lại mật khẩu');
+        } finally {
             setLoading(false);
         }
     };
@@ -116,6 +134,19 @@ function ForgotPassword() {
             <Form.Item>
                 <Button type="primary" htmlType="submit" block size="large" loading={loading}>
                     Đặt lại mật khẩu
+                </Button>
+            </Form.Item>
+            <Form.Item>
+                <Button
+                    type="default"
+                    htmlType="button"
+                    block
+                    size="large"
+                    loading={loading}
+                    disabled={resendCooldown > 0}
+                    onClick={handleResendOTP}
+                >
+                    {resendCooldown > 0 ? `Gửi lại mã sau ${resendCooldown}s` : 'Gửi lại mã OTP'}
                 </Button>
             </Form.Item>
         </Form>

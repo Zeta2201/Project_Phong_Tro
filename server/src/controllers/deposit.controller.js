@@ -15,14 +15,20 @@ const PAYMENT_METHODS = ['SIMULATED', 'MOMO', 'VNPAY'];
 const DEPOSIT_RATE = 0.1;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
+const VNPAY_TMN_CODE = process.env.VNPAY_TMN_CODE || 'DH2F13SW';
+const VNPAY_SECURE_SECRET = process.env.VNPAY_SECURE_SECRET || 'NXZM3DWFR0LC4R5VBK85OJZS1UE9KI6F';
+const MOMO_PARTNER_CODE = process.env.MOMO_PARTNER_CODE || 'MOMO';
+const MOMO_ACCESS_KEY = process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85';
+const MOMO_SECRET_KEY = process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
+const MOMO_ENDPOINT = process.env.MOMO_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api/create';
 const getExpiredAt = () => new Date(Date.now() + 24 * 60 * 60 * 1000);
 const getHoldingExpiredAt = () => new Date(Date.now() + 72 * 60 * 60 * 1000);
 const normalizeNote = (value) => (typeof value === 'string' ? value.trim() : '');
 const calculateDepositAmount = (roomPrice) => Math.ceil(Number(roomPrice) * DEPOSIT_RATE);
 const createVnpayClient = () =>
     new VNPay({
-        tmnCode: 'DH2F13SW',
-        secureSecret: 'NXZM3DWFR0LC4R5VBK85OJZS1UE9KI6F',
+        tmnCode: VNPAY_TMN_CODE,
+        secureSecret: VNPAY_SECURE_SECRET,
         vnpayHost: 'https://sandbox.vnpayment.vn',
         testMode: true,
         hashAlgorithm: 'SHA512',
@@ -192,9 +198,9 @@ class controllerDeposit {
             return new OK({ message: 'Thanh toan gia lap thanh cong', metadata: { redirectUrl: `${CLIENT_URL}/trang-ca-nhan?tab=tenant-deposits` } }).send(res);
         }
         if (deposit.paymentMethod === 'MOMO') {
-            const partnerCode = 'MOMO';
-            const accessKey = 'F8BBA842ECF85';
-            const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
+            const partnerCode = MOMO_PARTNER_CODE;
+            const accessKey = MOMO_ACCESS_KEY;
+            const secretKey = MOMO_SECRET_KEY;
             const requestId = partnerCode + Date.now();
             const orderId = deposit._id.toString();
             const orderInfo = `deposit ${deposit._id}`;
@@ -204,7 +210,7 @@ class controllerDeposit {
             const extraData = '';
             const rawSignature = `accessKey=${accessKey}&amount=${deposit.amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
             const signature = crypto.createHmac('sha256', secretKey).update(rawSignature).digest('hex');
-            const response = await axios.post('https://test-payment.momo.vn/v2/gateway/api/create', {
+            const response = await axios.post(MOMO_ENDPOINT, {
                 partnerCode, accessKey, requestId, amount: deposit.amount, orderId, orderInfo, redirectUrl, ipnUrl,
                 extraData, requestType, signature, lang: 'vi',
             });
@@ -228,8 +234,8 @@ class controllerDeposit {
     }
 
     async momoReturn(req, res) {
-        const accessKey = 'F8BBA842ECF85';
-        const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
+        const accessKey = MOMO_ACCESS_KEY;
+        const secretKey = MOMO_SECRET_KEY;
         const { amount, extraData, message, orderId, orderInfo, orderType, partnerCode, payType, requestId, responseTime, resultCode, transId, signature } = req.query;
         const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
         const expectedSignature = crypto.createHmac('sha256', secretKey).update(rawSignature).digest('hex');
@@ -244,7 +250,7 @@ class controllerDeposit {
         const verification = createVnpayClient().verifyReturnUrl(req.query);
         if (verification.isVerified && verification.isSuccess) {
             const depositId = verification.vnp_OrderInfo?.split(' ')[1];
-            await markDepositPaid(depositId, Number(verification.vnp_Amount) / 100);
+            await markDepositPaid(depositId, verification.vnp_Amount);
         } else if (verification.isVerified) {
             await markPaymentFailed(verification.vnp_OrderInfo?.split(' ')[1]);
         }

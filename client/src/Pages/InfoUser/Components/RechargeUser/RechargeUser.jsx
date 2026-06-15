@@ -123,9 +123,9 @@ function RechargeUser() {
         },
         {
             title: 'Ngày giao dịch',
-            dataIndex: 'date',
-            key: 'date',
-            render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm'),
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (date) => (date ? dayjs(date).format('DD/MM/YYYY HH:mm') : ''),
             width: 180,
         },
     ];
@@ -189,7 +189,7 @@ function RechargeUser() {
                         <Table
                             dataSource={paymentHistory}
                             columns={columns}
-                            rowKey="id"
+                            rowKey="_id"
                             loading={loading}
                             pagination={{ pageSize: 5 }}
                             className={cx('history-table')}

@@ -42,10 +42,10 @@ function Contact() {
                 <div className={styles.infoBox}>
                     <h2>Thông tin liên hệ</h2>
                     <p>
-                        <strong>Email hỗ trợ:</strong> support@nestfinder.vn
+                        <strong>Email hỗ trợ:</strong> nestfinder2201@gmail.com
                     </p>
                     <p>
-                        <strong>Điện thoại:</strong> 0772 185 477
+                        <strong>Điện thoại:</strong> 0385 095 477
                     </p>
                     <p>
                         <strong>Địa chỉ:</strong> 123 Đường ABC, Quận Ninh Kiều, Cần Thơ

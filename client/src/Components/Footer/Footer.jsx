@@ -55,8 +55,8 @@ function Footer() {
                 <div className={styles.section}>
                     <h3>Thông tin liên hệ</h3>
                     <ul>
-                        <li><strong>Email:</strong> support@nestfinder.vn</li>
-                        <li><strong>Điện thoại:</strong> 0772 185 477</li>
+                        <li><strong>Email:</strong> nestfinder2201@gmail.com</li>
+                        <li><strong>Điện thoại:</strong> 0385 095 477</li>
                         <li><strong>Địa chỉ:</strong> 123 Đường ABC, Quận Ninh Kiều, Cần Thơ</li>
                         <li><strong>Giờ làm việc:</strong> 8:00 - 18:00 (Thứ 2 - Chủ nhật)</li>
                     </ul>

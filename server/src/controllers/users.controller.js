@@ -415,7 +415,7 @@ class controllerUsers {
 
     async getRechargeUser(req, res) {
         const { id } = req.user;
-        const rechargeUser = await modelRechargeUser.find({ userId: id });
+        const rechargeUser = await modelRechargeUser.find({ userId: id }).sort({ createdAt: -1 });
         new OK({ message: 'Lấy thông tin nạp tiền thành công', metadata: rechargeUser }).send(res);
     }
 
@@ -615,6 +615,8 @@ class controllerUsers {
 
     async forgotPassword(req, res) {
         const { email } = req.body;
+        const resendCooldownMs = 60 * 1000;
+
         if (!email) {
             throw new BadRequestError('Vui lòng nhập email');
         }
@@ -624,7 +626,19 @@ class controllerUsers {
             throw new BadRequestError('Email không tồn tại');
         }
 
-        const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '15m' });
+        if (user.typeLogin === 'google') {
+            throw new BadRequestError('Tài khoản này đăng nhập bằng Google');
+        }
+
+        const latestOtp = await modelOtp.findOne({ email: user.email, type: 'forgotPassword' }).sort({ createdAt: -1 });
+        if (latestOtp) {
+            const remainingMs = resendCooldownMs - (Date.now() - latestOtp.createdAt.getTime());
+            if (remainingMs > 0) {
+                throw new BadRequestError(`Vui lòng thử lại sau ${Math.ceil(remainingMs / 1000)} giây`);
+            }
+        }
+
+        const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '5m' });
         const otp = await otpGenerator.generate(6, {
             digits: true,
             lowerCaseAlphabets: false,
@@ -632,43 +646,53 @@ class controllerUsers {
             specialChars: false,
         });
 
-        const saltRounds = 10;
-
-        bcrypt.hash(otp, saltRounds, async function (err, hash) {
-            if (err) {
-                console.error('Error hashing OTP:', err);
-            } else {
-                await modelOtp.create({
-                    email: user.email,
-                    otp: hash,
-                    type: 'forgotPassword',
-                });
-                await sendMailForgotPassword(email, otp);
-
-                return res
-                    .setHeader('Set-Cookie', [
-                        `tokenResetPassword=${token}; Max-Age=300; Path=/; SameSite=Strict${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
-                    ])
-                    .status(200)
-                    .json({ message: 'Gửi thành công !!!' });
-            }
+        const hash = await bcrypt.hash(otp, 10);
+        await modelOtp.deleteMany({ email: user.email, type: 'forgotPassword' });
+        const createdOtp = await modelOtp.create({
+            email: user.email,
+            otp: hash,
+            type: 'forgotPassword',
         });
+
+        try {
+            await sendMailForgotPassword(email, otp);
+        } catch (error) {
+            await modelOtp.deleteOne({ _id: createdOtp._id });
+            throw error;
+        }
+
+        res.cookie('tokenResetPassword', token, buildCookieOptions(5 * 60 * 1000));
+        return new OK({ message: 'Gửi mã OTP thành công' }).send(res);
     }
 
     async resetPassword(req, res) {
         const token = req.cookies.tokenResetPassword;
-        const { otp, password } = req.body;
+        const { otp, password, confirmPassword } = req.body;
 
         if (!token) {
             throw new BadRequestError('Vui lòng gửi yêu cầu quên mật khẩu');
         }
 
-        const decode = jwt.verify(token, process.env.JWT_SECRET);
-        if (!decode) {
+        if (!otp || !password || !confirmPassword) {
+            throw new BadRequestError('Vui lòng nhập đầy đủ thông tin');
+        }
+
+        if (password.length < 6) {
+            throw new BadRequestError('Mật khẩu phải có ít nhất 6 ký tự');
+        }
+
+        if (password !== confirmPassword) {
+            throw new BadRequestError('Mật khẩu không khớp');
+        }
+
+        let decode;
+        try {
+            decode = jwt.verify(token, process.env.JWT_SECRET);
+        } catch {
             throw new BadRequestError('Sai mã OTP hoặc đã hết hạn, vui lòng lấy OTP mới');
         }
 
-        const findOTP = await modelOtp.findOne({ email: decode.email }).sort({ createdAt: -1 });
+        const findOTP = await modelOtp.findOne({ email: decode.email, type: 'forgotPassword' }).sort({ createdAt: -1 });
         if (!findOTP) {
             throw new BadRequestError('Sai mã OTP hoặc đã hết hạn, vui lòng lấy OTP mới');
         }
@@ -694,7 +718,7 @@ class controllerUsers {
         await findUser.save();
 
         // Xóa OTP sau khi đặt lại mật khẩu thành công
-        await modelOtp.deleteOne({ email: decode.email });
+        await modelOtp.deleteOne({ _id: findOTP._id });
         res.clearCookie('tokenResetPassword');
         return new OK({ message: 'Đặt lại mật khẩu thành công' }).send(res);
     }

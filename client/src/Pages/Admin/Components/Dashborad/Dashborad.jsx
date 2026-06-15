@@ -198,38 +198,38 @@ function Dashboard() {
             fileName: 'bao_cao_tong_hop_he_thong',
             sheets: [
                 {
-                    name: 'Tong quan',
+                    name: 'Tổng quan',
                     rows: [
-                        { 'Chi tieu': 'Tong nguoi dung', 'Gia tri': stats.totalUsers, 'Tang truong': `${stats.userGrowth}%` },
-                        { 'Chi tieu': 'Tong tin dang', 'Gia tri': stats.totalPosts, 'Tang truong': `${stats.postGrowth}%` },
-                        { 'Chi tieu': 'Tong giao dich', 'Gia tri': stats.totalTransactions, 'Tang truong': `${stats.transactionGrowth}%` },
-                        { 'Chi tieu': 'Tong doanh thu', 'Gia tri': formatCurrency(stats.totalRevenue), 'Tang truong': `${stats.revenueGrowth}%` },
+                        { 'Chỉ tiêu': 'Tổng người dùng', 'Giá trị': stats.totalUsers, 'Tăng trưởng': `${stats.userGrowth}%` },
+                        { 'Chỉ tiêu': 'Tổng tin đăng', 'Giá trị': stats.totalPosts, 'Tăng trưởng': `${stats.postGrowth}%` },
+                        { 'Chỉ tiêu': 'Tổng giao dịch', 'Giá trị': stats.totalTransactions, 'Tăng trưởng': `${stats.transactionGrowth}%` },
+                        { 'Chỉ tiêu': 'Tổng doanh thu', 'Giá trị': formatCurrency(stats.totalRevenue), 'Tăng trưởng': `${stats.revenueGrowth}%` },
                     ],
                 },
                 {
-                    name: 'Giao dich gan day',
+                    name: 'Giao dịch gần đây',
                     rows: recentTransactions.map((item) => ({
-                        'Nguoi dung': item.username || '',
-                        'Ma nguoi dung': item.userId || '',
-                        'So tien': item.amount || 0,
-                        'Phuong thuc': item.typePayment || '',
-                        'Trang thai': item.status || '',
-                        'Ngay tao': item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '',
+                        'Người dùng': item.username || '',
+                        'Mã người dùng': item.userId || '',
+                        'Số tiền': item.amount || 0,
+                        'Phương thức': item.typePayment || '',
+                        'Trạng thái': item.status || '',
+                        'Ngày tạo': item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '',
                     })),
                 },
                 {
-                    name: 'Top nguoi dung',
+                    name: 'Top người dùng',
                     rows: topUsers.map((user, index) => ({
-                        Hang: index + 1,
-                        'Nguoi dung': user.name || '',
-                        'So tin dang': user.posts || 0,
+                        'Hạng': index + 1,
+                        'Người dùng': user.name || '',
+                        'Số tin đăng': user.posts || 0,
                     })),
                 },
                 {
-                    name: 'Tin dang 7 ngay',
+                    name: 'Tin đăng 7 ngày',
                     rows: postsData.map((item) => ({
-                        Ngay: item.date || '',
-                        'So tin': item.posts || 0,
+                        'Ngày': item.date || '',
+                        'Số tin': item.posts || 0,
                     })),
                 },
             ],
@@ -244,12 +244,12 @@ function Dashboard() {
 
             exportRevenuePdf({
                 fileName: 'bao_cao_doanh_thu',
-                title: 'Bao cao doanh thu he thong',
+                title: 'Báo cáo doanh thu hệ thống',
                 summaryRows: [
-                    ['Tong doanh thu', formatCurrency(metadata.totalRevenue ?? stats.totalRevenue)],
-                    ['Tong giao dich', String(metadata.totalTransactions ?? stats.totalTransactions)],
-                    ['Tang truong doanh thu', `${metadata.revenueGrowth ?? stats.revenueGrowth}%`],
-                    ['Tang truong giao dich', `${metadata.transactionGrowth ?? stats.transactionGrowth}%`],
+                    ['Tổng doanh thu', formatCurrency(metadata.totalRevenue ?? stats.totalRevenue)],
+                    ['Tổng giao dịch', String(metadata.totalTransactions ?? stats.totalTransactions)],
+                    ['Tăng trưởng doanh thu', `${metadata.revenueGrowth ?? stats.revenueGrowth}%`],
+                    ['Tăng trưởng giao dịch', `${metadata.transactionGrowth ?? stats.transactionGrowth}%`],
                 ],
                 transactionRows: transactions.map((item) => [
                     item.username || '',
@@ -260,7 +260,7 @@ function Dashboard() {
                 ]),
             });
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the xuat bao cao doanh thu');
+            message.error(error.response?.data?.message || 'Không thể xuất báo cáo doanh thu PDF');
         }
     };
 
@@ -268,10 +268,10 @@ function Dashboard() {
         <div className={cx('wrapper')}>
             <div className={cx('header')}>
                 <Button icon={<DownloadOutlined />} onClick={handleExportSystemExcel}>
-                    Xuat tong hop Excel
+                    Xuất tổng hợp Excel
                 </Button>
                 <Button icon={<FilePdfOutlined />} onClick={handleExportRevenuePdf} style={{ marginLeft: 8 }}>
-                    Xuat doanh thu PDF
+                    Xuất doanh thu PDF
                 </Button>
             </div>
 

@@ -26,7 +26,7 @@ const SendMailReject = async (email, post, reason) => {
         });
 
         const info = await transport.sendMail({
-            from: `"phongtro123" <${process.env.EMAIL_USER}>`,
+            from: `"NESTFINDER" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Thông báo từ chối duyệt bài đăng',
             html: `
@@ -182,7 +182,7 @@ const SendMailReject = async (email, post, reason) => {
                     </div>
                     <div class="footer">
                         Trân trọng,<br/>
-                        <span class="highlight">phongtro123</span>
+                        <span class="highlight">NESTFINDER</span>
                     </div>
                 </div>
             </body>

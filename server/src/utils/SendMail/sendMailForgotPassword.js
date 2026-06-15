@@ -6,27 +6,56 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+const EMAIL_APP_PASSWORD = process.env.EMAIL_APP_PASSWORD;
 
 const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 const SendMailForgotPassword = async (email, otp) => {
     try {
-        const accessToken = await oAuth2Client.getAccessToken();
-        const transport = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: process.env.EMAIL_USER,
-                clientId: CLIENT_ID,
-                clientSecret: CLIENT_SECRET,
-                refreshToken: REFRESH_TOKEN,
-                accessToken: accessToken,
-            },
-        });
+        let transport;
+
+        if (process.env.EMAIL_USER && EMAIL_APP_PASSWORD) {
+            transport = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: EMAIL_APP_PASSWORD,
+                },
+            });
+        } else {
+            const missingConfig = [
+                ['EMAIL_USER', process.env.EMAIL_USER],
+                ['CLIENT_ID', CLIENT_ID],
+                ['CLIENT_SECRET', CLIENT_SECRET],
+                ['REDIRECT_URI', REDIRECT_URI],
+                ['REFRESH_TOKEN', REFRESH_TOKEN],
+            ]
+                .filter(([, value]) => !value)
+                .map(([key]) => key);
+
+            if (missingConfig.length > 0) {
+                throw new Error(
+                    `Chưa cấu hình email gửi OTP: thiếu EMAIL_APP_PASSWORD hoặc thiếu OAuth2 (${missingConfig.join(', ')})`,
+                );
+            }
+
+            const accessToken = await oAuth2Client.getAccessToken();
+            transport = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    type: 'OAuth2',
+                    user: process.env.EMAIL_USER,
+                    clientId: CLIENT_ID,
+                    clientSecret: CLIENT_SECRET,
+                    refreshToken: REFRESH_TOKEN,
+                    accessToken: accessToken?.token || accessToken,
+                },
+            });
+        }
 
         const info = await transport.sendMail({
-            from: `"phongtro123" <${process.env.EMAIL_USER}>`,
+            from: `"NESTFINDER" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Yêu cầu đặt lại mật khẩu',
             text: `Mã OTP để đặt lại mật khẩu của bạn là: ${otp}`,
@@ -108,7 +137,7 @@ const SendMailForgotPassword = async (email, otp) => {
                     </div>
                     <div class="footer">
                         Trân trọng,<br/>
-                        <strong>phongtro123</strong>
+                        <strong>NESTFINDER</strong>
                     </div>
                 </div>
             </body>
@@ -119,6 +148,7 @@ const SendMailForgotPassword = async (email, otp) => {
         console.log('Forgot password email sent:', info.messageId);
     } catch (error) {
         console.log('Error sending forgot password email:', error);
+        throw error;
     }
 };
 

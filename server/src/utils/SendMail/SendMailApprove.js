@@ -26,7 +26,7 @@ const SendMailApprove = async (email, post) => {
             },
         });
         const info = await transport.sendMail({
-            from: `"phongtro123" <${process.env.EMAIL_USER}>`, // sender address
+            from: `"NESTFINDER" <${process.env.EMAIL_USER}>`, // sender address
             to: email, // list of receivers
             subject: 'Thông báo duyệt bài thành công', // Subject line
             text: 'Bài đăng của bạn đã được duyệt thành công', // plain text body
@@ -179,7 +179,7 @@ const SendMailApprove = async (email, post) => {
                         </div>
             
                         <div class="message">
-                            Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>phongtro123</strong>. Chúng tôi rất vui mừng được đồng hành cùng bạn.
+                            Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>NESTFINDER</strong>. Chúng tôi rất vui mừng được đồng hành cùng bạn.
                         </div>
             
                         <div class="message">
@@ -188,7 +188,7 @@ const SendMailApprove = async (email, post) => {
                     </div>
                     <div class="footer">
                         Trân trọng,<br/>
-                        <span class="highlight">phongtro123</span>
+                        <span class="highlight">NESTFINDER</span>
                     </div>
                 </div>
             </body>

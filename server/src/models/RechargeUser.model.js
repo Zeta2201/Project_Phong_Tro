@@ -8,6 +8,7 @@ const modelRechargeUser = new Schema(
         amount: { type: Number, require: true },
         typePayment: { type: String, require: true },
         status: { type: String, require: true },
+        paymentOrderId: { type: String, unique: true, sparse: true },
     },
     {
         timestamps: true,
