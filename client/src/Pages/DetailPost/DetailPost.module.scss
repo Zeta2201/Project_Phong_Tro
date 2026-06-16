@@ -287,6 +287,76 @@
     }
 }
 
+.reputation-card {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding: 16px 0;
+    margin-bottom: 16px;
+}
+
+.reputation-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+
+    span {
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    strong {
+        color: #0f766e;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+}
+
+.reputation-score {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+
+    span {
+        font-weight: 700;
+        color: #111827;
+    }
+}
+
+.reputation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    div {
+        background: #f9fafb;
+        border: 1px solid #eef2f7;
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 72px;
+    }
+
+    span {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
+        margin-bottom: 6px;
+    }
+
+    strong {
+        color: #111827;
+        font-size: 14px;
+    }
+}
+
 .contact-buttons {
     display: flex;
     flex-direction: column;

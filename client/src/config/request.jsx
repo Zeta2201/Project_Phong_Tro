@@ -204,6 +204,18 @@ export const requestGetPosts = async (params) => {
     return res.data;
 };
 
+export const requestGetMapPosts = async (params) => {
+    const filteredParams = Object.entries(params || {})
+        .filter(([, value]) => value !== '' && value !== null && value !== undefined)
+        .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+        }, {});
+
+    const res = await request.get('/api/posts/map', { params: filteredParams });
+    return res.data;
+};
+
 //// filter options
 
 export const requestGetFilterOptions = async () => {
@@ -241,6 +253,56 @@ export const requestTogglePostingPlan = async (data) => {
     return res.data;
 };
 
+export const requestValidateVoucher = async (data) => {
+    const res = await request.post('/api/vouchers/validate', data);
+    return res.data;
+};
+
+export const requestGetAdminVouchers = async () => {
+    const res = await request.get('/api/admin/vouchers');
+    return res.data;
+};
+
+export const requestCreateVoucher = async (data) => {
+    const res = await request.post('/api/admin/vouchers', data);
+    return res.data;
+};
+
+export const requestUpdateVoucher = async (data) => {
+    const res = await request.post('/api/admin/update-voucher', data);
+    return res.data;
+};
+
+export const requestToggleVoucher = async (data) => {
+    const res = await request.post('/api/admin/toggle-voucher', data);
+    return res.data;
+};
+
+export const requestGetActiveBanner = async () => {
+    const res = await request.get('/api/banners/active');
+    return res.data;
+};
+
+export const requestGetAdminBanners = async () => {
+    const res = await request.get('/api/admin/banners');
+    return res.data;
+};
+
+export const requestCreateBanner = async (data) => {
+    const res = await request.post('/api/admin/banners', data);
+    return res.data;
+};
+
+export const requestUpdateBanner = async (data) => {
+    const res = await request.post('/api/admin/update-banner', data);
+    return res.data;
+};
+
+export const requestToggleBanner = async (data) => {
+    const res = await request.post('/api/admin/toggle-banner', data);
+    return res.data;
+};
+
 export const requestCreateFilterOption = async (data) => {
     const res = await request.post('/api/admin/filter-options', data);
     return res.data;
@@ -273,6 +335,11 @@ export const requestGetRechargeUser = async () => {
 
 export const requestGetPostByUserId = async () => {
     const res = await request.get('/api/get-post-by-user-id');
+    return res.data;
+};
+
+export const requestGetOwnerAnalytics = async () => {
+    const res = await request.get('/api/owner/analytics');
     return res.data;
 };
 

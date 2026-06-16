@@ -110,6 +110,17 @@ function DetailPost() {
         }[post?.availabilityStatus || 'available'] || 'Hết phòng';
     const isFavourite = userHeart.find((item) => item === dataUser?._id);
     const isPostOwner = post?.userId === dataUser?._id || post?.userId?._id === dataUser?._id;
+    const landlordReputation = user?.reputation || {};
+    const reputationScore = Number(landlordReputation.score || 0);
+    const reputationLabel =
+        reputationScore >= 4.5
+            ? 'Rất uy tín'
+            : reputationScore >= 4
+              ? 'Uy tín tốt'
+              : reputationScore >= 3
+                ? 'Đang xây dựng uy tín'
+                : 'Cần thêm dữ liệu';
+    const formatPercent = (value) => (value === null || value === undefined ? 'Chưa có dữ liệu' : `${value}%`);
 
     const fetchPost = async () => {
         const res = await requestGetPostById(id);
@@ -639,9 +650,40 @@ function DetailPost() {
                                         <span className={cx('status-text')}>{user?.status || 'Dang hoat dong'}</span>
                                     </div>
                                     <div className={cx('user-stats')}>
-                                        <span>{user?.lengthPost} tin dang</span>
+                                        <span>{user?.lengthPost} tin đăng</span>
                                         <span className={cx('dot-separator')}></span>
                                         <span>Tham gia từ: {dayjs(user?.createdAt).format('DD/MM/YYYY')}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={cx('reputation-card')}>
+                                <div className={cx('reputation-title')}>
+                                    <span>Hệ thống uy tín chủ trọ</span>
+                                    <strong>{reputationLabel}</strong>
+                                </div>
+                                <div className={cx('reputation-score')}>
+                                    <Rate disabled allowHalf value={reputationScore} />
+                                    <span>{reputationScore || 0}/5</span>
+                                </div>
+                                <div className={cx('reputation-grid')}>
+                                    <div>
+                                        <span>Số phòng đã cho thuê</span>
+                                        <strong>{landlordReputation.rentedCount || 0}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Đánh giá</span>
+                                        <strong>
+                                            {landlordReputation.averageRating || 0}/5 ({landlordReputation.ratingCount || 0})
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Tỷ lệ phản hồi</span>
+                                        <strong>{formatPercent(landlordReputation.responseRate)}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Tỷ lệ khiếu nại</span>
+                                        <strong>{formatPercent(landlordReputation.complaintRate)}</strong>
                                     </div>
                                 </div>
                             </div>

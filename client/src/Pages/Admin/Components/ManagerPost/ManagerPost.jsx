@@ -79,8 +79,13 @@ function ManagerPost() {
 
     const handleReject = async (postId) => {
         try {
-            await requestRejectPost({ id: postId, reason: approvalReason });
-            message.success('Từ chối bài viết thành công');
+            const res = await requestRejectPost({ id: postId, reason: approvalReason });
+            const refundAmount = res?.metadata?.refundAmount || 0;
+            message.success(
+                refundAmount > 0
+                    ? `Từ chối bài viết thành công. Đã hoàn ${refundAmount.toLocaleString('vi-VN')} VND cho người đăng`
+                    : 'Từ chối bài viết thành công',
+            );
             handleCloseModal();
             await fetchData();
         } catch (error) {
@@ -159,6 +164,17 @@ function ManagerPost() {
             dataIndex: 'typeNews',
             key: 'typeNews',
             render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thường'}</Tag>,
+        },
+        {
+            title: 'Phí đăng',
+            dataIndex: 'postingFee',
+            key: 'postingFee',
+            render: (postingFee, record) => (
+                <Space direction="vertical" size={0}>
+                    <span>{Number(postingFee || 0).toLocaleString('vi-VN')} VND</span>
+                    {record.postingFeeRefunded && <Tag color="cyan">Đã hoàn</Tag>}
+                </Space>
+            ),
         },
         {
             title: 'Trạng thái',
@@ -323,6 +339,12 @@ function ManagerPost() {
                                 <Tag color={selectedPost.typeNews === 'vip' ? 'gold' : 'blue'}>
                                     {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thường'}
                                 </Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Phí đăng">
+                                <Space>
+                                    {Number(selectedPost.postingFee || 0).toLocaleString('vi-VN')} VND
+                                    {selectedPost.postingFeeRefunded && <Tag color="cyan">Đã hoàn tiền</Tag>}
+                                </Space>
                             </Descriptions.Item>
                             <Descriptions.Item label="Trạng thái">
                                 <Tag color={selectedPostStatus.color}>{selectedPostStatus.text}</Tag>

@@ -16,6 +16,8 @@ import {
     SafetyCertificateOutlined,
     FilterOutlined,
     TagsOutlined,
+    GiftOutlined,
+    PictureOutlined,
     AuditOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +37,8 @@ import ManagerDeposits from './Components/ManagerDeposits/ManagerDeposits';
 import ManagerFilters from './Components/ManagerFilters/ManagerFilters';
 import ManagerPostingPlans from './Components/ManagerPostingPlans/ManagerPostingPlans';
 import ManagerContracts from './Components/ManagerContracts/ManagerContracts';
+import ManagerVouchers from './Components/ManagerVouchers/ManagerVouchers';
+import ManagerBanners from './Components/ManagerBanners/ManagerBanners';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -137,6 +141,18 @@ function Admin() {
             onClick: () => setType('posting-plans'),
         },
         {
+            key: 'vouchers',
+            icon: <GiftOutlined />,
+            label: 'Quản lý voucher',
+            onClick: () => setType('vouchers'),
+        },
+        {
+            key: 'banners',
+            icon: <PictureOutlined />,
+            label: 'Quản lý banner',
+            onClick: () => setType('banners'),
+        },
+        {
             key: 'filters',
             icon: <FilterOutlined />,
             label: 'Quản lý bộ lọc',
@@ -187,6 +203,8 @@ function Admin() {
                     {type === 'deposits' && <ManagerDeposits />}
                     {type === 'contracts' && <ManagerContracts />}
                     {type === 'posting-plans' && <ManagerPostingPlans />}
+                    {type === 'vouchers' && <ManagerVouchers />}
+                    {type === 'banners' && <ManagerBanners />}
                     {type === 'filters' && <ManagerFilters />}
                 </Content>
             </Layout>

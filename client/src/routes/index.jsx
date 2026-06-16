@@ -13,6 +13,11 @@ import Terms from '../Pages/Terms/Terms';
 import FavouritePosts from '../Pages/FavouritePosts/FavouritePosts';
 import Pricing from '../Pages/Pricing/Pricing';
 import CompareRooms from '../Pages/CompareRooms/CompareRooms';
+import PrivacyPolicy from '../Pages/LegalPages/PrivacyPolicy';
+import PostingRules from '../Pages/LegalPages/PostingRules';
+import PaymentPolicy from '../Pages/LegalPages/PaymentPolicy';
+import OperationRegulations from '../Pages/LegalPages/OperationRegulations';
+import MapSearch from '../Pages/MapSearch/MapSearch';
 
 export const publicRoutes = [
     {
@@ -26,9 +31,14 @@ export const publicRoutes = [
             { path: 'search/:value', element: <AISearch /> },
             { path: 'contact', element: <Contact /> },
             { path: 'terms', element: <Terms /> },
+            { path: 'privacy', element: <PrivacyPolicy /> },
+            { path: 'posting-rules', element: <PostingRules /> },
+            { path: 'payment-policy', element: <PaymentPolicy /> },
+            { path: 'operation-regulations', element: <OperationRegulations /> },
             { path: 'bang-gia', element: <Pricing /> },
             { path: 'so-sanh', element: <CompareRooms /> },
             { path: 'tin-yeu-thich', element: <FavouritePosts /> },
+            { path: 'ban-do', element: <MapSearch /> },
         ],
     },
     { path: '/login', element: <LoginUser /> },

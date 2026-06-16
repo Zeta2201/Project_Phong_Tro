@@ -22,7 +22,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 import { Editor } from '@tinymce/tinymce-react';
-import { requestCreatePost, requestGetPostingPlans, requestUploadImages } from '../../../../config/request';
+import { requestCreatePost, requestGetPostingPlans, requestUploadImages, requestValidateVoucher } from '../../../../config/request';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -61,15 +61,18 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [description, setDescription] = useState(initialValues?.description || '');
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
+    const [selectedCoordinates, setSelectedCoordinates] = useState(initialValues?.coordinates || null);
     const debouncedSearch = useDebounce(valueSearch, 500);
     const [mapQuery, setMapQuery] = useState(initialValues?.address || 'Lăng Chủ tịch Hồ Chí Minh');
     // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
     const [postingPlans, setPostingPlans] = useState([]);
+    const [voucherPreview, setVoucherPreview] = useState(null);
 
     // Get form values to watch for changes
     const selectedDuration = Form.useWatch('duration', form);
     const selectedTypeNews = Form.useWatch('typeNews', form);
+    const voucherCode = Form.useWatch('voucherCode', form);
 
     const typeNewsOptions = useMemo(() => {
         const uniqueTypes = [...new Set(postingPlans.map((plan) => plan.typeNews))];
@@ -131,6 +134,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         );
         const calculatedCost = selectedPlan?.price || 0;
         setEstimatedCost(calculatedCost);
+        setVoucherPreview(null);
     }, [postingPlans, selectedDuration, selectedTypeNews]);
 
     useEffect(() => {
@@ -202,6 +206,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             setDescription('');
             setMapQuery('Lăng Chủ tịch Hồ Chí Minh');
             setEstimatedCost(0);
+            setSelectedCoordinates(null);
         }
     }, [initialValues, form]);
 
@@ -225,10 +230,12 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 username: values.username,
                 options: values.options,
                 location: values.location,
+                coordinates: selectedCoordinates,
                 typeNews: values.typeNews,
                 endDate: endDate,
                 images: resImages.images,
                 dateEnd: values.duration,
+                voucherCode: values.voucherCode,
             };
 
             await requestCreatePost(data);
@@ -237,6 +244,8 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             setFileList([]);
             setDescription('');
             setEstimatedCost(0);
+            setSelectedCoordinates(null);
+            setVoucherPreview(null);
             onFinish(data);
         } catch (error) {
             message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
@@ -248,6 +257,8 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         setFileList([]);
         setDescription('');
         setEstimatedCost(0);
+        setSelectedCoordinates(null);
+        setVoucherPreview(null);
         onCancel();
     };
 
@@ -261,10 +272,54 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     };
 
     // Handler for selecting an item from AutoComplete
-    const handleLocationSelect = (selectedValue) => {
+    const handleLocationSelect = async (selectedValue, option) => {
         form.setFieldsValue({ location: selectedValue });
         setMapQuery(selectedValue);
+        setSelectedCoordinates(null);
+
+        if (!option?.placeId) return;
+
+        try {
+            const res = await axios.get('https://rsapi.goong.io/Place/Detail', {
+                params: {
+                    place_id: option.placeId,
+                    api_key: import.meta.env.VITE_API_KEY,
+                },
+            });
+            const location = res.data?.result?.geometry?.location;
+            if (location?.lat && location?.lng) {
+                setSelectedCoordinates({ lat: Number(location.lat), lng: Number(location.lng) });
+            }
+        } catch {
+            message.warning('Không thể lấy tọa độ địa chỉ, bài đăng sẽ không hiển thị trên bản đồ');
+        }
     };
+
+    const handleApplyVoucher = async () => {
+        if (!voucherCode?.trim()) {
+            message.warning('Vui lòng nhập mã voucher');
+            return;
+        }
+        if (!selectedTypeNews || !selectedDuration || estimatedCost <= 0) {
+            message.warning('Vui lòng chọn loại tin và thời gian đăng trước');
+            return;
+        }
+
+        try {
+            const res = await requestValidateVoucher({
+                code: voucherCode,
+                typeNews: selectedTypeNews,
+                orderValue: estimatedCost,
+            });
+            setVoucherPreview(res.metadata);
+            message.success(`Áp dụng voucher thành công, giảm ${Number(res.metadata.discountAmount || 0).toLocaleString('vi-VN')} VNĐ`);
+        } catch (error) {
+            setVoucherPreview(null);
+            message.error(error.response?.data?.message || 'Voucher không hợp lệ');
+        }
+    };
+
+    const finalCost = voucherPreview ? voucherPreview.finalAmount : estimatedCost;
 
     return (
         <Form form={form} layout="vertical" onFinish={handleFinish}>
@@ -370,7 +425,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 rules={[{ required: true, message: 'Vui lòng nhập hoặc chọn địa chỉ' }]}
             >
                 <AutoComplete
-                    options={dataSearch?.map((item) => ({ value: item.description }))}
+                    options={dataSearch?.map((item) => ({ value: item.description, placeId: item.place_id }))}
                     onSearch={handleLocationSearch}
                     onSelect={handleLocationSelect}
                     placeholder="Nhập địa chỉ hoặc chọn từ gợi ý..."
@@ -474,7 +529,39 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                                 }
                             />
                         </Col>
+                        <Col span={12}>
+                            <Statistic
+                                title="Thanh toán (VNĐ)"
+                                value={finalCost > 0 ? finalCost : '-'}
+                                precision={0}
+                                formatter={(value) =>
+                                    typeof value === 'number' ? value.toLocaleString('vi-VN') : value
+                                }
+                            />
+                        </Col>
                     </Row>
+                </Col>
+            </Row>
+
+            <Row gutter={12} align="bottom">
+                <Col xs={24} md={12}>
+                    <Form.Item name="voucherCode" label="Voucher giảm phí đăng tin">
+                        <Input placeholder="Nhập mã voucher nếu có" onChange={() => setVoucherPreview(null)} />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={4}>
+                    <Form.Item>
+                        <Button block onClick={handleApplyVoucher}>
+                            Áp dụng
+                        </Button>
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                    {voucherPreview && (
+                        <div style={{ paddingBottom: 24, color: '#0f766e', fontWeight: 700 }}>
+                            Đã giảm {Number(voucherPreview.discountAmount || 0).toLocaleString('vi-VN')} VNĐ
+                        </div>
+                    )}
                 </Col>
             </Row>
 

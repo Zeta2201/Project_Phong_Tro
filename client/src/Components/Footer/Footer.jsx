@@ -33,7 +33,7 @@ function Footer() {
                     <ul>
                         <li><Link to="/">Trang chủ</Link></li>
                         <li><Link to="/search">Danh sách phòng</Link></li>
-                        <li><Link to="/post">Đăng tin cho thuê</Link></li>
+                        <li><Link to="/trang-ca-nhan?tab=posts">Đăng tin cho thuê</Link></li>
                         <li><Link to="/guide">Hướng dẫn sử dụng</Link></li>
                         <li><Link to="/contact">Liên hệ</Link></li>
                     </ul>

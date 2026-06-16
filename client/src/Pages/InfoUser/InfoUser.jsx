@@ -1,6 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined, SafetyCertificateOutlined, AuditOutlined } from '@ant-design/icons';
+import {
+    UserOutlined,
+    FileTextOutlined,
+    DollarCircleOutlined,
+    LockOutlined,
+    ScheduleOutlined,
+    SafetyCertificateOutlined,
+    AuditOutlined,
+    BarChartOutlined,
+} from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -12,6 +21,7 @@ import ChangePassword from './Components/ChangePassword/ChangePassword';
 import ManagerReservation from './Components/ManagerReservation/ManagerReservation';
 import ManagerDeposit from './Components/ManagerDeposit/ManagerDeposit';
 import ManagerContract from './Components/ManagerContract/ManagerContract';
+import OwnerAnalytics from './Components/OwnerAnalytics/OwnerAnalytics';
 
 import userNotFound from '../../assets/images/img_default.png';
 
@@ -44,6 +54,11 @@ function InfoUser() {
             key: 'posts',
             icon: <FileTextOutlined />,
             label: 'Quản lý bài viết',
+        },
+        {
+            key: 'analytics',
+            icon: <BarChartOutlined />,
+            label: 'Phân tích chủ trọ',
         },
         {
             key: 'reservations',
@@ -158,6 +173,7 @@ function InfoUser() {
                                 <Title level={3} style={{ margin: 0 }}>
                                     {selectedMenu === 'personal' && 'Thông tin cá nhân'}
                                     {selectedMenu === 'posts' && 'Quản lý bài viết'}
+                                    {selectedMenu === 'analytics' && 'Phân tích chủ trọ'}
                                     {selectedMenu === 'reservations' && 'Quản lý giữ chỗ'}
                                     {selectedMenu === 'recharge' && 'Nạp tiền'}
                                     {selectedMenu === 'change-password' && 'Đổi mật khẩu'}
@@ -171,6 +187,7 @@ function InfoUser() {
                     >
                         {selectedMenu === 'personal' && <PersonalInfo />}
                         {selectedMenu === 'posts' && <ManagerPost />}
+                        {selectedMenu === 'analytics' && <OwnerAnalytics />}
                         {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
                         {selectedMenu === 'change-password' && <ChangePassword />}

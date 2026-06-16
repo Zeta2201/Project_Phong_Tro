@@ -19,7 +19,7 @@ import dayjs from 'dayjs';
 
 import CardBody from '../CardBody/CardBody';
 import imgDefault from '../../assets/images/img_default.png';
-import { requestGetFilterOptions, requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
+import { requestGetActiveBanner, requestGetFilterOptions, requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
 
 const cx = classNames.bind(styles);
 
@@ -65,6 +65,78 @@ const defaultFilterOptions = {
 const getOptionLabel = (options, value) => options.find((option) => option.value === value)?.label || '';
 const keepActiveSelection = (options, value) => (options.some((option) => option.value === value) ? value : '');
 
+const provinceOptions = [
+    'An Giang',
+    'Bà Rịa - Vũng Tàu',
+    'Bạc Liêu',
+    'Bắc Giang',
+    'Bắc Kạn',
+    'Bắc Ninh',
+    'Bến Tre',
+    'Bình Định',
+    'Bình Dương',
+    'Bình Phước',
+    'Bình Thuận',
+    'Cà Mau',
+    'Cao Bằng',
+    'Cần Thơ',
+    'Đà Nẵng',
+    'Đắk Lắk',
+    'Đắk Nông',
+    'Điện Biên',
+    'Đồng Nai',
+    'Đồng Tháp',
+    'Gia Lai',
+    'Hà Giang',
+    'Hà Nam',
+    'Hà Nội',
+    'Hà Tĩnh',
+    'Hải Dương',
+    'Hải Phòng',
+    'Hậu Giang',
+    'Hòa Bình',
+    'Hồ Chí Minh',
+    'Hưng Yên',
+    'Khánh Hòa',
+    'Kiên Giang',
+    'Kon Tum',
+    'Lai Châu',
+    'Lâm Đồng',
+    'Lạng Sơn',
+    'Lào Cai',
+    'Long An',
+    'Nam Định',
+    'Nghệ An',
+    'Ninh Bình',
+    'Ninh Thuận',
+    'Phú Thọ',
+    'Phú Yên',
+    'Quảng Bình',
+    'Quảng Nam',
+    'Quảng Ngãi',
+    'Quảng Ninh',
+    'Quảng Trị',
+    'Sóc Trăng',
+    'Sơn La',
+    'Tây Ninh',
+    'Thái Bình',
+    'Thái Nguyên',
+    'Thanh Hóa',
+    'Thừa Thiên Huế',
+    'Tiền Giang',
+    'Trà Vinh',
+    'Tuyên Quang',
+    'Vĩnh Long',
+    'Vĩnh Phúc',
+    'Yên Bái',
+].map((province) => ({ value: province, label: province }));
+
+const provinceAliases = {
+    'can-tho': 'Cần Thơ',
+    'ha-noi': 'Hà Nội',
+    'ho-chi-minh': 'Hồ Chí Minh',
+};
+
 const publicPostsOnly = (posts = []) => posts.filter((post) => post?.status === 'active');
 
 function HomePage() {
@@ -72,6 +144,7 @@ function HomePage() {
     const [dataNewPost, setDataNewPost] = useState([]);
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
     const [filterOptions, setFilterOptions] = useState(defaultFilterOptions);
+    const [discountBanner, setDiscountBanner] = useState(null);
 
     useEffect(() => {
         document.title = 'Trang chủ';
@@ -83,6 +156,7 @@ function HomePage() {
     const [priceRange, setPriceRange] = useState(() => getQueryParam('priceRange') || '');
     const [areaRange, setAreaRange] = useState(() => getQueryParam('areaRange') || '');
     const [typeNews, setTypeNews] = useState(() => getQueryParam('typeNews') || '');
+    const [province, setProvince] = useState(() => getQueryParam('province') || provinceAliases[getQueryParam('location')] || '');
     const categoryOptions = filterOptions.category;
     const priceOptions = filterOptions.priceRange;
     const areaOptions = filterOptions.areaRange;
@@ -118,6 +192,7 @@ function HomePage() {
                 priceRange,
                 areaRange,
                 typeNews,
+                province,
             };
             const res = await requestGetPosts(params);
             setDataPost(publicPostsOnly(res.metadata || []));
@@ -127,13 +202,14 @@ function HomePage() {
             if (priceRange) queryParams.set('priceRange', priceRange);
             if (areaRange) queryParams.set('areaRange', areaRange);
             if (typeNews) queryParams.set('typeNews', typeNews);
+            if (province) queryParams.set('province', province);
 
             const queryString = queryParams.toString();
             const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
             window.history.pushState({ path: newUrl }, '', newUrl);
         };
         fetchData();
-    }, [category, priceRange, areaRange, typeNews]);
+    }, [category, priceRange, areaRange, typeNews, province]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -145,9 +221,27 @@ function HomePage() {
         fetchData();
     }, []);
 
-    const activeFilterCount = [category, priceRange, areaRange, typeNews].filter(Boolean).length;
+    useEffect(() => {
+        const fetchBanner = async () => {
+            try {
+                const res = await requestGetActiveBanner();
+                setDiscountBanner(res.metadata || null);
+            } catch {
+                setDiscountBanner(null);
+            }
+        };
+        fetchBanner();
+    }, []);
+
+    const activeFilterCount = [category, priceRange, areaRange, typeNews, province].filter(Boolean).length;
 
     const activeFilters = [
+        {
+            key: 'province',
+            label: 'Khu vực',
+            value: getOptionLabel(provinceOptions, province),
+            onClear: () => setProvince(''),
+        },
         {
             key: 'category',
             label: 'Loại hình',
@@ -185,6 +279,7 @@ function HomePage() {
         setPriceRange('');
         setAreaRange('');
         setTypeNews('');
+        setProvince('');
     };
 
     const renderMiniPosts = (posts) =>
@@ -207,6 +302,27 @@ function HomePage() {
 
     return (
         <main className={cx('pageShell')}>
+            {discountBanner && (
+                <section
+                    className={cx('discountBanner')}
+                    style={
+                        discountBanner.imageUrl
+                            ? { backgroundImage: `linear-gradient(90deg, rgba(15, 23, 42, 0.78), rgba(15, 118, 110, 0.42)), url(${discountBanner.imageUrl})` }
+                            : undefined
+                    }
+                >
+                    <div>
+                        {discountBanner.badgeText && <span>{discountBanner.badgeText}</span>}
+                        <h1>{discountBanner.title}</h1>
+                        {discountBanner.subtitle && <p>{discountBanner.subtitle}</p>}
+                    </div>
+                    <div className={cx('discountBannerAction')}>
+                        {discountBanner.voucherCode && <strong>Mã: {discountBanner.voucherCode}</strong>}
+                        <Link to={discountBanner.ctaLink || '/trang-ca-nhan?tab=posts'}>{discountBanner.ctaText || 'Xem ngay'}</Link>
+                    </div>
+                </section>
+            )}
+
             <section className={cx('hero')}>
                 <div className={cx('heroContent')}>
                     <div className={cx('heroText')}>
@@ -228,6 +344,18 @@ function HomePage() {
                         </div>
 
                         <div className={cx('quickSelectGrid')}>
+                            <div className={cx('quickSelect')}>
+                                <label>Khu vực</label>
+                                <select value={province} onChange={(event) => setProvince(event.target.value)}>
+                                    <option value="">Tất cả tỉnh/thành</option>
+                                    {provinceOptions.map((item) => (
+                                        <option key={item.value} value={item.value}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <div className={cx('quickSelect')}>
                                 <label>Loại hình</label>
                                 <select value={category} onChange={(event) => setCategory(event.target.value)}>
@@ -348,6 +476,21 @@ function HomePage() {
                             <button type="button" onClick={resetFilters} aria-label="Đặt lại bộ lọc">
                                 <ReloadOutlined />
                             </button>
+                        </div>
+
+                        <div className={cx('filterGroup')}>
+                            <h3>
+                                <EnvironmentOutlined />
+                                Khu vực
+                            </h3>
+                            <select className={cx('provinceSelect')} value={province} onChange={(event) => setProvince(event.target.value)}>
+                                <option value="">Tất cả tỉnh/thành</option>
+                                {provinceOptions.map((item) => (
+                                    <option key={item.value} value={item.value}>
+                                        {item.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className={cx('filterGroup')}>

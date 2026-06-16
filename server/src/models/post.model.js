@@ -34,6 +34,10 @@ const modelPost = new Schema(
             type: String,
             required: true,
         },
+        coordinates: {
+            lat: { type: Number, default: null },
+            lng: { type: Number, default: null },
+        },
         phone: {
             type: String,
             required: true,
@@ -70,6 +74,33 @@ const modelPost = new Schema(
             type: Number,
             default: 0,
         },
+        postingFeeOriginal: {
+            type: Number,
+            default: 0,
+        },
+        voucherCode: {
+            type: String,
+            default: '',
+            trim: true,
+            uppercase: true,
+        },
+        voucherDiscount: {
+            type: Number,
+            default: 0,
+        },
+        voucherId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'voucher',
+            default: null,
+        },
+        postingFeeRefunded: {
+            type: Boolean,
+            default: false,
+        },
+        postingFeeRefundedAt: {
+            type: Date,
+            default: null,
+        },
         endDate: {
             type: Date,
             required: true,
@@ -81,6 +112,11 @@ const modelPost = new Schema(
         ratingCount: {
             type: Number,
             default: 0,
+        },
+        viewCount: {
+            type: Number,
+            default: 0,
+            min: 0,
         },
     },
     {

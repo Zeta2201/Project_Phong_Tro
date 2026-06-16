@@ -12,6 +12,8 @@ const depositRoutes = require('./deposit.routes');
 const filterOptionRoutes = require('./filterOption.routes');
 const postingPlanRoutes = require('./postingPlan.routes');
 const contractRoutes = require('./contract.routes');
+const voucherRoutes = require('./voucher.routes');
+const bannerRoutes = require('./banner.routes');
 
 const multer = require('multer');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
@@ -116,11 +118,27 @@ function routes(app) {
     app.post('/api/admin/update-posting-plan', postingPlanRoutes);
     app.post('/api/admin/toggle-posting-plan', postingPlanRoutes);
 
+    /// vouchers
+    app.post('/api/vouchers/validate', voucherRoutes);
+    app.get('/api/admin/vouchers', voucherRoutes);
+    app.post('/api/admin/vouchers', voucherRoutes);
+    app.post('/api/admin/update-voucher', voucherRoutes);
+    app.post('/api/admin/toggle-voucher', voucherRoutes);
+
+    /// banners
+    app.get('/api/banners/active', bannerRoutes);
+    app.get('/api/admin/banners', bannerRoutes);
+    app.post('/api/admin/banners', bannerRoutes);
+    app.post('/api/admin/update-banner', bannerRoutes);
+    app.post('/api/admin/toggle-banner', bannerRoutes);
+
     /// posts
     app.post('/api/create-post', postRoutes);
     app.get('/api/get-posts', postRoutes);
+    app.get('/api/posts/map', postRoutes);
     app.get('/api/get-post-by-id', postRoutes);
     app.get('/api/get-post-by-user-id', postRoutes);
+    app.get('/api/owner/analytics', postRoutes);
     app.get('/api/get-new-post', postRoutes);
     app.get('/api/get-post-vip', postRoutes);
     app.post('/api/delete-post', postRoutes);
