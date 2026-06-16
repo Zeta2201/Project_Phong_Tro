@@ -15,7 +15,7 @@ const REVIEW_STATUSES = ['visible', 'hidden', 'reported', 'deleted'];
 const ensureRating = (value, fieldName) => {
     const rating = Number(value);
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-        throw new BadRequestError(`${fieldName} khong hop le`);
+        throw new BadRequestError(`${fieldName} không hợp lệ`);
     }
     return rating;
 };
@@ -134,7 +134,7 @@ class controllerReview {
         const { roomId } = req.query;
 
         if (!roomId) {
-            throw new BadRequestError('Vui long chon phong can xem danh gia');
+            throw new BadRequestError('Vui lòng chọn phòng cần xem đánh giá');
         }
 
         const reviews = await modelReview
@@ -144,7 +144,7 @@ class controllerReview {
             .populate('reply.ownerId', 'fullName avatar');
 
         new OK({
-            message: 'Lay danh sach danh gia thanh cong',
+            message: 'Lấy danh sách giá thành công',
             metadata: {
                 reviews,
                 summary: buildSummary(reviews),
@@ -168,11 +168,11 @@ class controllerReview {
 
         const post = await modelPost.findById(roomId);
         if (!post) {
-            throw new BadRequestError('Phong tro khong ton tai');
+            throw new BadRequestError('Phòng trọ không tồn tại');
         }
 
         if (post.userId.toString() === userId) {
-            throw new BadRequestError('Chu tro khong the danh gia phong cua chinh minh');
+            throw new BadRequestError('Chủ trọ không thể đánh giá phòng của chính mình');
         }
 
         const validRental = await findValidRental({ roomId, userId, rentalId });
@@ -190,18 +190,18 @@ class controllerReview {
             userId,
             rentalId: validRental.document._id,
             rentalType: validRental.type,
-            rating: ensureRating(rating, 'Diem tong'),
-            cleanlinessRating: ensureRating(cleanlinessRating, 'Diem ve sinh'),
-            securityRating: ensureRating(securityRating, 'Diem an ninh'),
-            locationRating: ensureRating(locationRating, 'Diem vi tri'),
-            priceRating: ensureRating(priceRating, 'Diem gia'),
+            rating: ensureRating(rating, 'Điểm tổng'),
+            cleanlinessRating: ensureRating(cleanlinessRating, 'Điểm vệ sinh'),
+            securityRating: ensureRating(securityRating, 'Điểm an ninh'),
+            locationRating: ensureRating(locationRating, 'Điểm vị trí'),
+            priceRating: ensureRating(priceRating, 'Điểm giá'),
             content,
             images: normalizeImages(images),
         });
 
         await recalculatePostRating(roomId);
 
-        new Created({ message: 'Tao danh gia thanh cong', metadata: review }).send(res);
+        new Created({ message: 'Tạo đánh giá thành công', metadata: review }).send(res);
     }
 
     async updateReview(req, res) {
@@ -210,16 +210,16 @@ class controllerReview {
 
         const review = await modelReview.findById(reviewId);
         if (!review || review.status === 'deleted') {
-            throw new BadRequestError('Danh gia khong ton tai');
+            throw new BadRequestError('Đánh giá không tồn tại');
         }
 
         if (review.userId.toString() !== userId) {
-            throw new BadRequestError('Ban khong co quyen sua danh gia nay');
+            throw new BadRequestError('Bạn không có quyền sửa đánh giá này');
         }
 
         const updateRating = [rating, cleanlinessRating, securityRating, locationRating, priceRating].some((value) => value !== undefined);
         if (updateRating && !canEditRating(review)) {
-            throw new BadRequestError('Chi duoc sua diem danh gia trong vong 7 ngay');
+            throw new BadRequestError('Chỉ được sửa điểm đánh giá trong vòng 7 ngày');
         }
 
         if (content !== undefined) {
@@ -230,16 +230,15 @@ class controllerReview {
             review.images = normalizeImages(images);
         }
 
-        if (rating !== undefined) review.rating = ensureRating(rating, 'Diem tong');
-        if (cleanlinessRating !== undefined) review.cleanlinessRating = ensureRating(cleanlinessRating, 'Diem ve sinh');
-        if (securityRating !== undefined) review.securityRating = ensureRating(securityRating, 'Diem an ninh');
-        if (locationRating !== undefined) review.locationRating = ensureRating(locationRating, 'Diem vi tri');
-        if (priceRating !== undefined) review.priceRating = ensureRating(priceRating, 'Diem gia');
-
+        if (rating !== undefined) review.rating = ensureRating(rating, 'Điểm tổng');
+        if (cleanlinessRating !== undefined) review.cleanlinessRating = ensureRating(cleanlinessRating, 'Điểm vệ sinh');
+        if (securityRating !== undefined) review.securityRating = ensureRating(securityRating, 'Điểm an ninh');
+        if (locationRating !== undefined) review.locationRating = ensureRating(locationRating, 'Điểm vị trí');
+        if (priceRating !== undefined) review.priceRating = ensureRating(priceRating, 'Điểm giá');
         await review.save();
         await recalculatePostRating(review.roomId);
 
-        new OK({ message: 'Cap nhat danh gia thanh cong', metadata: review }).send(res);
+        new OK({ message: 'Cập nhật đánh giá thành công', metadata: review }).send(res);
     }
 
     async deleteReview(req, res) {
@@ -248,18 +247,18 @@ class controllerReview {
 
         const review = await modelReview.findById(reviewId);
         if (!review || review.status === 'deleted') {
-            throw new BadRequestError('Danh gia khong ton tai');
+            throw new BadRequestError('Đánh giá không tồn tại');
         }
 
         if (review.userId.toString() !== userId) {
-            throw new BadRequestError('Ban khong co quyen xoa danh gia nay');
+            throw new BadRequestError('Bạn không có quyền xóa đánh giá này');
         }
 
         review.status = 'deleted';
         await review.save();
         await recalculatePostRating(review.roomId);
 
-        new OK({ message: 'Da xoa danh gia', metadata: review }).send(res);
+        new OK({ message: 'Đã xóa đánh giá', metadata: review }).send(res);
     }
 
     async replyReview(req, res) {
@@ -268,15 +267,15 @@ class controllerReview {
 
         const review = await modelReview.findById(reviewId).populate('roomId');
         if (!review || review.status === 'deleted') {
-            throw new BadRequestError('Danh gia khong ton tai');
+            throw new BadRequestError('Đánh giá không tồn tại');
         }
 
         if (review.roomId.userId.toString() !== ownerId) {
-            throw new BadRequestError('Chi chu tro moi duoc phan hoi danh gia');
+            throw new BadRequestError('Chỉ chủ trọ mới được phản hồi đánh giá');
         }
 
         if (review.reply?.content) {
-            throw new BadRequestError('Moi danh gia chi duoc phan hoi mot lan');
+            throw new BadRequestError('Đánh giá chỉ được phản hồi một lần');
         }
 
         review.reply = {
@@ -287,7 +286,7 @@ class controllerReview {
         };
         await review.save();
 
-        new OK({ message: 'Da phan hoi danh gia', metadata: review }).send(res);
+        new OK({ message: 'Đã phản hồi đánh giá', metadata: review }).send(res);
     }
 
     async reportReview(req, res) {
@@ -295,17 +294,17 @@ class controllerReview {
         const { reviewId, reason, details } = req.body;
 
         if (!REVIEW_REPORT_REASONS.includes(reason)) {
-            throw new BadRequestError('Ly do bao cao khong hop le');
+            throw new BadRequestError('Lý do báo cáo không hợp lệ');
         }
 
         const review = await modelReview.findById(reviewId);
         if (!review || review.status === 'deleted') {
-            throw new BadRequestError('Danh gia khong ton tai');
+            throw new BadRequestError('Đánh giá không tồn tại');
         }
 
         const hasReported = review.reports.some((report) => report.userId.toString() === userId);
         if (hasReported) {
-            throw new BadRequestError('Ban da bao cao danh gia nay');
+            throw new BadRequestError('Bạn đã báo cáo đánh giá này');
         }
 
         review.reports.push({ userId, reason, details: details || '' });
@@ -318,7 +317,7 @@ class controllerReview {
         await review.save();
         await recalculatePostRating(review.roomId);
 
-        new OK({ message: 'Da gui bao cao danh gia', metadata: review }).send(res);
+        new OK({ message: 'Đã gửi báo cáo đánh giá', metadata: review }).send(res);
     }
 
     async getAllReviews(req, res) {
@@ -335,24 +334,24 @@ class controllerReview {
             .populate('userId', 'fullName email avatar')
             .populate('reports.userId', 'fullName email avatar');
 
-        new OK({ message: 'Lay tat ca danh gia thanh cong', metadata: reviews }).send(res);
+        new OK({ message: 'Lấy tất cả đánh giá thành công', metadata: reviews }).send(res);
     }
 
     async updateReviewStatus(req, res) {
         const { reviewId, status } = req.body;
 
         if (!REVIEW_STATUSES.includes(status)) {
-            throw new BadRequestError('Trang thai danh gia khong hop le');
+            throw new BadRequestError('Trạng thái đánh giá không hợp lệ');
         }
 
         const review = await modelReview.findByIdAndUpdate(reviewId, { status }, { new: true });
         if (!review) {
-            throw new BadRequestError('Danh gia khong ton tai');
+            throw new BadRequestError('Đánh giá không tồn tại');
         }
 
         await recalculatePostRating(review.roomId);
 
-        new OK({ message: 'Cap nhat trang thai danh gia thanh cong', metadata: review }).send(res);
+        new OK({ message: 'Cập nhật trạng thái đánh giá thành công', metadata: review }).send(res);
     }
 }
 

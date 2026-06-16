@@ -1,5 +1,5 @@
 import { Layout, Menu, Avatar, Typography, Row, Col, Card, Divider, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { UserOutlined, FileTextOutlined, DollarCircleOutlined, LockOutlined, ScheduleOutlined, SafetyCertificateOutlined, AuditOutlined } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -10,6 +10,7 @@ import RechargeUser from './Components/RechargeUser/RechargeUser';
 import ChangePassword from './Components/ChangePassword/ChangePassword';
 import ManagerReservation from './Components/ManagerReservation/ManagerReservation';
 import ManagerDeposit from './Components/ManagerDeposit/ManagerDeposit';
+import ManagerContract from './Components/ManagerContract/ManagerContract';
 
 import userNotFound from '../../assets/images/img_default.png';
 
@@ -62,6 +63,16 @@ function InfoUser() {
             key: 'landlord-deposits',
             icon: <SafetyCertificateOutlined />,
             label: 'Quản lý cọc chủ trọ',
+        },
+        {
+            key: 'tenant-contracts',
+            icon: <AuditOutlined />,
+            label: 'Hợp đồng của tôi',
+        },
+        {
+            key: 'landlord-contracts',
+            icon: <AuditOutlined />,
+            label: 'Quản lý hợp đồng',
         },
     ];
 
@@ -151,6 +162,8 @@ function InfoUser() {
                                     {selectedMenu === 'change-password' && 'Đổi mật khẩu'}
                                     {selectedMenu === 'tenant-deposits' && 'Lịch sử đặt cọc'}
                                     {selectedMenu === 'landlord-deposits' && 'Quản lý cọc chủ trọ'}
+                                    {selectedMenu === 'tenant-contracts' && 'Hợp đồng của tôi'}
+                                    {selectedMenu === 'landlord-contracts' && 'Quản lý hợp đồng'}
                                 </Title>
                             </div>
                         }
@@ -162,6 +175,8 @@ function InfoUser() {
                         {selectedMenu === 'change-password' && <ChangePassword />}
                         {selectedMenu === 'tenant-deposits' && <ManagerDeposit role="tenant" />}
                         {selectedMenu === 'landlord-deposits' && <ManagerDeposit role="landlord" />}
+                        {selectedMenu === 'tenant-contracts' && <ManagerContract role="tenant" />}
+                        {selectedMenu === 'landlord-contracts' && <ManagerContract role="landlord" />}
                     </Card>
                 </Content>
             </Layout>

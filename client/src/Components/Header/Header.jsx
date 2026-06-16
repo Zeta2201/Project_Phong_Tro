@@ -17,6 +17,7 @@ import {
     MenuOutlined,
     DollarOutlined,
     FileTextOutlined,
+    BarChartOutlined,
 } from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
@@ -28,7 +29,8 @@ const cx = classNames.bind(styles);
 
 const navItems = [
     { to: '/', label: 'Trang chủ', icon: <HomeOutlined /> },
-    { to: '/search', label: 'Tìm phòng', icon: <SearchOutlined /> },
+    // { to: '/search', label: 'Tìm phòng', icon: <SearchOutlined /> },
+    { to: '/so-sanh', label: 'So sánh', icon: <BarChartOutlined /> },
     { to: '/bang-gia', label: 'Bảng giá', icon: <DollarOutlined /> },
     { to: '/contact', label: 'Liên hệ', icon: <PhoneOutlined /> },
     { to: '/terms', label: 'Điều khoản', icon: <FileTextOutlined /> },

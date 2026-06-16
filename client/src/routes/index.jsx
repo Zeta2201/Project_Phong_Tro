@@ -12,6 +12,7 @@ import HomePage from '../Components/HomePage/HomePage';
 import Terms from '../Pages/Terms/Terms';
 import FavouritePosts from '../Pages/FavouritePosts/FavouritePosts';
 import Pricing from '../Pages/Pricing/Pricing';
+import CompareRooms from '../Pages/CompareRooms/CompareRooms';
 
 export const publicRoutes = [
     {
@@ -26,6 +27,7 @@ export const publicRoutes = [
             { path: 'contact', element: <Contact /> },
             { path: 'terms', element: <Terms /> },
             { path: 'bang-gia', element: <Pricing /> },
+            { path: 'so-sanh', element: <CompareRooms /> },
             { path: 'tin-yeu-thich', element: <FavouritePosts /> },
         ],
     },

@@ -345,6 +345,48 @@ export const requestAdminDepositAction = async (data) => {
     return res.data;
 };
 
+//// contracts
+
+export const requestCreateContract = async (data) => {
+    const res = await request.post('/api/contracts', data);
+    return res.data;
+};
+
+export const requestGetContracts = async (params = {}) => {
+    const res = await request.get('/api/contracts', { params });
+    return res.data;
+};
+
+export const requestGetContractDetail = async (id) => {
+    const res = await request.get('/api/contracts/detail', { params: { id } });
+    return res.data;
+};
+
+export const requestSignTenantContract = async (data) => {
+    const res = await request.post('/api/contracts/sign-tenant', data);
+    return res.data;
+};
+
+export const requestSignLandlordContract = async (data) => {
+    const res = await request.post('/api/contracts/sign-landlord', data);
+    return res.data;
+};
+
+export const requestGenerateContractPdf = async (data) => {
+    const res = await request.post('/api/contracts/generate-pdf', data);
+    return res.data;
+};
+
+export const requestSendContractEmail = async (data) => {
+    const res = await request.post('/api/contracts/send-email', data);
+    return res.data;
+};
+
+export const requestCancelContract = async (data) => {
+    const res = await request.post('/api/contracts/cancel', data);
+    return res.data;
+};
+
 //// reviews
 
 export const requestGetReviewsByRoom = async (roomId) => {

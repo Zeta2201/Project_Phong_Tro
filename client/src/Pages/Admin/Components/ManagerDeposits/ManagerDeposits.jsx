@@ -34,20 +34,20 @@ function ManagerDeposits() {
     const runAction = async (action) => {
         try {
             await requestAdminDepositAction({ depositId: selected._id, action, adminNote });
-            message.success('Da cap nhat giao dich coc');
+            message.success('Đã cập nhật giao dịch cọc');
             setSelected(null);
             setAdminNote('');
             fetchDeposits();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the xu ly giao dich');
+            message.error(error.response?.data?.message || 'Không thể xử lý giao dịch');
         }
     };
 
     const handleExportExcel = () => {
         const summary = statuses.map((itemStatus) => ({
-            'Trang thai': itemStatus,
-            'So luong': deposits.filter((deposit) => deposit.status === itemStatus).length,
-            'Tong tien coc': deposits
+            'Trạng thái': itemStatus,
+            'Số lượng': deposits.filter((deposit) => deposit.status === itemStatus).length,
+            'Tổng tiền cọc': deposits
                 .filter((deposit) => deposit.status === itemStatus)
                 .reduce((sum, deposit) => sum + Number(deposit.amount || 0), 0),
         }));
@@ -56,7 +56,7 @@ function ManagerDeposits() {
             fileName: 'bao_cao_giao_dich_coc',
             sheets: [
                 {
-                    name: 'Tổng quan',
+                    name: 'Tổng quan',
                     rows: [
                         { 'Chi tiêu': 'Tổng giao dịch cọc', 'Giá trị': deposits.length },
                         {
@@ -64,8 +64,8 @@ function ManagerDeposits() {
                             'Giá trị': formatCurrency(deposits.reduce((sum, deposit) => sum + Number(deposit.amount || 0), 0)),
                         },
                         ...summary.map((item) => ({
-                            'Chi tiêu': `Số giao dịch ${item['Trang thái']}`,
-                            'Giá trị': item['Số lượng'],
+                            'Chi tiêu': `Số giao dịch ${item['Trạng thái']}`,
+                            'Giá trị': item['Số lượng'],
                         })),
                     ],
                 },

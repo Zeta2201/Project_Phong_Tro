@@ -34,12 +34,12 @@ const buildPayload = (body) => {
 class controllerPostingPlan {
     async getPublicPlans(req, res) {
         const plans = await getActivePostingPlans();
-        new OK({ message: 'Lay goi dang tin thanh cong', metadata: plans }).send(res);
+        new OK({ message: 'Lấy gói đăng tin thành công', metadata: plans }).send(res);
     }
 
     async getAdminPlans(req, res) {
         const plans = await getAllPostingPlans();
-        new OK({ message: 'Lay tat ca goi dang tin thanh cong', metadata: plans }).send(res);
+        new OK({ message: 'Lấy tất cả gói đăng tin thành công', metadata: plans }).send(res);
     }
 
     async createPlan(req, res) {
@@ -47,9 +47,9 @@ class controllerPostingPlan {
         const payload = buildPayload(req.body);
         try {
             const plan = await modelPostingPlan.create(payload);
-            new Created({ message: 'Tao goi dang tin thanh cong', metadata: plan }).send(res);
+            new Created({ message: 'Tạo gói đăng tin thành công', metadata: plan }).send(res);
         } catch (error) {
-            if (error.code === 11000) throw new BadRequestError('Goi dang tin da ton tai');
+            if (error.code === 11000) throw new BadRequestError('Gói đăng tin đã tồn tại');
             throw error;
         }
     }
@@ -61,21 +61,21 @@ class controllerPostingPlan {
         const payload = buildPayload(req.body);
         try {
             const plan = await modelPostingPlan.findByIdAndUpdate(id, payload, { new: true });
-            if (!plan) throw new BadRequestError('Goi dang tin khong ton tai');
-            new OK({ message: 'Cap nhat goi dang tin thanh cong', metadata: plan }).send(res);
+            if (!plan) throw new BadRequestError('Gói đăng tin không tồn tại');
+            new OK({ message: 'Đã cập nhật gói đăng tin thành công', metadata: plan }).send(res);
         } catch (error) {
-            if (error.code === 11000) throw new BadRequestError('Goi dang tin da ton tai');
+            if (error.code === 11000) throw new BadRequestError('Gói đăng tin đã tồn tại');
             throw error;
         }
     }
 
     async togglePlan(req, res) {
         const { id, isActive } = req.body;
-        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Goi dang tin khong hop le');
+        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Gói đăng tin không hợp lệ');
 
         const plan = await modelPostingPlan.findByIdAndUpdate(id, { isActive: Boolean(isActive) }, { new: true });
-        if (!plan) throw new BadRequestError('Goi dang tin khong ton tai');
-        new OK({ message: isActive ? 'Da bat goi dang tin' : 'Da tat goi dang tin', metadata: plan }).send(res);
+        if (!plan) throw new BadRequestError('ói đăng tin không tồn tại');
+        new OK({ message: isActive ? 'Đã bật gói đăng tin' : 'Đã tắt gói đăng tin', metadata: plan }).send(res);
     }
 }
 

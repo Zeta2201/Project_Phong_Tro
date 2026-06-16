@@ -175,7 +175,7 @@ class controllerDeposit {
                 balanceHeld: walletCharged,
                 expiredAt: getExpiredAt(),
             });
-            new Created({ message: 'Da tao yeu cau dat coc', metadata: deposit }).send(res);
+            new Created({ message: 'Đã tạo yêu cầu đặt cọc', metadata: deposit }).send(res);
         } catch (error) {
             if (walletCharged) {
                 await modelUser.findByIdAndUpdate(tenantId, { $inc: { balance: depositAmount } });
@@ -195,7 +195,7 @@ class controllerDeposit {
 
         if (deposit.paymentMethod === 'SIMULATED') {
             await markDepositPaid(deposit._id);
-            return new OK({ message: 'Thanh toan gia lap thanh cong', metadata: { redirectUrl: `${CLIENT_URL}/trang-ca-nhan?tab=tenant-deposits` } }).send(res);
+            return new OK({ message: 'Thanh toán giả lập thành công', metadata: { redirectUrl: `${CLIENT_URL}/trang-ca-nhan?tab=tenant-deposits` } }).send(res);
         }
         if (deposit.paymentMethod === 'MOMO') {
             const partnerCode = MOMO_PARTNER_CODE;
@@ -214,7 +214,7 @@ class controllerDeposit {
                 partnerCode, accessKey, requestId, amount: deposit.amount, orderId, orderInfo, redirectUrl, ipnUrl,
                 extraData, requestType, signature, lang: 'vi',
             });
-            return new OK({ message: 'Da tao URL thanh toan MoMo', metadata: { redirectUrl: response.data.payUrl } }).send(res);
+            return new OK({ message: 'Đã tạo URL thanh toán MoMo', metadata: { redirectUrl: response.data.payUrl } }).send(res);
         }
 
         const vnpay = createVnpayClient();
@@ -230,7 +230,7 @@ class controllerDeposit {
             vnp_CreateDate: dateFormat(new Date()),
             vnp_ExpireDate: dateFormat(tomorrow),
         });
-        new OK({ message: 'Da tao URL thanh toan VNPay', metadata: { redirectUrl } }).send(res);
+        new OK({ message: 'Đã tạo URL thanh toán VNPay', metadata: { redirectUrl } }).send(res);
     }
 
     async momoReturn(req, res) {
@@ -260,13 +260,13 @@ class controllerDeposit {
     async getMyDeposits(req, res) {
         await expirePendingDeposits();
         const deposits = await populateDeposit(modelDeposit.find({ tenantId: req.user.id }).sort({ createdAt: -1 }));
-        new OK({ message: 'Lay danh sach coc thanh cong', metadata: deposits.map(formatDeposit) }).send(res);
+        new OK({ message: 'Đã lấy danh sách cọc thành công', metadata: deposits.map(formatDeposit) }).send(res);
     }
 
     async getLandlordDeposits(req, res) {
         await expirePendingDeposits();
         const deposits = await populateDeposit(modelDeposit.find({ landlordId: req.user.id }).sort({ createdAt: -1 }));
-        new OK({ message: 'Lay danh sach coc chu tro thanh cong', metadata: deposits.map(formatDeposit) }).send(res);
+        new OK({ message: 'Đã lấy danh sách cọc chủ trọ thành công', metadata: deposits.map(formatDeposit) }).send(res);
     }
 
     async tenantConfirm(req, res) {
@@ -276,7 +276,7 @@ class controllerDeposit {
         deposit.tenantConfirm = true;
         await deposit.save();
         await completeIfConfirmed(deposit);
-        new OK({ message: 'Da xac nhan nhan phong', metadata: deposit }).send(res);
+        new OK({ message: 'Đã xác nhận nhận phòng', metadata: deposit }).send(res);
     }
 
     async landlordConfirm(req, res) {
@@ -286,7 +286,7 @@ class controllerDeposit {
         deposit.landlordConfirm = true;
         await deposit.save();
         await completeIfConfirmed(deposit);
-        new OK({ message: 'Da xac nhan cho thue', metadata: deposit }).send(res);
+        new OK({ message: 'Đã xác nhận cho thuê', metadata: deposit }).send(res);
     }
 
     async cancelDeposit(req, res) {
@@ -296,7 +296,7 @@ class controllerDeposit {
         deposit.status = 'cancelled';
         await deposit.save();
         await releaseHeldBalance(deposit, deposit.tenantId);
-        new OK({ message: 'Da huy yeu cau coc', metadata: deposit }).send(res);
+        new OK({ message: 'Đã hủy yêu cầu cọc', metadata: deposit }).send(res);
     }
 
     async disputeDeposit(req, res) {
@@ -307,47 +307,47 @@ class controllerDeposit {
         deposit.status = 'disputed';
         deposit.adminNote = normalizeNote(req.body.note);
         await deposit.save();
-        new OK({ message: 'Da chuyen giao dich sang tranh chap', metadata: deposit }).send(res);
+        new OK({ message: 'Đã chuyển giao dịch sang tranh chấp', metadata: deposit }).send(res);
     }
 
     async getAllDeposits(req, res) {
         await expirePendingDeposits();
         if (req.query.status && !DEPOSIT_STATUSES.includes(req.query.status)) {
-            throw new BadRequestError('Trang thai coc khong hop le');
+            throw new BadRequestError('Trạng thái cọc không hợp lệ');
         }
         const filter = req.query.status ? { status: req.query.status } : {};
         const deposits = await populateDeposit(modelDeposit.find(filter).sort({ createdAt: -1 }));
-        new OK({ message: 'Lay tat ca giao dich coc thanh cong', metadata: deposits.map(formatDeposit) }).send(res);
+        new OK({ message: 'Đã lấy tất cả giao dịch cọc thành công', metadata: deposits.map(formatDeposit) }).send(res);
     }
 
     async adminAction(req, res) {
         const { depositId, action } = req.body;
         const deposit = await modelDeposit.findById(depositId);
-        if (!deposit) throw new BadRequestError('Giao dich coc khong ton tai');
+        if (!deposit) throw new BadRequestError('Giao dịch cọc không tồn tại');
         deposit.adminNote = normalizeNote(req.body.adminNote);
 
         if (action === 'refund') {
-            if (!['holding', 'disputed'].includes(deposit.status)) throw new BadRequestError('Khong the hoan coc giao dich nay');
-            if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dich chua thanh toan');
+            if (!['holding', 'disputed'].includes(deposit.status)) throw new BadRequestError('Không thể hoàn cọc giao dịch này');
+            if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dịch chưa thanh toán');
             deposit.status = 'refunded';
             await releaseRoom(deposit.roomId);
             await releaseHeldBalance(deposit, deposit.tenantId);
         } else if (action === 'release') {
-            if (!['holding', 'disputed'].includes(deposit.status)) throw new BadRequestError('Khong the giai ngan giao dich nay');
-            if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dich chua thanh toan');
+            if (!['holding', 'disputed'].includes(deposit.status)) throw new BadRequestError('Không thể giải ngân giao dịch này');
+            if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dịch chưa thanh toán');
             deposit.status = 'completed';
             deposit.tenantConfirm = true;
             deposit.landlordConfirm = true;
             await releaseHeldBalance(deposit, deposit.landlordId);
             await modelPost.findByIdAndUpdate(deposit.roomId, { availabilityStatus: 'rented' });
         } else if (action === 'dispute') {
-            if (!['pending', 'holding'].includes(deposit.status)) throw new BadRequestError('Khong the chuyen tranh chap giao dich nay');
+            if (!['pending', 'holding'].includes(deposit.status)) throw new BadRequestError('Không thể chuyển tranh chấp giao dịch này');
             deposit.status = 'disputed';
         } else {
-            throw new BadRequestError('Hanh dong admin khong hop le');
+            throw new BadRequestError('Hành động admin không hợp lệ');
         }
         await deposit.save();
-        new OK({ message: 'Da cap nhat giao dich coc', metadata: deposit }).send(res);
+        new OK({ message: 'Đã cập nhật giao dịch cọc', metadata: deposit }).send(res);
     }
 }
 

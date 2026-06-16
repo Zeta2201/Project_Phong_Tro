@@ -1,17 +1,27 @@
 import classNames from 'classnames/bind';
 import styles from './CardBody.module.scss';
 
-import { DollarOutlined, HomeOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import {
+    BarChartOutlined,
+    CheckOutlined,
+    DollarOutlined,
+    EnvironmentOutlined,
+    HomeOutlined,
+} from '@ant-design/icons';
+import { message } from 'antd';
 
 import imgDefault from '../../assets/images/img_default.png';
 
 import { Link } from 'react-router-dom';
 
 import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
+import { addRoomToCompare, isRoomCompared, MAX_COMPARE_ROOMS, removeRoomFromCompare } from '../../utils/compareRooms';
 
 const cx = classNames.bind(styles);
 
 function CardBody({ post }) {
+    const [compared, setCompared] = useState(false);
     const isAvailable = (post.availabilityStatus || 'available') === 'available';
     const availabilityLabel =
         {
@@ -20,6 +30,34 @@ function CardBody({ post }) {
             reserved: 'Đã giữ cọc',
             rented: 'Đã cho thuê',
         }[post.availabilityStatus || 'available'] || 'Hết phòng';
+
+    useEffect(() => {
+        const syncCompared = () => setCompared(isRoomCompared(post._id));
+
+        syncCompared();
+        window.addEventListener('compareRoomsUpdated', syncCompared);
+
+        return () => window.removeEventListener('compareRoomsUpdated', syncCompared);
+    }, [post._id]);
+
+    const handleCompare = () => {
+        if (compared) {
+            removeRoomFromCompare(post._id);
+            setCompared(false);
+            message.success('Đã bỏ phòng khỏi danh sách so sánh');
+            return;
+        }
+
+        const result = addRoomToCompare(post);
+
+        if (result.status === 'full') {
+            message.warning(`Chỉ có thể so sánh tối đa ${MAX_COMPARE_ROOMS} phòng`);
+            return;
+        }
+
+        setCompared(true);
+        message.success('Đã thêm phòng vào danh sách so sánh');
+    };
 
     return (
         <div className={cx('list-item')}>
@@ -61,6 +99,10 @@ function CardBody({ post }) {
                         {post.location}
                     </span>
                 </div>
+                <button type="button" className={cx('compareButton', { selected: compared })} onClick={handleCompare}>
+                    {compared ? <CheckOutlined /> : <BarChartOutlined />}
+                    <span>{compared ? 'Đã chọn so sánh' : 'So sánh'}</span>
+                </button>
             </div>
             <div className={cx('user-info')}>
                 <img src={post.user?.avatar || imgDefault} alt="" />

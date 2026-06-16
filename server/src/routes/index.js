@@ -11,20 +11,14 @@ const contactRoutes = require('./contact.routes');
 const depositRoutes = require('./deposit.routes');
 const filterOptionRoutes = require('./filterOption.routes');
 const postingPlanRoutes = require('./postingPlan.routes');
+const contractRoutes = require('./contract.routes');
 
 const multer = require('multer');
-const path = require('path');
+const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'src/uploads/images');
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
-});
+const storage = multer.memoryStorage();
 
-var upload = multer({ storage: storage });
+const upload = multer({ storage: storage });
 
 function routes(app) {
     app.post('/api/register', userRoutes);
@@ -96,6 +90,18 @@ function routes(app) {
     app.get('/api/admin/deposits', depositRoutes);
     app.post('/api/admin/deposits/action', depositRoutes);
 
+    /// contracts
+    app.post('/api/contracts', contractRoutes);
+    app.get('/api/contracts', contractRoutes);
+    app.get('/api/contracts/detail', contractRoutes);
+    app.post('/api/contracts/sign-tenant', contractRoutes);
+    app.post('/api/contracts/sign-landlord', contractRoutes);
+    app.post('/api/contracts/generate-pdf', contractRoutes);
+    app.post('/api/contracts/send-email', contractRoutes);
+    app.post('/api/contracts/cancel', contractRoutes);
+    app.get('/api/contracts/download', contractRoutes);
+    app.get('/api/contracts/download-public', contractRoutes);
+
     /// filter options
     app.get('/api/filter-options', filterOptionRoutes);
     app.get('/api/admin/filter-options', filterOptionRoutes);
@@ -146,19 +152,30 @@ function routes(app) {
     app.get('/api/get-favourite', favouriteRoutes);
 
     ///// uploads
-    app.post('/api/upload-images', upload.array('images'), (req, res) => {
-        return res.status(200).json({
-            message: 'Images uploaded successfully',
-            images: req.files.map((file) => `http://localhost:3000/uploads/images/${file.filename}`),
-        });
+    app.post('/api/upload-images', upload.array('images'), async (req, res, next) => {
+        try {
+            const images = await Promise.all(req.files.map((file) => uploadImageToCloudinary(file)));
+
+            return res.status(200).json({
+                message: 'Images uploaded successfully',
+                images,
+            });
+        } catch (error) {
+            next(error);
+        }
     });
 
-    app.post('/api/upload-image', upload.single('avatar'), (req, res) => {
-        const file = req.file;
-        return res.status(200).json({
-            message: 'Image uploaded successfully',
-            image: `http://localhost:3000/uploads/images/${file.filename}`,
-        });
+    app.post('/api/upload-image', upload.single('avatar'), async (req, res, next) => {
+        try {
+            const image = await uploadImageToCloudinary(req.file);
+
+            return res.status(200).json({
+                message: 'Image uploaded successfully',
+                image,
+            });
+        } catch (error) {
+            next(error);
+        }
     });
 
     app.get('/admin', userRoutes);

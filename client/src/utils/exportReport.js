@@ -11,7 +11,7 @@ const formatDateForFile = () => {
 const normalizeCell = (value) => {
     if (value === null || value === undefined) return '';
     if (value instanceof Date) return value.toLocaleString('vi-VN');
-    if (typeof value === 'boolean') return value ? 'Co' : 'Khong';
+    if (typeof value === 'boolean') return value ? 'Có' : 'Không';
     return value;
 };
 
@@ -24,8 +24,8 @@ export const exportRowsToExcel = ({ fileName, sheets }) => {
         const rows = (sheet.rows || []).map((row) =>
             Object.fromEntries(Object.entries(row).map(([key, value]) => [key, normalizeCell(value)])),
         );
-        const worksheet = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Thong bao': 'Khong co du lieu' }]);
-        const headers = Object.keys(rows[0] || { 'Thong bao': '' });
+        const worksheet = XLSX.utils.json_to_sheet(rows.length ? rows : [{ 'Thông báo': 'Không có dữ liệu' }]);
+        const headers = Object.keys(rows[0] || { 'Thông báo': '' });
         worksheet['!cols'] = headers.map((header) => ({ wch: Math.max(header.length + 4, 18) }));
         XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name.slice(0, 31));
     });
@@ -39,11 +39,11 @@ export const exportRevenuePdf = ({ fileName, title, summaryRows, transactionRows
     doc.setFontSize(16);
     doc.text(title, 40, 40);
     doc.setFontSize(10);
-    doc.text(`Ngay xuat: ${new Date().toLocaleString('vi-VN')}`, 40, 58);
+    doc.text(`Ngày xuất: ${new Date().toLocaleString('vi-VN')}`, 40, 58);
 
     autoTable(doc, {
         startY: 80,
-        head: [['Chi tieu', 'Gia tri']],
+        head: [['Chi tiêu', 'Giá trị']],
         body: summaryRows,
         theme: 'grid',
         styles: { fontSize: 9 },
@@ -52,7 +52,7 @@ export const exportRevenuePdf = ({ fileName, title, summaryRows, transactionRows
 
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 24,
-        head: [['Nguoi dung', 'So tien', 'Phuong thuc', 'Trang thai', 'Ngay tao']],
+        head: [['Người dùng', 'Số tiền', 'Phương thức', 'Trạng thái', 'Ngày tạo']],
         body: transactionRows,
         theme: 'striped',
         styles: { fontSize: 8 },

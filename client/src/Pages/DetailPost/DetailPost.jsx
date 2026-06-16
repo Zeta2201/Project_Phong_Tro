@@ -7,7 +7,7 @@ import { faHeart } from '@fortawesome/free-regular-svg-icons';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, DatePicker, Input, message, Modal, Rate, Select, Upload } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { BarChartOutlined, CheckOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import userDefault from '../../assets/images/user-default.svg';
@@ -32,6 +32,7 @@ import {
 } from '../../config/request';
 import { useStore } from '../../hooks/useStore';
 import ChatButton from '../../utils/ChatButton/ChatButton';
+import { addRoomToCompare, isRoomCompared, MAX_COMPARE_ROOMS, removeRoomFromCompare } from '../../utils/compareRooms';
 
 const cx = classNames.bind(styles);
 
@@ -87,6 +88,7 @@ function DetailPost() {
     const [editingReview, setEditingReview] = useState(null);
     const [reviewForm, setReviewForm] = useState(emptyReviewForm);
     const [reviewImageFiles, setReviewImageFiles] = useState([]);
+    const [compared, setCompared] = useState(false);
 
     const [reviewReportModalOpen, setReviewReportModalOpen] = useState(false);
     const [selectedReviewReport, setSelectedReviewReport] = useState(null);
@@ -136,6 +138,36 @@ function DetailPost() {
         fetchComments();
     }, [id]);
 
+    useEffect(() => {
+        const syncCompared = () => setCompared(isRoomCompared(id));
+
+        syncCompared();
+        window.addEventListener('compareRoomsUpdated', syncCompared);
+
+        return () => window.removeEventListener('compareRoomsUpdated', syncCompared);
+    }, [id]);
+
+    const handleCompareRoom = () => {
+        if (!post?._id) return;
+
+        if (compared) {
+            removeRoomFromCompare(post._id);
+            setCompared(false);
+            message.success('Da bo phong khoi danh sach so sanh');
+            return;
+        }
+
+        const result = addRoomToCompare({ ...post, user });
+
+        if (result.status === 'full') {
+            message.warning(`Chi co the so sanh toi da ${MAX_COMPARE_ROOMS} phong`);
+            return;
+        }
+
+        setCompared(true);
+        message.success('Da them phong vao danh sach so sanh');
+    };
+
     const handleCreateFavourite = async () => {
         try {
             const res = await requestCreateFavourite({ postId: post._id });
@@ -181,10 +213,10 @@ function DetailPost() {
 
     const handleDeleteComment = (commentId) => {
         Modal.confirm({
-            title: 'Xoa binh luan',
-            content: 'Ban co chac muon xoa binh luan nay?',
-            okText: 'Xoa',
-            cancelText: 'Huy',
+            title: 'Xóa bình luận',
+            content: 'Bạn có chắc muốn xóa bình luận này?',
+            okText: 'Xóa',
+            cancelText: 'Hủy',
             okButtonProps: { danger: true },
             onOk: async () => {
                 try {
@@ -356,14 +388,14 @@ function DetailPost() {
 
     const handleDeleteReview = (review) => {
         Modal.confirm({
-            title: 'Xoa danh gia',
-            content: 'Danh gia se duoc xoa mem va khong con hien thi.',
-            okText: 'Xoa',
-            cancelText: 'Huy',
+            title: 'Xóa danh giá',
+            content: 'Danh giá sẽ được xóa vĩnh viễn và không còn hiển thị.',
+            okText: 'Xoá',
+            cancelText: 'Hủy',
             okButtonProps: { danger: true },
             onOk: async () => {
                 await requestDeleteReview({ reviewId: review._id });
-                message.success('Da xoa danh gia');
+                message.success('Đã xóa đánh giá');
                 fetchReviews();
                 fetchPost();
             },
@@ -372,7 +404,7 @@ function DetailPost() {
 
     const handleOpenReportReview = (review) => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de bao cao danh gia');
+            message.warning('Vui lòng đăng nhập để báo cáo đánh giá');
             return;
         }
         setSelectedReviewReport(review);
@@ -392,11 +424,11 @@ function DetailPost() {
                 reason: reviewReportReason,
                 details: reviewReportDetails,
             });
-            message.success('Da gui bao cao danh gia');
+            message.success('Đã gửi báo cáo đánh giá');
             setReviewReportModalOpen(false);
             fetchReviews();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gui bao cao danh gia that bai');
+            message.error(error.response?.data?.message || 'Gửi báo cáo đánh giá thất bại');
         }
     };
 
@@ -408,16 +440,16 @@ function DetailPost() {
 
     const handleSubmitReplyReview = async () => {
         if (!replyContent.trim()) {
-            message.warning('Vui long nhap phan hoi');
+            message.warning('Vui lòng nhập phần hồi');
             return;
         }
         try {
             await requestReplyReview({ reviewId: selectedReplyReview._id, content: replyContent });
-            message.success('Da phan hoi danh gia');
+            message.success('Đã phản hồi đánh giá');
             setReplyModalOpen(false);
             fetchReviews();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the phan hoi danh gia');
+            message.error(error.response?.data?.message || 'Không thể phản hồi đánh giá');
         }
     };
 
@@ -444,24 +476,24 @@ function DetailPost() {
                                 <span className={cx('availability-tag', { unavailable: !isAvailable })}>
                                     {availabilityLabel}
                                 </span>
-                                {post?.typeNews === 'vip' && <span className={cx('vip-tag')}>TIN VIP NOI BAT</span>}
+                                {post?.typeNews === 'vip' && <span className={cx('vip-tag')}>TIN VIP NỔI BẬT</span>}
                                 <h1 className={cx('property-title')}>{post?.title}</h1>
                                 <div className={cx('property-location')}>
                                     <span>{post?.location}</span>
                                 </div>
                                 <div className={cx('property-meta')}>
-                                    <div className={cx('price')}>{post?.price?.toLocaleString()} VND/thang</div>
+                                    <div className={cx('price')}>{post?.price?.toLocaleString()} VND/tháng</div>
                                     <div className={cx('area')}>{post?.area} m2</div>
                                 </div>
                             </div>
 
                             <div className={cx('property-description')}>
-                                <h2>Thong tin mo ta</h2>
+                                <h2>Thông tin mô tả</h2>
                                 <p dangerouslySetInnerHTML={{ __html: post?.description }} />
                             </div>
 
                             <div className={cx('property-features')}>
-                                <h2>Noi bat</h2>
+                                <h2>Nổi bật</h2>
                                 <div className={cx('features-grid')}>
                                     {post?.options?.map((option, index) => (
                                         <div className={cx('feature-item')} key={index}>
@@ -617,7 +649,7 @@ function DetailPost() {
                             <div className={cx('contact-buttons')}>
                                 <a href={`tel:${user?.phone}`} className={cx('btn', 'btn-phone')}>
                                     <FontAwesomeIcon icon={faPhoneAlt} />
-                                    {user?.phone || 'chua cap nhat'}
+                                    {user?.phone || 'Chưa cập nhật'}
                                 </a>
                                 <button className={cx('btn', 'btn-reserve')} disabled={!isAvailable} onClick={() => setReservationModalOpen(true)}>
                                     Giữ chỗ
@@ -639,6 +671,10 @@ function DetailPost() {
                                 <button onClick={isFavourite ? handleDeleteFavourite : handleCreateFavourite} className={cx('action-btn', { saved: isFavourite })}>
                                     <FontAwesomeIcon icon={faHeart} />
                                     {isFavourite ? 'Đã lưu' : 'Lưu tin'}
+                                </button>
+                                <button onClick={handleCompareRoom} className={cx('action-btn', { compared })}>
+                                    {compared ? <CheckOutlined /> : <BarChartOutlined />}
+                                    {compared ? 'Đã chọn' : 'So sanh'}
                                 </button>
                                 <button className={cx('action-btn')}>
                                     <FontAwesomeIcon icon={faShareAlt} />
@@ -707,13 +743,13 @@ function DetailPost() {
                 open={depositModalOpen}
                 onCancel={() => setDepositModalOpen(false)}
                 onOk={handleSubmitDeposit}
-                okText="Tao yeu cau va thanh toan"
-                cancelText="Huy"
+                okText="Tạo yêu cầu và thanh toán"
+                cancelText="Hủy"
                 confirmLoading={depositSubmitting}
             >
                 <p style={{ marginBottom: 16 }}>
-                    Số dư hiện tại: <strong>{(dataUser?.balance || 0).toLocaleString('vi-VN')} VND</strong>. Tiền cọc trung gian
-                    bắt buộc là 10% giá thuê phòng.
+                    Số dư hiện tại: <strong>{(dataUser?.balance || 0).toLocaleString('vi-VN')} VND</strong>. Tiền cọc trung gian
+                    bắt buộc là 10% giá thuê phòng.
                 </p>
                 <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', marginBottom: 8 }}>Số tiền cọc cần thanh toán</label>

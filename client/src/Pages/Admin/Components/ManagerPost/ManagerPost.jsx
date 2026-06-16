@@ -112,8 +112,8 @@ function ManagerPost() {
     const getAvailabilityConfig = (availabilityStatus) => {
         return (
             {
-                available: { color: 'green', text: 'òn phòng' },
-                unavailable: { color: 'red', text: 'ết phòng' },
+                available: { color: 'green', text: 'Còn phòng' },
+                unavailable: { color: 'red', text: 'Hết phòng' },
                 reserved: { color: 'orange', text: 'Đã giữ chỗ' },
                 rented: { color: 'blue', text: 'Đã cho thuê' },
             }[availabilityStatus || 'available'] || { color: 'default', text: availabilityStatus }
@@ -158,7 +158,7 @@ function ManagerPost() {
             title: 'Loại tin',
             dataIndex: 'typeNews',
             key: 'typeNews',
-            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thuong'}</Tag>,
+            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thường'}</Tag>,
         },
         {
             title: 'Trạng thái',

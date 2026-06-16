@@ -61,11 +61,11 @@ function ManagerComments() {
                 status: processStatus,
                 moderationNote,
             });
-            message.success('Da cap nhat binh luan');
+            message.success('Đã cập nhật bình luận');
             closeProcessModal();
             fetchComments();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Cap nhat binh luan that bai');
+            message.error(error.response?.data?.message || 'Cập nhật bình luận thất bại');
         }
     };
 
