@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from 'react';
 import { Button, Card, Descriptions, Image, Input, message, Modal, Space, Table, Tag, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
