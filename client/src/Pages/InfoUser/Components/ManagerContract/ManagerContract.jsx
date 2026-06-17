@@ -10,12 +10,12 @@ import {
 } from '../../../../config/request';
 
 const statusMap = {
-    draft: { color: 'default', text: 'Ban nhap' },
-    waiting_tenant_signature: { color: 'orange', text: 'Cho nguoi thue ky' },
-    waiting_landlord_signature: { color: 'blue', text: 'Cho chu tro ky' },
-    active: { color: 'green', text: 'Dang hieu luc' },
-    expired: { color: 'default', text: 'Het han' },
-    canceled: { color: 'red', text: 'Da huy' },
+    draft: { color: 'default', text: 'Bản nháp' },
+    waiting_tenant_signature: { color: 'orange', text: 'Cho người thuê ký' },
+    waiting_landlord_signature: { color: 'blue', text: 'Cho chủ trọ ký' },
+    active: { color: 'green', text: 'Đang hiệu lực' },
+    expired: { color: 'default', text: 'Hết hạn' },
+    canceled: { color: 'red', text: 'Đã hủy' },
 };
 
 function ManagerContract({ role }) {
@@ -133,7 +133,7 @@ function ManagerContract({ role }) {
             key: 'actions',
             render: (_, record) => (
                 <Space wrap>
-                    <Button onClick={() => setSelected(record)}>Chi tiet</Button>
+                    <Button onClick={() => setSelected(record)}>Chi tiết</Button>
                     {canSign(record) && <Button type="primary" onClick={() => setSigning(record)}>Ký hợp đồng</Button>}
                     {record.pdfUrl && (
                         <Button href={`http://localhost:3000/api/contracts/download?id=${record._id}`} target="_blank">

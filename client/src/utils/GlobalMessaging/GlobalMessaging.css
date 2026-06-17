@@ -36,3 +36,19 @@
 .messager-container::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.4);
 }
+
+@media (max-width: 520px) {
+    .global-messaging {
+        right: 0;
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .messager-container {
+        display: block;
+        width: 100%;
+        max-width: none;
+        padding: 0 10px;
+        overflow: visible;
+        max-height: none;
+    }
+}

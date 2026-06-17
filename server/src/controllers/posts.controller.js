@@ -74,8 +74,9 @@ const parseCoordinate = (value) => {
 };
 
 const parseCoordinates = (coordinates = {}) => {
-    const lat = parseCoordinate(coordinates.lat);
-    const lng = parseCoordinate(coordinates.lng);
+    const safeCoordinates = coordinates || {};
+    const lat = parseCoordinate(safeCoordinates.lat);
+    const lng = parseCoordinate(safeCoordinates.lng);
     return lat !== null && lng !== null ? { lat, lng } : { lat: null, lng: null };
 };
 
@@ -214,6 +215,16 @@ class controllerPosts {
             throw new BadRequestError('Goi dang tin khong hop le');
         }
 
+        const recentPost = await modelPost.findOne({
+            userId: id,
+            createdAt: { $gte: new Date(Date.now() - 30 * 1000) },
+            status: { $ne: 'deleted' },
+        }).select('_id');
+
+        if (recentPost) {
+            throw new BadRequestError('Vui lòng chờ một chút trước khi đăng bài tiếp theo');
+        }
+
         const normalizedVoucherCode = normalizeVoucherCode(voucherCode);
         const voucherResult = normalizedVoucherCode
             ? await previewVoucher({
@@ -237,7 +248,7 @@ class controllerPosts {
         );
 
         if (!chargedUser) {
-            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
+            throw new BadRequestError('Số dư không đủ');
         }
 
         let post;

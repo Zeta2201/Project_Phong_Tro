@@ -6,8 +6,8 @@ const modelOtp = new Schema(
     {
         email: { type: String, require: true, ref: 'user' },
         otp: { type: String, require: true },
-        time: { type: Date, default: Date.now(), index: { expires: 300 } },
-        type: { type: String, enum: ['forgotPassword', 'verifyAccount'], require: true },
+        time: { type: Date, default: Date.now, index: { expires: 300 } },
+        type: { type: String, enum: ['forgotPassword', 'verifyAccount', 'changeEmail'], require: true },
     },
     {
         timestamps: true,

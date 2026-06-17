@@ -11,29 +11,29 @@ const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
 const categoryMap = {
-    'phong-tro': 'Phong tro',
-    'nha-nguyen-can': 'Nha nguyen can',
-    'can-ho-chung-cu': 'Can ho chung cu',
-    'can-ho-mini': 'Can ho mini',
+    'phong-tro': 'Phòng trọ',
+    'nha-nguyen-can': 'Nhà nguyên căn',
+    'can-ho-chung-cu': 'Căn hộ chung cư',
+    'can-ho-mini': 'Căn hộ mini',
 };
 
 const statusMap = {
-    draft: { color: 'default', text: 'Nhap' },
-    pending: { color: 'orange', text: 'Cho duyet' },
-    inactive: { color: 'orange', text: 'Cho duyet' },
-    approved: { color: 'green', text: 'Da duyet' },
-    active: { color: 'green', text: 'Da duyet' },
-    rejected: { color: 'red', text: 'Tu choi' },
-    hidden: { color: 'gray', text: 'Tam an' },
-    rented: { color: 'blue', text: 'Da cho thue' },
-    deleted: { color: 'default', text: 'Da xoa' },
+    draft: { color: 'default', text: 'Nháp' },
+    pending: { color: 'orange', text: 'Chờ duyệt' },
+    inactive: { color: 'orange', text: 'Chờ duyệt' },
+    approved: { color: 'green', text: 'Đã duyệt' },
+    active: { color: 'green', text: 'Đã duyệt' },
+    rejected: { color: 'red', text: 'Từ chối' },
+    hidden: { color: 'gray', text: 'Đã ẩn' },
+    rented: { color: 'blue', text: 'Đã cho thuê' },
+    deleted: { color: 'default', text: 'Đã xóa' },
 };
 
 const availabilityMap = {
-    available: { color: 'green', text: 'Con phong' },
-    unavailable: { color: 'red', text: 'Het phong' },
-    reserved: { color: 'orange', text: 'Da giu coc' },
-    rented: { color: 'blue', text: 'Da cho thue' },
+    available: { color: 'green', text: 'Còn phòng' },
+    unavailable: { color: 'red', text: 'Hết phòng' },
+    reserved: { color: 'orange', text: 'Đã giữ chỗ' },
+    rented: { color: 'blue', text: 'Đã cho thuê' },
 };
 
 function ManagerPost() {
@@ -65,11 +65,13 @@ function ManagerPost() {
                 'can-ho-mini': 0,
             },
         };
+
         activePosts.forEach((post) => {
             if (post.category && stats.byCategory[post.category] !== undefined) {
                 stats.byCategory[post.category]++;
             }
         });
+
         return stats;
     }, [activePosts]);
 
@@ -85,7 +87,7 @@ function ManagerPost() {
             await fetchPosts();
             await fetchAuth();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the xoa bai viet');
+            message.error(error.response?.data?.message || 'Không thể xóa bài viết');
         }
     };
 
@@ -95,7 +97,7 @@ function ManagerPost() {
             message.success(res.message);
             await fetchPosts();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the khoi phuc bai viet');
+            message.error(error.response?.data?.message || 'Không thể khôi phục bài viết');
         }
     };
 
@@ -106,7 +108,7 @@ function ManagerPost() {
             message.success(res.message);
             fetchPosts();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Cap nhat trang thai phong that bai');
+            message.error(error.response?.data?.message || 'Cập nhật trạng thái phòng thất bại');
         }
     };
 
@@ -124,36 +126,36 @@ function ManagerPost() {
 
     const columns = [
         {
-            title: 'Tieu de',
+            title: 'Tiêu đề',
             dataIndex: 'title',
             key: 'title',
             ellipsis: true,
         },
         {
-            title: 'Gia (VND)',
+            title: 'Giá (VND)',
             dataIndex: 'price',
             key: 'price',
             render: (price) => price?.toLocaleString('vi-VN'),
         },
         {
-            title: 'Loai hinh',
+            title: 'Loại hình',
             dataIndex: 'category',
             key: 'category',
             render: (category) => categoryMap[category] || category,
         },
         {
-            title: 'Dien tich (m2)',
+            title: 'Diện tích (m2)',
             dataIndex: 'area',
             key: 'area',
         },
         {
-            title: 'Dia chi',
+            title: 'Địa chỉ',
             dataIndex: 'location',
             key: 'location',
             ellipsis: true,
         },
         {
-            title: 'Trang thai',
+            title: 'Trạng thái',
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
@@ -162,7 +164,7 @@ function ManagerPost() {
             },
         },
         {
-            title: 'Tinh trang phong',
+            title: 'Tình trạng phòng',
             dataIndex: 'availabilityStatus',
             key: 'availabilityStatus',
             render: (availabilityStatus, record) => {
@@ -176,8 +178,8 @@ function ManagerPost() {
                             size="small"
                             checked={isAvailable}
                             disabled={isDeleted || ['reserved', 'rented'].includes(availabilityStatus)}
-                            checkedChildren="Con"
-                            unCheckedChildren="Het"
+                            checkedChildren="Còn"
+                            unCheckedChildren="Hết"
                             onChange={(checked) => handleUpdateAvailability(record._id, checked)}
                         />
                     </Space>
@@ -185,7 +187,7 @@ function ManagerPost() {
             },
         },
         {
-            title: 'Hanh dong',
+            title: 'Hành động',
             key: 'action',
             width: 132,
             align: 'center',
@@ -193,25 +195,25 @@ function ManagerPost() {
                 const isDeleted = record.isDeleted || record.status === 'deleted';
                 return isDeleted ? (
                     <Popconfirm
-                        title="Khoi phuc bai viet nay?"
+                        title="Khôi phục bài viết này?"
                         onConfirm={() => handleRestorePost(record._id)}
-                        okText="Khoi phuc"
-                        cancelText="Huy"
+                        okText="Khôi phục"
+                        cancelText="Hủy"
                     >
                         <Button className={cx('restore-button')} icon={<UndoOutlined />}>
-                            Khoi phuc
+                            Khôi phục
                         </Button>
                     </Popconfirm>
                 ) : (
                     <Popconfirm
-                        title="Ban chac chan muon xoa bai viet?"
-                        description="Bai viet se bi xoa mem va khong hien thi cong khai."
+                        title="Bạn chắc chắn muốn xóa bài viết?"
+                        description="Bài viết sẽ bị xóa mềm và không hiển thị công khai."
                         onConfirm={() => handleDeletePost(record._id)}
-                        okText="Xoa"
-                        cancelText="Huy"
+                        okText="Xóa"
+                        cancelText="Hủy"
                     >
                         <Button className={cx('delete-button')} icon={<DeleteOutlined />} danger>
-                            Xoa
+                            Xóa
                         </Button>
                     </Popconfirm>
                 );
@@ -222,7 +224,7 @@ function ManagerPost() {
     const deletedColumns = [
         ...columns.slice(0, -1),
         {
-            title: 'Thoi gian xoa',
+            title: 'Thời gian xóa',
             dataIndex: 'deletedAt',
             key: 'deletedAt',
             render: (date) => (date ? new Date(date).toLocaleString('vi-VN') : '-'),
@@ -231,32 +233,25 @@ function ManagerPost() {
     ];
 
     return (
-        <div>
+        <div className={cx('managerPost')}>
             {isFormVisible ? (
                 <AddPostForm onFinish={handleFormFinish} onCancel={handleFormCancel} initialValues={editingPost} />
             ) : (
                 <div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: 24,
-                        }}
-                    >
+                    <div className={cx('toolbar')}>
                         <Title level={4} style={{ margin: 0 }}>
-                            Thong ke bai viet
+                            Thống kê bài viết
                         </Title>
                         <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPost}>
-                            Them bai viet moi
+                            Thêm bài viết mới
                         </Button>
                     </div>
 
                     {activePosts.length > 0 && (
-                        <Row gutter={16} style={{ marginBottom: 24 }}>
+                        <Row gutter={[12, 12]} className={cx('statsRow')}>
                             <Col span={6}>
                                 <Card bordered={false}>
-                                    <Statistic title="Tong so bai viet" value={postStats.total} />
+                                    <Statistic title="Tổng số bài viết" value={postStats.total} />
                                 </Card>
                             </Col>
                             {Object.entries(postStats.byCategory).map(([key, value]) => (
@@ -272,18 +267,27 @@ function ManagerPost() {
                     {posts.length > 0 ? (
                         <>
                             <Title level={5} style={{ marginBottom: 16 }}>
-                                Danh sach chi tiet
+                                Danh sách chi tiết
                             </Title>
                             <Tabs
                                 items={[
                                     {
                                         key: 'active',
-                                        label: `Bai viet dang quan ly (${activePosts.length})`,
-                                        children: <Table columns={columns} dataSource={activePosts} rowKey="_id" bordered pagination={false} />,
+                                        label: `Bài viết đang quản lý (${activePosts.length})`,
+                                        children: (
+                                            <Table
+                                                columns={columns}
+                                                dataSource={activePosts}
+                                                rowKey="_id"
+                                                bordered
+                                                pagination={false}
+                                                scroll={{ x: 980 }}
+                                            />
+                                        ),
                                     },
                                     {
                                         key: 'deleted',
-                                        label: `Bai viet da xoa (${deletedPosts.length})`,
+                                        label: `Bài viết đã xóa (${deletedPosts.length})`,
                                         children: (
                                             <Table
                                                 columns={deletedColumns}
@@ -301,8 +305,8 @@ function ManagerPost() {
                     ) : (
                         <Card className={cx('content-card')}>
                             <FileTextOutlined className={cx('content-icon')} />
-                            <Title level={4}>Chua co bai viet nao</Title>
-                            <Text>Nhan "Them bai viet moi" de bat dau dang tin.</Text>
+                            <Title level={4}>Chưa có bài viết nào</Title>
+                            <Text>Nhấn "Thêm bài viết mới" để bắt đầu đăng tin.</Text>
                         </Card>
                     )}
                 </div>

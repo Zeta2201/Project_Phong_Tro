@@ -2,9 +2,11 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const modelApiKey = require('../models/apiKey.model');
 const { BadUserRequestError } = require('../core/error.response');
-const { jwtDecode } = require('jwt-decode');
 
 require('dotenv').config();
+
+const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '15m';
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 
 const createApiKey = async (userId) => {
     const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -12,48 +14,52 @@ const createApiKey = async (userId) => {
     const privateKeyString = privateKey.export({ type: 'pkcs8', format: 'pem' });
     const publicKeyString = publicKey.export({ type: 'spki', format: 'pem' });
 
-    const newApiKey = new modelApiKey({ userId, publicKey: publicKeyString, privateKey: privateKeyString });
-    return await newApiKey.save();
+    await modelApiKey.deleteMany({ userId: userId.toString() });
+    return await modelApiKey.create({ userId, publicKey: publicKeyString, privateKey: privateKeyString });
 };
 
-const createToken = async (payload) => {
+const createSignedToken = async (payload, tokenType, expiresIn) => {
     const findApiKey = await modelApiKey.findOne({ userId: payload.id.toString() });
 
     if (!findApiKey?.privateKey) {
         throw new Error('Private key not found for user');
     }
 
-    return jwt.sign(payload, findApiKey.privateKey, {
-        algorithm: 'RS256', // Quan trọng: Phải chỉ định thuật toán khi dùng RSA
-        expiresIn: '15m',
-    });
-};
-
-const createRefreshToken = async (payload) => {
-    const findApiKey = await modelApiKey.findOne({ userId: payload.id.toString() });
-
-    if (!findApiKey?.privateKey) {
-        throw new Error('Private key not found for user');
-    }
-
-    return jwt.sign(payload, findApiKey.privateKey, {
+    return jwt.sign({ ...payload, tokenType }, findApiKey.privateKey, {
         algorithm: 'RS256',
-        expiresIn: '7d',
+        expiresIn,
     });
 };
 
-const verifyToken = async (token) => {
-    try {
-        const { id } = jwtDecode(token);
-        const findApiKey = await modelApiKey.findOne({ userId: id });
+const createToken = async (payload) => createSignedToken(payload, 'access', ACCESS_TOKEN_EXPIRES_IN);
 
+const createRefreshToken = async (payload) => createSignedToken(payload, 'refresh', REFRESH_TOKEN_EXPIRES_IN);
+
+const verifyToken = async (token, expectedType) => {
+    try {
+        if (!token) {
+            throw new BadUserRequestError('Vui lòng đăng nhập lại');
+        }
+
+        const decodedPayload = jwt.decode(token);
+        if (!decodedPayload?.id) {
+            throw new BadUserRequestError('Phiên đăng nhập không hợp lệ');
+        }
+
+        const findApiKey = await modelApiKey.findOne({ userId: decodedPayload.id });
         if (!findApiKey) {
             throw new BadUserRequestError('Vui lòng đăng nhập lại');
         }
 
-        return jwt.verify(token, findApiKey.publicKey, {
+        const decoded = jwt.verify(token, findApiKey.publicKey, {
             algorithms: ['RS256'],
         });
+
+        if (expectedType && decoded.tokenType !== expectedType) {
+            throw new BadUserRequestError('Phiên đăng nhập không hợp lệ');
+        }
+
+        return decoded;
     } catch (error) {
         throw new BadUserRequestError('Vui lòng đăng nhập lại');
     }

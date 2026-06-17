@@ -11,13 +11,16 @@ const upload = multer({
 });
 
 router.post('/api/register', asyncHandler(controllerUsers.register));
+router.post('/api/register/request-otp', asyncHandler(controllerUsers.requestRegisterOtp));
 router.post('/api/login', asyncHandler(controllerUsers.login));
 router.post('/api/login-google', asyncHandler(controllerUsers.loginGoogle));
 router.get('/api/auth', authUser, asyncHandler(controllerUsers.authUser));
-router.get('/api/logout', authUser, asyncHandler(controllerUsers.logout));
+router.get('/api/logout', asyncHandler(controllerUsers.logout));
 router.get('/api/refresh-token', asyncHandler(controllerUsers.refreshToken));
 router.get('/api/recharge-user', authUser, asyncHandler(controllerUsers.getRechargeUser));
 router.post('/api/update-user', authUser, asyncHandler(controllerUsers.updateUser));
+router.post('/api/users/request-change-email', authUser, asyncHandler(controllerUsers.requestChangeEmail));
+router.post('/api/users/verify-change-email', authUser, asyncHandler(controllerUsers.verifyChangeEmail));
 router.post('/api/submit-cccd-verification', authUser, upload.single('cccd'), asyncHandler(controllerUsers.submitCccdVerification));
 router.post('/api/admin/update-verification-status', authAdmin, asyncHandler(controllerUsers.updateVerificationStatus));
 router.post('/api/update-user-admin', authAdmin, asyncHandler(controllerUsers.updateUserAdmin));

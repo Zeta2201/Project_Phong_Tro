@@ -129,7 +129,7 @@ function DetailPost() {
         setSelectedImg(postData?.images?.[0] || '');
         setUser(res.metadata.dataUser || {});
         setUserHeart(res.metadata.userFavourite || []);
-        document.title = `${postData.title} - PhongTro`;
+        document.title = `${postData.title} - NestFinder`;
     };
 
     const fetchReviews = async () => {
@@ -164,19 +164,19 @@ function DetailPost() {
         if (compared) {
             removeRoomFromCompare(post._id);
             setCompared(false);
-            message.success('Da bo phong khoi danh sach so sanh');
+            message.success('Đã bỏ phòng khỏi danh sách so sánh');
             return;
         }
 
         const result = addRoomToCompare({ ...post, user });
 
         if (result.status === 'full') {
-            message.warning(`Chi co the so sanh toi da ${MAX_COMPARE_ROOMS} phong`);
+            message.warning(`Chỉ có thể so sánh tối đa ${MAX_COMPARE_ROOMS} phòng`);
             return;
         }
 
         setCompared(true);
-        message.success('Da them phong vao danh sach so sanh');
+        message.success('Đã thêm phòng vào danh sách so sánh');
     };
 
     const handleCreateFavourite = async () => {
@@ -185,7 +185,7 @@ function DetailPost() {
             fetchPost();
             message.success(res.message);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Luu tin that bai');
+            message.error(error.response?.data?.message || 'Lưu tin thất bại');
         }
     };
 
@@ -195,17 +195,17 @@ function DetailPost() {
             fetchPost();
             message.success(res.message);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Xoa tin luu that bai');
+            message.error(error.response?.data?.message || 'Xóa tin lưu thất bại');
         }
     };
 
     const handleSubmitComment = async () => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de binh luan');
+            message.warning('Vui lòng đăng nhập để bình luận');
             return;
         }
         if (!commentContent.trim()) {
-            message.warning('Vui long nhap noi dung binh luan');
+            message.warning('Vui lòng nhập nội dung bình luận');
             return;
         }
 
@@ -214,9 +214,9 @@ function DetailPost() {
             await requestCreateComment({ postId: post._id, content: commentContent });
             setCommentContent('');
             await fetchComments();
-            message.success('Da gui binh luan');
+            message.success('Đã gửi bình luận');
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the gui binh luan');
+            message.error(error.response?.data?.message || 'Không thể gửi bình luận');
         } finally {
             setCommentSubmitting(false);
         }
@@ -233,9 +233,9 @@ function DetailPost() {
                 try {
                     await requestDeleteComment({ commentId });
                     await fetchComments();
-                    message.success('Da xoa binh luan');
+                    message.success('Đã xóa bình luận');
                 } catch (error) {
-                    message.error(error.response?.data?.message || 'Khong the xoa binh luan');
+                    message.error(error.response?.data?.message || 'Không thể xóa bình luận');
                 }
             },
         });
@@ -243,31 +243,31 @@ function DetailPost() {
 
     const handleSubmitReport = async () => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de bao cao bai viet');
+            message.warning('Vui lòng đăng nhập để báo cáo bài viết');
             return;
         }
         if (!reportReason) {
-            message.warning('Vui long chon ly do bao cao');
+            message.warning('Vui lòng chọn lý do báo cáo');
             return;
         }
         try {
             await requestReportPost({ postId: post._id, reason: reportReason, details: reportDetails });
-            message.success('Bao cao cua ban da duoc gui');
+            message.success('Báo cáo của bạn đã được gửi đi');
             setReportModalOpen(false);
             setReportReason('');
             setReportDetails('');
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gui bao cao that bai');
+            message.error(error.response?.data?.message || 'Gửi báo cáo thất bại');
         }
     };
 
     const handleSubmitReservation = async () => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de gui yeu cau giu cho');
+            message.warning('Vui lòng đăng nhập để gửi yêu cầu giữ chỗ');
             return;
         }
         if (!isAvailable) {
-            message.warning('Phong nay hien khong con trong');
+            message.warning('Phòng này hiện không còn trong');
             return;
         }
         try {
@@ -276,22 +276,22 @@ function DetailPost() {
                 note: reservationNote,
                 visitDate: reservationVisitDate ? reservationVisitDate.toISOString() : null,
             });
-            message.success('Da gui yeu cau giu cho cho chu bai viet');
+            message.success('Đã gửi yêu cầu giữ chỗ cho chủ bài viết');
             setReservationModalOpen(false);
             setReservationNote('');
             setReservationVisitDate(null);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gui yeu cau giu cho that bai');
+            message.error(error.response?.data?.message || 'Gửi yêu cầu giữ chỗ thất bại');
         }
     };
 
     const handleSubmitDeposit = async () => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de dat coc');
+            message.warning('Vui lòng đăng nhập để đặt cọc');
             return;
         }
         if (!isAvailable) {
-            message.warning('Phong nay hien khong con trong');
+            message.warning('Phòng này hiện không còn trong');
             return;
         }
 
@@ -329,7 +329,7 @@ function DetailPost() {
 
     const handleOpenCreateReview = () => {
         if (!dataUser?._id) {
-            message.warning('Vui long dang nhap de danh gia');
+            message.warning('Vui lòng đăng nhập để đánh giá');
             return;
         }
         setEditingReview(null);
@@ -366,11 +366,11 @@ function DetailPost() {
     const handleSubmitReview = async () => {
         const ratingFields = ['rating', 'cleanlinessRating', 'securityRating', 'locationRating', 'priceRating'];
         if (ratingFields.some((field) => !reviewForm[field])) {
-            message.warning('Vui long chon so sao cho tat ca tieu chi');
+            message.warning('Vui lòng chọn số sao cho tất cả tiêu chí đánh giá');
             return;
         }
         if (!reviewForm.content.trim()) {
-            message.warning('Vui long nhap noi dung danh gia');
+            message.warning('Vui lòng nhập nội dung đánh giá');
             return;
         }
 
@@ -380,10 +380,10 @@ function DetailPost() {
 
             if (editingReview) {
                 await requestUpdateReview({ ...payload, reviewId: editingReview._id });
-                message.success('Da cap nhat danh gia');
+                message.success('Đã cập nhật đánh giá');
             } else {
                 await requestCreateReview(payload);
-                message.success('Da gui danh gia');
+                message.success('Đã gửi đánh giá');
             }
 
             setReviewModalOpen(false);
@@ -393,7 +393,7 @@ function DetailPost() {
             fetchReviews();
             fetchPost();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Khong the luu danh gia');
+            message.error(error.response?.data?.message || 'Không thể lưu đánh giá');
         }
     };
 
@@ -426,7 +426,7 @@ function DetailPost() {
 
     const handleSubmitReviewReport = async () => {
         if (!reviewReportReason) {
-            message.warning('Vui long chon ly do bao cao');
+            message.warning('Vui lòng chọn lý do báo cáo');
             return;
         }
         try {

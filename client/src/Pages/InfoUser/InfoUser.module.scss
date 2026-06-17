@@ -1,27 +1,251 @@
-.container {
-    width: 80%;
-    margin: 0px auto;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 400px 1fr;
-    padding-top: 100px;
-    gap: 10px;
+.page {
+    min-height: 100vh;
+    width: min(80%, 1320px);
+    margin: 100px auto;
+    background: transparent;
 }
 
-.slider-bar {
-    width: 100%;
-    height: 100%;
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+.shell {
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #fff;
+}
+
+.profileSider {
+    padding: 20px 0;
+    border-right: 1px solid #f0f0f0;
+    background: linear-gradient(to bottom, #f9f9f9, #ffffff) !important;
+}
+
+.profileHero {
+    margin: -20px 0 20px;
+    padding: 30px 20px;
+    overflow: hidden;
+}
+
+.profileMenu {
+    :global(.ant-menu-item) {
+        min-height: 46px;
+        margin-block: 6px;
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+    }
 }
 
 .content {
-    width: 100%;
-    height: 100%;
+    padding: 24px;
     background-color: #fff;
-    border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    min-width: 0;
+}
+
+.contentCard {
+    :global(.ant-card-head) {
+        min-height: 60px;
+    }
+
+    :global(.ant-card-head-title) {
+        white-space: normal;
+    }
+
+    :global(.ant-table-wrapper) {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 1024px) {
+    .page {
+        width: calc(100% - 32px);
+        margin-top: 92px;
+        margin-bottom: 120px;
+    }
+}
+
+@media (max-width: 900px) {
+    .page {
+        width: calc(100% - 20px);
+        margin-top: 126px;
+        margin-bottom: 150px;
+    }
+
+    .shell {
+        display: block !important;
+        flex-direction: column;
+        margin-top: 14px;
+        border-radius: 10px;
+        overflow: visible;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .shell:global(.ant-layout-has-sider) {
+        display: block !important;
+    }
+
+    .profileSider {
+        display: block !important;
+        flex: none !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 0 0 8px;
+        border-right: 0;
+        border-bottom: 1px solid #eef2f7;
+        border-radius: 10px 10px 0 0;
+        overflow: hidden;
+    }
+
+    .profileHero {
+        width: auto !important;
+        margin: 0 0 10px !important;
+        padding: 18px 14px 16px !important;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 14px;
+        align-items: center;
+        text-align: left !important;
+
+        :global(.ant-avatar) {
+            width: 64px !important;
+            height: 64px !important;
+            line-height: 64px !important;
+            grid-row: span 2;
+        }
+
+        :global(.ant-typography) {
+            margin: 0 0 4px !important;
+            font-size: 18px !important;
+            line-height: 1.25 !important;
+        }
+
+        :global(.ant-row) {
+            min-width: 0;
+        }
+
+        :global(.ant-col) {
+            line-height: 1.35;
+        }
+
+        :global(.ant-typography-secondary),
+        :global(.ant-typography) {
+            word-break: break-word;
+        }
+    }
+
+    .profileMenu {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        background: transparent !important;
+        padding: 0 10px 2px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-inline-end: 0 !important;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        :global(.ant-menu-item) {
+            flex: 0 0 auto;
+            width: auto;
+            max-width: 210px;
+            height: 40px;
+            line-height: 40px;
+            margin: 0 !important;
+            padding: 0 12px !important;
+            border-radius: 999px;
+            background: #f8fafc;
+            font-size: 13px;
+            border: 1px solid #e5e7eb;
+        }
+
+        :global(.ant-menu-item::after) {
+            display: none;
+        }
+
+        :global(.ant-menu-item-selected) {
+            background: #e6f4ff;
+            border-color: #91caff;
+            color: #1677ff;
+        }
+
+        :global(.ant-menu-title-content) {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .content {
+        display: block !important;
+        width: 100%;
+        min-width: 0;
+        padding: 12px 0 0;
+        background: transparent;
+    }
+
+    .contentCard {
+        border-radius: 10px !important;
+        width: 100%;
+
+        :global(.ant-card-head) {
+            min-height: auto;
+            padding: 12px 14px;
+        }
+
+        :global(.ant-card-body) {
+            padding: 14px;
+            overflow-x: hidden;
+        }
+
+        :global(.ant-card-head .ant-typography) {
+            font-size: 20px !important;
+            line-height: 1.25 !important;
+            word-break: normal;
+        }
+    }
+}
+
+@media (max-width: 420px) {
+    .page {
+        width: calc(100% - 16px);
+    }
+
+    .profileHero {
+        padding: 16px 12px 14px !important;
+        column-gap: 12px;
+
+        :global(.ant-avatar) {
+            width: 58px !important;
+            height: 58px !important;
+            line-height: 58px !important;
+        }
+
+        :global(.ant-typography) {
+            font-size: 17px !important;
+        }
+    }
+
+    .profileMenu {
+        padding: 0 8px 2px;
+
+        :global(.ant-menu-item) {
+            max-width: 190px;
+        }
+    }
+
+    .content {
+        padding: 10px;
+    }
+
+    .contentCard {
+        :global(.ant-card-body) {
+            padding: 12px;
+        }
+    }
 }

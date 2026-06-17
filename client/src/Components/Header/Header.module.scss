@@ -343,27 +343,37 @@
 
 @media (max-width: 820px) {
     .wrapper {
-        min-height: 126px;
+        min-height: 124px;
     }
 
     .inner {
         width: min(100% - 24px, 1500px);
-        min-height: 70px;
+        min-height: 68px;
         grid-template-columns: auto 1fr auto;
-        gap: 10px;
+        gap: 8px;
     }
 
     .brand {
         min-width: 0;
+        max-width: 100%;
+        gap: 9px;
 
         img {
-            width: 88px;
-            height: 28px;
-            flex-basis: 88px;
+            width: 94px;
+            height: 30px;
+            flex-basis: 94px;
         }
 
         span {
             display: none;
+        }
+
+        strong {
+            max-width: 118px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 15px;
         }
     }
 
@@ -379,6 +389,8 @@
 
     .mobilePanel {
         width: min(100% - 24px, 1240px);
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
 
         .nav {
             grid-template-columns: 1fr;
@@ -394,22 +406,27 @@
 }
 
 @media (max-width: 520px) {
+    .wrapper {
+        min-height: 116px;
+    }
+
     .inner {
         width: calc(100% - 20px);
-        gap: 8px;
+        min-height: 62px;
+        gap: 6px;
     }
 
     .brand {
-        gap: 8px;
+        gap: 7px;
 
         img {
-            width: 78px;
-            height: 26px;
-            flex-basis: 78px;
+            width: 82px;
+            height: 27px;
+            flex-basis: 82px;
         }
 
         strong {
-            max-width: 128px;
+            max-width: 108px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -418,23 +435,35 @@
     }
 
     .mobileToggle {
-        width: 38px;
-        height: 38px;
+        justify-self: end;
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
     }
 
     .search {
+        padding-bottom: 8px;
+
         .search-input-container {
             input {
-                height: 42px;
-                padding-left: 12px;
+                height: 46px;
+                padding-left: 14px;
+                padding-right: 54px;
                 font-size: 13px;
             }
         }
 
         .result-search {
-            top: 46px;
+            top: 50px;
             max-height: 260px;
         }
+    }
+
+    .searchButton {
+        right: 5px;
+        width: 40px;
+        height: 38px;
+        font-size: 17px;
     }
 
     .mobilePanel {
@@ -452,5 +481,18 @@
 
     .mobileActions {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 380px) {
+    .brand {
+        img {
+            width: 96px;
+            flex-basis: 96px;
+        }
+
+        div {
+            display: none;
+        }
     }
 }

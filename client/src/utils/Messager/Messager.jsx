@@ -3,7 +3,7 @@ import classNames from 'classnames/bind';
 import styles from './Messager.module.scss';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faPaperPlane, faPhone, faVideo } from '@fortawesome/free-solid-svg-icons';
 
 import userDefault from '../../assets/images/user-default.svg';
 import { requestCreateMessage, requestGetMessages, requestMarkAllMessagesRead } from '../../config/request';
@@ -147,6 +147,17 @@ function Messager({ user, setUsersMessage, usersMessage }) {
         setUsersMessage(updated);
     };
 
+    const handleStartCall = (callType) => {
+        window.dispatchEvent(
+            new CustomEvent('webrtc:start-call', {
+                detail: {
+                    targetUser: user,
+                    callType,
+                },
+            }),
+        );
+    };
+
     return (
         <div className={cx('wrapper')}>
             <div className={cx('header')}>
@@ -161,6 +172,12 @@ function Messager({ user, setUsersMessage, usersMessage }) {
                 </div>
 
                 <div className={cx('close')}>
+                    <button onClick={() => handleStartCall('audio')} title="Goi audio" aria-label="Goi audio">
+                        <FontAwesomeIcon icon={faPhone} />
+                    </button>
+                    <button onClick={() => handleStartCall('video')} title="Goi video" aria-label="Goi video">
+                        <FontAwesomeIcon icon={faVideo} />
+                    </button>
                     <button onClick={handleCloseMessager}>
                         <FontAwesomeIcon icon={faXmark} />
                     </button>

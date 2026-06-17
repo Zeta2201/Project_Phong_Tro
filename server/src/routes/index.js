@@ -24,6 +24,7 @@ const upload = multer({ storage: storage });
 
 function routes(app) {
     app.post('/api/register', userRoutes);
+    app.post('/api/register/request-otp', userRoutes);
     app.post('/api/login', userRoutes);
     app.post('/api/login-google', userRoutes);
     app.get('/api/auth', userRoutes);
@@ -31,6 +32,8 @@ function routes(app) {
     app.get('/api/refresh-token', userRoutes);
     app.get('/api/recharge-user', userRoutes);
     app.post('/api/update-user', userRoutes);
+    app.post('/api/users/request-change-email', userRoutes);
+    app.post('/api/users/verify-change-email', userRoutes);
     app.post('/api/submit-cccd-verification', userRoutes);
     app.post('/api/admin/update-verification-status', userRoutes);
     app.post('/api/update-user-admin', userRoutes);

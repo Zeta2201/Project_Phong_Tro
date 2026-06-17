@@ -43,12 +43,23 @@
         }
     }
     .close {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         padding: 10px;
         button {
             background-color: transparent;
             border: none;
             cursor: pointer;
-            font-size: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            color: #334155;
+            font-size: 15px;
+
+            &:hover {
+                background: rgba(15, 23, 42, 0.08);
+            }
         }
     }
 }
@@ -167,6 +178,93 @@
 
         &:active {
             transform: translateY(1px);
+        }
+    }
+}
+
+@media (max-width: 520px) {
+    .wrapper {
+        width: min(100%, 420px);
+        height: min(430px, calc(100dvh - 170px));
+        margin: 0 auto;
+        border-radius: 12px;
+        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+    }
+
+    .header {
+        align-items: center;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+
+        .user {
+            min-width: 0;
+            flex: 1;
+            padding: 9px 10px;
+
+            img {
+                width: 36px;
+                height: 36px;
+            }
+
+            .info {
+                min-width: 0;
+
+                h3 {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    font-size: 14px;
+                }
+
+                #online,
+                #offline {
+                    font-size: 11px;
+                }
+            }
+        }
+
+        .close {
+            padding: 8px;
+
+            button {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: #f1f5f9;
+                font-size: 14px;
+            }
+        }
+    }
+
+    .content {
+        padding: 12px 10px;
+    }
+
+    .message {
+        max-width: 86%;
+        margin-bottom: 10px;
+
+        p {
+            padding: 9px 12px;
+            font-size: 13px;
+        }
+    }
+
+    .input {
+        gap: 8px;
+        padding: 10px;
+
+        input {
+            height: 40px;
+            margin-right: 0;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        button {
+            width: 42px;
+            min-width: 42px;
+            padding: 0;
         }
     }
 }

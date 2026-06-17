@@ -4,6 +4,7 @@ import cookies from 'js-cookie';
 
 const request = axios.create({
     baseURL: 'http://localhost:3000',
+    // baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
     withCredentials: true,
 });
 
@@ -52,6 +53,11 @@ export const requestRegister = async (data) => {
     return response.data;
 };
 
+export const requestRegisterOtp = async (data) => {
+    const response = await request.post('/api/register/request-otp', data);
+    return response.data;
+};
+
 export const requestLoginGoogle = async (data) => {
     const res = await request.post('/api/login-google', data);
     return res.data;
@@ -84,6 +90,16 @@ export const requestRefreshToken = async () => {
 
 export const requestUpdateUser = async (data) => {
     const res = await request.post('/api/update-user', data);
+    return res.data;
+};
+
+export const requestChangeEmailOtp = async (data) => {
+    const res = await request.post('/api/users/request-change-email', data);
+    return res.data;
+};
+
+export const requestVerifyChangeEmail = async (data) => {
+    const res = await request.post('/api/users/verify-change-email', data);
     return res.data;
 };
 
@@ -593,48 +609,45 @@ let isRefreshing = false;
 let failedRequestsQueue = [];
 
 request.interceptors.response.use(
-    (response) => response, // Trả về nếu không có lỗi
+    (response) => response,
     async (error) => {
-        const originalRequest = error.config;
+        const originalRequest = error.config || {};
+        const isRefreshRequest = originalRequest.url?.includes('/api/refresh-token');
 
-        // Nếu lỗi 401 (Unauthorized) và request chưa từng thử refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshRequest) {
             originalRequest._retry = true;
 
-            if (!isRefreshing) {
-                isRefreshing = true;
-
-                try {
-                    // Gửi yêu cầu refresh token
-                    const token = cookies.get('logged');
-                    if (!token) {
-                        return;
-                    }
-                    await requestRefreshToken();
-
-                    // Xử lý lại tất cả các request bị lỗi 401 trước đó
-                    failedRequestsQueue.forEach((req) => req.resolve());
-                    failedRequestsQueue = [];
-                } catch (refreshError) {
-                    // Nếu refresh thất bại, đăng xuất
-                    failedRequestsQueue.forEach((req) => req.reject(refreshError));
-                    failedRequestsQueue = [];
-                    localStorage.clear();
-                    window.location.href = '/login'; // Chuyển về trang đăng nhập
-                } finally {
-                    isRefreshing = false;
-                }
+            if (!cookies.get('logged')) {
+                localStorage.clear();
+                return Promise.reject(error);
             }
 
-            // Trả về một Promise để retry request sau khi token mới được cập nhật
-            return new Promise((resolve, reject) => {
-                failedRequestsQueue.push({
-                    resolve: () => {
-                        resolve(request(originalRequest));
-                    },
-                    reject: (err) => reject(err),
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedRequestsQueue.push({
+                        resolve: () => resolve(request(originalRequest)),
+                        reject: (err) => reject(err),
+                    });
                 });
-            });
+            }
+
+            isRefreshing = true;
+
+            try {
+                await requestRefreshToken();
+                failedRequestsQueue.forEach((req) => req.resolve());
+                failedRequestsQueue = [];
+                return request(originalRequest);
+            } catch (refreshError) {
+                failedRequestsQueue.forEach((req) => req.reject(refreshError));
+                failedRequestsQueue = [];
+                cookies.remove('logged');
+                localStorage.clear();
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
         }
 
         return Promise.reject(error);

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Row, Col, Card, Typography, Table, Modal, Form, Input, Button, Upload, message, AutoComplete, Tag, Descriptions } from 'antd';
+import { Row, Col, Card, Typography, Table, Modal, Form, Input, Button, Upload, message, AutoComplete, Tag, Descriptions, Alert, Space } from 'antd';
 import {
     UserOutlined,
     PhoneOutlined,
@@ -16,13 +16,16 @@ import { useStore } from '../../../../hooks/useStore';
 import { useState, useEffect } from 'react';
 import {
     requestGetFavourite,
+    requestChangeEmailOtp,
     requestSubmitCccdVerification,
     requestUpdateUser,
     requestUploadImage,
     requestUploadImages,
+    requestVerifyChangeEmail,
 } from '../../../../config/request';
 import axios from 'axios';
 import useDebounce from '../../../../hooks/useDebounce';
+import { useNavigate } from 'react-router-dom';
 
 import userNotFound from '../../../../assets/images/img_default.png';
 
@@ -30,16 +33,23 @@ const cx = classNames.bind(styles);
 const { Text, Title } = Typography;
 
 function PersonalInfo() {
-    const { dataUser, fetchAuth } = useStore();
+    const navigate = useNavigate();
+    const { dataUser, fetchAuth, clearAuthState } = useStore();
     const [favourite, setFavourite] = useState([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
+    const [emailChangeStep, setEmailChangeStep] = useState('email');
+    const [emailChangeLoading, setEmailChangeLoading] = useState(false);
     const [form] = Form.useForm();
+    const [emailForm] = Form.useForm();
+    const [otpForm] = Form.useForm();
     const [avatarUrl, setAvatarUrl] = useState(dataUser?.avatar || '');
     const [cccdUploading, setCccdUploading] = useState(false);
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
 
     const debouncedSearch = useDebounce(valueSearch, 500);
+    const isGoogleAccount = dataUser.provider === 'google' || dataUser.typeLogin === 'google';
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,8 +90,9 @@ function PersonalInfo() {
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
+            const { email, ...editableValues } = values;
             const data = {
-                ...values,
+                ...editableValues,
                 avatar: avatarUrl,
             };
             const res = await requestUpdateUser(data);
@@ -97,6 +108,57 @@ function PersonalInfo() {
         setIsModalVisible(false);
         form.resetFields();
         setAvatarUrl(dataUser?.avatar || '');
+    };
+
+    const openEmailModal = () => {
+        if (isGoogleAccount) {
+            message.info('Email của tài khoản này được quản lý bởi Google và không thể thay đổi trong hệ thống.');
+            return;
+        }
+
+        setEmailChangeStep('email');
+        emailForm.resetFields();
+        otpForm.resetFields();
+        setIsEmailModalVisible(true);
+    };
+
+    const closeEmailModal = () => {
+        setIsEmailModalVisible(false);
+        setEmailChangeStep('email');
+        emailForm.resetFields();
+        otpForm.resetFields();
+    };
+
+    const handleRequestChangeEmail = async () => {
+        try {
+            const values = await emailForm.validateFields();
+            setEmailChangeLoading(true);
+            const res = await requestChangeEmailOtp({ email: values.email });
+            message.success(res.message);
+            setEmailChangeStep('otp');
+        } catch (error) {
+            if (error?.errorFields) return;
+            message.error(error?.response?.data?.message || 'Không thể gửi OTP đổi email');
+        } finally {
+            setEmailChangeLoading(false);
+        }
+    };
+
+    const handleVerifyChangeEmail = async () => {
+        try {
+            const values = await otpForm.validateFields();
+            setEmailChangeLoading(true);
+            const res = await requestVerifyChangeEmail({ otp: values.otp });
+            message.success(res.message);
+            closeEmailModal();
+            clearAuthState();
+            navigate('/login');
+        } catch (error) {
+            if (error?.errorFields) return;
+            message.error(error?.response?.data?.message || 'Xác thực OTP thất bại');
+        } finally {
+            setEmailChangeLoading(false);
+        }
     };
 
     const beforeUpload = (file) => {
@@ -122,10 +184,10 @@ function PersonalInfo() {
 
     const getVerificationConfig = (status) =>
         ({
-            none: { color: 'default', text: 'Chua xac thuc' },
-            pending: { color: 'orange', text: 'Cho admin duyet' },
-            verified: { color: 'green', text: 'Da xac thuc' },
-            rejected: { color: 'red', text: 'Bi tu choi' },
+            none: { color: 'default', text: 'Chưa xác thực' },
+            pending: { color: 'orange', text: 'Chờ admin duyệt' },
+            verified: { color: 'green', text: 'Đã xác thực' },
+            rejected: { color: 'red', text: 'Bị từ chối' },
         })[status || 'none'] || { color: 'default', text: status };
 
     const handleSubmitCccd = async ({ file, onSuccess, onError }) => {
@@ -139,7 +201,7 @@ function PersonalInfo() {
             await fetchAuth();
             onSuccess?.(res);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gui xac thuc CCCD that bai');
+            message.error(error.response?.data?.message || 'Gửi xác thực CCCD thất bại');
             onError?.(error);
         } finally {
             setCccdUploading(false);
@@ -195,7 +257,7 @@ function PersonalInfo() {
     };
 
     return (
-        <div>
+        <div className={cx('personalInfo')}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
                 <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
                     Chỉnh sửa thông tin
@@ -231,7 +293,17 @@ function PersonalInfo() {
                             <MailOutlined className={cx('info-icon')} />
                             <div>
                                 <Text strong>Email</Text>
-                                <div>{dataUser.email}</div>
+                                <Space size={8} wrap>
+                                    <span>{dataUser.email}</span>
+                                    <Button size="small" onClick={openEmailModal} disabled={isGoogleAccount}>
+                                        Đổi email
+                                    </Button>
+                                </Space>
+                                {isGoogleAccount && (
+                                    <Text type="secondary" className={cx('email-note')}>
+                                        Email của tài khoản này được quản lý bởi Google và không thể thay đổi trong hệ thống.
+                                    </Text>
+                                )}
                             </div>
                         </div>
                     </Card>
@@ -255,7 +327,7 @@ function PersonalInfo() {
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <SafetyCertificateOutlined style={{ fontSize: 20, marginRight: 8, color: '#0f766e' }} />
                             <Title level={4} style={{ margin: 0 }}>
-                                Xac thuc chu tro bang CCCD
+                                Xác thực chủ trọ bằng CCCD
                             </Title>
                         </div>
                         <Tag color={getVerificationConfig(dataUser.verificationStatus).color}>
@@ -264,12 +336,12 @@ function PersonalInfo() {
                     </div>
 
                     <Descriptions bordered size="small" column={1}>
-                        <Descriptions.Item label="Ho ten OCR">{dataUser.cccdFullName || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="So CCCD">{dataUser.cccdNumber || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="Ngay sinh">{dataUser.cccdDob || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="Dia chi">{dataUser.cccdAddress || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Họ tên OCR">{dataUser.cccdFullName || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Số CCCD">{dataUser.cccdNumber || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Ngày sinh">{dataUser.cccdDob || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Địa chỉ">{dataUser.cccdAddress || '-'}</Descriptions.Item>
                         {dataUser.verificationRejectReason && (
-                            <Descriptions.Item label="Ly do tu choi">{dataUser.verificationRejectReason}</Descriptions.Item>
+                            <Descriptions.Item label="Lý do từ chối">{dataUser.verificationRejectReason}</Descriptions.Item>
                         )}
                     </Descriptions>
 
@@ -290,14 +362,14 @@ function PersonalInfo() {
                         disabled={cccdUploading}
                         beforeUpload={(file) => {
                             const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
-                            if (!isImage) message.error('Chi ho tro anh JPG, PNG hoac WEBP');
+                            if (!isImage) message.error('Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP');
                             const isLt5M = file.size / 1024 / 1024 < 5;
-                            if (!isLt5M) message.error('Anh CCCD phai nho hon 5MB');
+                            if (!isLt5M) message.error('Ảnh CCCD phải nhỏ hơn 5MB');
                             return isImage && isLt5M;
                         }}
                     >
                         <Button type="primary" icon={<UploadOutlined />} loading={cccdUploading} style={{ marginTop: 14 }}>
-                            Tai anh CCCD va doc OCR
+                            Tải ảnh CCCD và đọc OCR
                         </Button>
                     </Upload>
                 </Card>
@@ -360,16 +432,27 @@ function PersonalInfo() {
                     >
                         <Input prefix={<PhoneOutlined />} />
                     </Form.Item>
-                    <Form.Item
-                        name="email"
-                        label="Email"
-                        rules={[
-                            { required: true, message: 'Vui lòng nhập email' },
-                            { type: 'email', message: 'Email không hợp lệ' },
-                        ]}
-                    >
-                        <Input prefix={<MailOutlined />} />
+                    <Form.Item name="email" label="Email">
+                        <Input
+                            prefix={<MailOutlined />}
+                            disabled
+                            addonAfter={
+                                !isGoogleAccount ? (
+                                    <Button type="link" size="small" onClick={openEmailModal}>
+                                        Đổi email
+                                    </Button>
+                                ) : null
+                            }
+                        />
                     </Form.Item>
+                    {isGoogleAccount && (
+                        <Alert
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                            message="Email của tài khoản này được quản lý bởi Google và không thể thay đổi trong hệ thống."
+                        />
+                    )}
                     <Form.Item
                         name="address"
                         label="Địa chỉ"
@@ -389,8 +472,80 @@ function PersonalInfo() {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            <Modal
+                title="Đổi email đăng nhập"
+                open={isEmailModalVisible}
+                onCancel={closeEmailModal}
+                footer={
+                    emailChangeStep === 'email'
+                        ? [
+                              <Button key="cancel" onClick={closeEmailModal}>
+                                  Hủy
+                              </Button>,
+                              <Button key="send" type="primary" loading={emailChangeLoading} onClick={handleRequestChangeEmail}>
+                                  Gửi OTP
+                              </Button>,
+                          ]
+                        : [
+                              <Button key="back" onClick={() => setEmailChangeStep('email')}>
+                                  Đổi email mới
+                              </Button>,
+                              <Button key="verify" type="primary" loading={emailChangeLoading} onClick={handleVerifyChangeEmail}>
+                                  Xác thực và đăng xuất
+                              </Button>,
+                          ]
+                }
+            >
+                {emailChangeStep === 'email' ? (
+                    <>
+                        <Alert
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                            message="Email mới chỉ được cập nhật sau khi bạn xác thực OTP gửi đến email đó."
+                        />
+                        <Form form={emailForm} layout="vertical">
+                            <Form.Item
+                                name="email"
+                                label="Email mới"
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập email mới' },
+                                    { type: 'email', message: 'Email không hợp lệ' },
+                                ]}
+                            >
+                                <Input prefix={<MailOutlined />} placeholder="email-moi@example.com" />
+                            </Form.Item>
+                        </Form>
+                    </>
+                ) : (
+                    <>
+                        <Alert
+                            type="success"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                            message="Mã OTP đã được gửi đến email mới. Mã có hiệu lực trong 10 phút."
+                        />
+                        <Form form={otpForm} layout="vertical">
+                            <Form.Item
+                                name="otp"
+                                label="Mã OTP"
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập mã OTP' },
+                                    { len: 6, message: 'OTP gồm 6 chữ số' },
+                                ]}
+                            >
+                                <Input maxLength={6} placeholder="Nhập 6 chữ số" />
+                            </Form.Item>
+                        </Form>
+                    </>
+                )}
+            </Modal>
         </div>
     );
 }
 
 export default PersonalInfo;
+
+
+

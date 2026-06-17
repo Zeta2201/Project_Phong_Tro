@@ -7,6 +7,7 @@ import { message } from 'antd';
 import GlobalMessaging from '../../utils/GlobalMessaging/GlobalMessaging';
 import Chatbot from '../../utils/Chatbot/Chatbot';
 import ChatMiniList from '../../utils/ChatMiniList/ChatMiniList';
+import WebRTCCall from '../../utils/WebRTCCall/WebRTCCall';
 
 function Layout() {
     const { dataFavourite } = useSocket();
@@ -34,6 +35,7 @@ function Layout() {
             <Chatbot />
             <ChatMiniList />
             <GlobalMessaging />
+            <WebRTCCall />
         </div>
     );
 }

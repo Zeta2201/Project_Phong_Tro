@@ -6,6 +6,8 @@ const modelKeyWordSearch = require('../models/keyWordSearch.model');
 const modelOtp = require('../models/otp.model');
 
 const sendMailForgotPassword = require('../utils/SendMail/sendMailForgotPassword');
+const sendMailChangeEmail = require('../utils/SendMail/sendMailChangeEmail');
+const sendMailRegisterOtp = require('../utils/SendMail/sendMailRegisterOtp');
 const { BadRequestError } = require('../core/error.response');
 const { createApiKey, createToken, createRefreshToken, verifyToken } = require('../services/tokenSevices');
 const { Created, OK } = require('../core/success.response');
@@ -23,6 +25,9 @@ const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
 
 const googleOAuthClient = new google.auth.OAuth2();
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_CHANGE_OTP_EXPIRES_MS = 10 * 60 * 1000;
+const REGISTER_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 
 const buildCookieOptions = (maxAge, httpOnly = true) => ({
     httpOnly,
@@ -30,6 +35,34 @@ const buildCookieOptions = (maxAge, httpOnly = true) => ({
     sameSite: 'Strict',
     maxAge,
 });
+
+const ACCESS_TOKEN_COOKIE_MAX_AGE = 15 * 60 * 1000;
+const REFRESH_TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
+const clearSessionCookies = (res) => {
+    res.clearCookie('token');
+    res.clearCookie('refreshToken');
+    res.clearCookie('logged');
+};
+
+const isLockedUser = (user) => !user || user.isActive === false || user.accountStatus === 'locked';
+
+const issueLoginSession = async (user, res) => {
+    await createApiKey(user._id);
+    user.lastLoginAt = new Date();
+    user.accountStatus = user.accountStatus === 'locked' ? 'locked' : 'active';
+    user.isActive = user.accountStatus === 'active';
+    await user.save();
+
+    const token = await createToken({ id: user._id });
+    const refreshToken = await createRefreshToken({ id: user._id });
+
+    res.cookie('token', token, buildCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
+    res.cookie('logged', 1, buildCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE, false));
+    res.cookie('refreshToken', refreshToken, buildCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE));
+
+    return { token, refreshToken };
+};
 
 const parseJsonFromText = (text = '') => {
     const cleaned = text.replace(/```json|```/g, '').trim();
@@ -48,14 +81,14 @@ const extractCccdInfo = async (file) => {
         return {
             rawText: '',
             data: {},
-            note: 'Chua cau hinh GOOGLE_API_KEY, vui long kiem tra thu cong',
+            note: 'Chưa cấu hình GOOGLE_API_KEY, vui lòng kiểm tra thủ công',
         };
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `
-Doc thong tin tren anh CCCD/CMND Viet Nam.
-Chi tra ve JSON hop le, khong markdown:
+Đọc thông tin trên ảnh CCCD/CMND Việt Nam.
+Chỉ trả về JSON hợp lệ, không markdown:
 {
   "fullName": "",
   "cccdNumber": "",
@@ -63,7 +96,7 @@ Chi tra ve JSON hop le, khong markdown:
   "address": "",
   "rawText": ""
 }
-Neu khong thay truong nao thi de chuoi rong.
+Nếu không thấy trường nào thì để chuỗi rỗng.
 `;
 
     const result = await model.generateContent([
@@ -87,16 +120,81 @@ Neu khong thay truong nao thi de chuoi rong.
 };
 
 class controllerUsers {
-    async register(req, res) {
-        const { fullName, email, password, phone } = req.body;
+    async requestRegisterOtp(req, res) {
+        const email = String(req.body.email || '').trim().toLowerCase();
 
-        if (!fullName || !email || !password || !phone) {
-            throw new BadRequestError('Vui lòng nhập đày đủ thông tin');
+        if (!email) {
+            throw new BadRequestError('Vui lòng nhập email');
         }
+
+        if (!emailPattern.test(email)) {
+            throw new BadRequestError('Email không hợp lệ');
+        }
+
+        const user = await modelUser.findOne({ email });
+        if (user) {
+            throw new BadRequestError('Email này đã được đăng ký');
+        }
+
+        const latestOtp = await modelOtp.findOne({ email, type: 'verifyAccount' }).sort({ createdAt: -1 });
+        if (latestOtp) {
+            const remainingMs = REGISTER_OTP_RESEND_COOLDOWN_MS - (Date.now() - latestOtp.createdAt.getTime());
+            if (remainingMs > 0) {
+                throw new BadRequestError(`Vui lòng thử lại sau ${Math.ceil(remainingMs / 1000)} giây`);
+            }
+        }
+
+        const otp = await otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false,
+        });
+        const hash = await bcrypt.hash(otp, 10);
+
+        await modelOtp.deleteMany({ email, type: 'verifyAccount' });
+        const createdOtp = await modelOtp.create({
+            email,
+            otp: hash,
+            type: 'verifyAccount',
+        });
+
+        try {
+            await sendMailRegisterOtp(email, otp);
+        } catch (error) {
+            await modelOtp.deleteOne({ _id: createdOtp._id });
+            throw error;
+        }
+
+        new OK({ message: 'Đã gửi mã OTP đăng ký. Vui lòng kiểm tra email.' }).send(res);
+    }
+
+    async register(req, res) {
+        const { fullName, password, phone, otp } = req.body;
+        const email = String(req.body.email || '').trim().toLowerCase();
+
+        if (!fullName || !email || !password || !phone || !otp) {
+            throw new BadRequestError('Vui lòng nhập đầy đủ thông tin');
+        }
+
+        if (!emailPattern.test(email)) {
+            throw new BadRequestError('Email không hợp lệ');
+        }
+
         const user = await modelUser.findOne({ email });
         if (user) {
             throw new BadRequestError('Người dùng đã tồn tại');
         } else {
+            const findOTP = await modelOtp.findOne({ email, type: 'verifyAccount' }).sort({ createdAt: -1 });
+            if (!findOTP) {
+                throw new BadRequestError('Vui lòng lấy mã OTP đăng ký');
+            }
+
+            const isMatch = await bcrypt.compare(String(otp).trim(), findOTP.otp);
+            if (!isMatch) {
+                throw new BadRequestError('Mã OTP không chính xác hoặc đã hết hạn');
+            }
+
             const saltRounds = 10;
             const salt = bcrypt.genSaltSync(saltRounds);
             const passwordHash = bcrypt.hashSync(password, salt);
@@ -105,54 +203,40 @@ class controllerUsers {
                 email,
                 password: passwordHash,
                 typeLogin: 'email',
+                provider: 'local',
+                emailVerified: true,
                 phone,
                 isActive: true,
+                accountStatus: 'active',
             });
-            await newUser.save();
-            await createApiKey(newUser._id);
-            const token = await createToken({ id: newUser._id });
-            const refreshToken = await createRefreshToken({ id: newUser._id });
-            res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
-
-            res.cookie('logged', 1, buildCookieOptions(7 * 24 * 60 * 60 * 1000, false));
-
-            // Đặt cookie HTTP-Only cho refreshToken (tùy chọn)
-            res.cookie('refreshToken', refreshToken, buildCookieOptions(7 * 24 * 60 * 60 * 1000));
+            await modelOtp.deleteOne({ _id: findOTP._id });
+            const { token, refreshToken } = await issueLoginSession(newUser, res);
             new Created({ message: 'Đăng ký thành công', metadata: { token, refreshToken } }).send(res);
         }
     }
     async login(req, res) {
         const { email, password } = req.body;
-        if (!email || !password) {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        if (!normalizedEmail || !password) {
             throw new BadRequestError('Vui lòng nhập đầy đủ thông tin');
         }
-        const user = await modelUser.findOne({ email });
+        const user = await modelUser.findOne({ email: normalizedEmail });
         if (!user) {
             throw new BadRequestError('Tài khoản hoặc mật khẩu không chính xác');
         }
         if (user.typeLogin === 'google') {
-            throw new BadRequestError('Tài khoản đăng nhập bằng google');
+            throw new BadRequestError('Tài khoản đăng nhập bằng Google');
         }
 
-        if (user.isActive === false) {
-            throw new BadRequestError('Tai khoan cua ban da bi khoa');
+        if (isLockedUser(user)) {
+            throw new BadRequestError('Tài khoản của bạn đã bị khóa');
         }
 
         const checkPassword = bcrypt.compareSync(password, user.password);
         if (!checkPassword) {
             throw new BadRequestError('Tài khoản hoặc mật khẩu không chính xác');
         }
-        await createApiKey(user._id);
-        const token = await createToken({ id: user._id });
-        const refreshToken = await createRefreshToken({ id: user._id });
-
-        res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
-
-        res.cookie('logged', 1, buildCookieOptions(7 * 24 * 60 * 60 * 1000, false));
-
-        // Đặt cookie HTTP-Only cho refreshToken (tùy chọn)
-        res.cookie('refreshToken', refreshToken, buildCookieOptions(7 * 24 * 60 * 60 * 1000));
-
+        const { token, refreshToken } = await issueLoginSession(user, res);
         new OK({ message: 'Đăng nhập thành công', metadata: { token, refreshToken } }).send(res);
     }
 
@@ -160,10 +244,10 @@ class controllerUsers {
         const { credential } = req.body;
         const googleClientId = process.env.GOOGLE_CLIENT_ID;
         if (!googleClientId) {
-            throw new BadRequestError('Chua cau hinh GOOGLE_CLIENT_ID');
+            throw new BadRequestError('Chưa cấu hình GOOGLE_CLIENT_ID');
         }
         if (!credential) {
-            throw new BadRequestError('Khong nhan duoc Google credential');
+            throw new BadRequestError('Không nhận được Google credential');
         }
 
         let dataToken;
@@ -174,39 +258,32 @@ class controllerUsers {
             });
             dataToken = ticket.getPayload();
         } catch {
-            throw new BadRequestError('Google credential khong hop le');
+            throw new BadRequestError('Google credential không hợp lệ');
         }
 
         if (!dataToken?.email || dataToken.email_verified !== true) {
-            throw new BadRequestError('Email Google chua duoc xac minh');
+            throw new BadRequestError('Email Google chưa được xác minh');
         }
 
-        const user = await modelUser.findOne({ email: dataToken.email });
+        const googleEmail = dataToken.email.toLowerCase().trim();
+        const user = await modelUser.findOne({ email: googleEmail });
         if (user) {
-            if (user.isActive === false) {
-                throw new BadRequestError('Tai khoan cua ban da bi khoa');
+            if (isLockedUser(user)) {
+                throw new BadRequestError('Tài khoản của bạn đã bị khóa');
             }
-            await createApiKey(user._id);
-            const token = await createToken({ id: user._id });
-            const refreshToken = await createRefreshToken({ id: user._id });
-            res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
-            res.cookie('logged', 1, buildCookieOptions(7 * 24 * 60 * 60 * 1000, false));
-            res.cookie('refreshToken', refreshToken, buildCookieOptions(7 * 24 * 60 * 60 * 1000));
+            const { token, refreshToken } = await issueLoginSession(user, res);
             new OK({ message: 'Đăng nhập thành công', metadata: { token, refreshToken } }).send(res);
         } else {
             const newUser = await modelUser.create({
                 fullName: dataToken.name,
-                email: dataToken.email,
+                email: googleEmail,
                 typeLogin: 'google',
+                provider: 'google',
+                emailVerified: true,
                 isActive: true,
+                accountStatus: 'active',
             });
-            await newUser.save();
-            await createApiKey(newUser._id);
-            const token = await createToken({ id: newUser._id });
-            const refreshToken = await createRefreshToken({ id: newUser._id });
-            res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
-            res.cookie('logged', 1, buildCookieOptions(7 * 24 * 60 * 60 * 1000, false));
-            res.cookie('refreshToken', refreshToken, buildCookieOptions(7 * 24 * 60 * 60 * 1000));
+            const { token, refreshToken } = await issueLoginSession(newUser, res);
             new OK({ message: 'Đăng nhập thành công', metadata: { token, refreshToken } }).send(res);
         }
     }
@@ -223,30 +300,46 @@ class controllerUsers {
     }
 
     async logout(req, res) {
-        const user = req.user;
-        await modelApiKey.deleteOne({ userId: user.id });
-        res.clearCookie('token');
-        res.clearCookie('refreshToken');
-        res.clearCookie('logged');
+        const accessToken = req.cookies.token;
+        const refreshToken = req.cookies.refreshToken;
+        let decoded = null;
 
+        try {
+            decoded = refreshToken ? await verifyToken(refreshToken, 'refresh') : await verifyToken(accessToken, 'access');
+        } catch (error) {
+            decoded = null;
+        }
+
+        if (decoded?.id) {
+            await modelApiKey.deleteOne({ userId: decoded.id });
+        }
+
+        clearSessionCookies(res);
         new OK({ message: 'Đăng xuất thành công' }).send(res);
     }
 
     async refreshToken(req, res) {
         const refreshToken = req.cookies.refreshToken;
 
-        const decoded = await verifyToken(refreshToken);
+        try {
+            const decoded = await verifyToken(refreshToken, 'refresh');
+            const user = await modelUser.findById(decoded.id);
 
-        const user = await modelUser.findById(decoded.id);
-        if (!user || user.isActive === false) {
-            throw new BadRequestError('Tai khoan cua ban da bi khoa');
+            if (isLockedUser(user)) {
+                await modelApiKey.deleteOne({ userId: decoded.id });
+                clearSessionCookies(res);
+                throw new BadRequestError('Tài khoản của bạn đã bị khóa');
+            }
+
+            const token = await createToken({ id: user._id });
+            res.cookie('token', token, buildCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
+            res.cookie('logged', 1, buildCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE, false));
+
+            new OK({ message: 'Làm mới phiên đăng nhập thành công', metadata: { token } }).send(res);
+        } catch (error) {
+            clearSessionCookies(res);
+            throw error;
         }
-        const token = await createToken({ id: user._id });
-        res.cookie('token', token, buildCookieOptions(15 * 60 * 1000));
-
-        res.cookie('logged', 1, buildCookieOptions(7 * 24 * 60 * 60 * 1000, false));
-
-        new OK({ message: 'Refresh token thành công', metadata: { token } }).send(res);
     }
 
     async getAdminStats(req, res) {
@@ -449,7 +542,7 @@ class controllerUsers {
         const { id } = req.user;
         const { oldPassword, newPassword, confirmPassword } = req.body;
         if (!oldPassword || !newPassword || !confirmPassword) {
-            throw new BadRequestError('Vui lòng nhập đày đủ thông tin');
+            throw new BadRequestError('Vui lòng nhập đầy đủ thông tin');
         }
 
         if (newPassword !== confirmPassword) {
@@ -482,19 +575,131 @@ class controllerUsers {
 
     async updateUser(req, res) {
         const { id } = req.user;
-        const { fullName, phone, email, address, avatar } = req.body;
-        const user = await modelUser.findByIdAndUpdate(id, { fullName, phone, email, address, avatar }, { new: true });
+        const { fullName, phone, address, avatar } = req.body;
+        const user = await modelUser.findByIdAndUpdate(id, { fullName, phone, address, avatar }, { new: true });
         new OK({ message: 'Cập nhật thông tin thành công', metadata: user }).send(res);
     }
 
+    async requestChangeEmail(req, res) {
+        const { id } = req.user;
+        const newEmail = String(req.body.email || '').trim().toLowerCase();
+
+        if (!newEmail) {
+            throw new BadRequestError('Vui lòng nhập email mới');
+        }
+
+        if (!emailPattern.test(newEmail)) {
+            throw new BadRequestError('Email mới không hợp lệ');
+        }
+
+        const user = await modelUser.findById(id);
+        if (!user) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        const provider = user.provider || (user.typeLogin === 'google' ? 'google' : 'local');
+        if (provider === 'google' || user.typeLogin === 'google') {
+            throw new BadRequestError('Email của tài khoản này được quản lý bởi Google và không thể thay đổi trong hệ thống.');
+        }
+
+        if (newEmail === String(user.email || '').toLowerCase()) {
+            throw new BadRequestError('Email mới phải khác email hiện tại');
+        }
+
+        const existingUser = await modelUser.findOne({ email: newEmail, _id: { $ne: user._id } });
+        if (existingUser) {
+            throw new BadRequestError('Email này đã tồn tại trong hệ thống');
+        }
+
+        const otp = await otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false,
+        });
+        const hash = await bcrypt.hash(otp, 10);
+
+        user.pendingEmail = newEmail;
+        user.emailChangeOtp = hash;
+        user.emailChangeOtpExpires = new Date(Date.now() + EMAIL_CHANGE_OTP_EXPIRES_MS);
+        await user.save();
+
+        try {
+            await sendMailChangeEmail(newEmail, otp);
+        } catch (error) {
+            user.pendingEmail = '';
+            user.emailChangeOtp = '';
+            user.emailChangeOtpExpires = null;
+            await user.save();
+            throw error;
+        }
+
+        new OK({ message: 'Đã gửi mã OTP đến email mới. Vui lòng kiểm tra hộp thư.' }).send(res);
+    }
+
+    async verifyChangeEmail(req, res) {
+        const { id } = req.user;
+        const otp = String(req.body.otp || '').trim();
+
+        if (!otp) {
+            throw new BadRequestError('Vui lòng nhập mã OTP');
+        }
+
+        const user = await modelUser.findById(id);
+        if (!user) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        const provider = user.provider || (user.typeLogin === 'google' ? 'google' : 'local');
+        if (provider === 'google' || user.typeLogin === 'google') {
+            throw new BadRequestError('Email của tài khoản này được quản lý bởi Google và không thể thay đổi trong hệ thống.');
+        }
+
+        if (!user.pendingEmail || !user.emailChangeOtp || !user.emailChangeOtpExpires) {
+            throw new BadRequestError('Vui lòng yêu cầu đổi email trước');
+        }
+
+        if (user.emailChangeOtpExpires.getTime() < Date.now()) {
+            user.pendingEmail = '';
+            user.emailChangeOtp = '';
+            user.emailChangeOtpExpires = null;
+            await user.save();
+            throw new BadRequestError('Mã OTP đã hết hạn, vui lòng yêu cầu mã mới');
+        }
+
+        const isMatch = await bcrypt.compare(otp, user.emailChangeOtp);
+        if (!isMatch) {
+            throw new BadRequestError('Mã OTP không chính xác');
+        }
+
+        const existingUser = await modelUser.findOne({ email: user.pendingEmail, _id: { $ne: user._id } });
+        if (existingUser) {
+            throw new BadRequestError('Email này đã tồn tại trong hệ thống');
+        }
+
+        user.email = user.pendingEmail;
+        user.pendingEmail = '';
+        user.emailChangeOtp = '';
+        user.emailChangeOtpExpires = null;
+        user.emailVerified = true;
+        user.provider = 'local';
+        await user.save();
+        await modelApiKey.deleteOne({ userId: user._id.toString() });
+
+        res.clearCookie('token');
+        res.clearCookie('refreshToken');
+        res.clearCookie('logged');
+
+        new OK({ message: 'Đổi email thành công. Vui lòng đăng nhập lại.' }).send(res);
+    }
     async submitCccdVerification(req, res) {
         const { id } = req.user;
         if (!req.file) {
-            throw new BadRequestError('Vui long tai anh CCCD');
+            throw new BadRequestError('Vui lòng tải ảnh CCCD');
         }
 
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(req.file.mimetype)) {
-            throw new BadRequestError('Chi ho tro anh JPG, PNG hoac WEBP');
+            throw new BadRequestError('Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP');
         }
 
         const imageUrl = await uploadImageToCloudinary(req.file, 'phongtro/cccd-verifications');
@@ -503,7 +708,7 @@ class controllerUsers {
         try {
             ocrResult = await extractCccdInfo(req.file);
         } catch (error) {
-            ocrResult.note = `OCR that bai: ${error.message}`;
+            ocrResult.note = `OCR thất bại: ${error.message}`;
         }
 
         const extracted = ocrResult.data || {};
@@ -524,7 +729,7 @@ class controllerUsers {
         );
 
         new OK({
-            message: 'Da gui CCCD de xac thuc, vui long cho admin duyet',
+            message: 'Đã gửi CCCD để xác thực, vui lòng chờ admin duyệt',
             metadata: updatedUser,
         }).send(res);
     }
@@ -532,7 +737,7 @@ class controllerUsers {
     async updateVerificationStatus(req, res) {
         const { id, status, reason } = req.body;
         if (!id || !['verified', 'rejected'].includes(status)) {
-            throw new BadRequestError('Trang thai xac thuc khong hop le');
+            throw new BadRequestError('Trạng thái xác thực không hợp lệ');
         }
 
         const updatedUser = await modelUser.findByIdAndUpdate(
@@ -546,11 +751,11 @@ class controllerUsers {
         );
 
         if (!updatedUser) {
-            throw new BadRequestError('Khong tim thay nguoi dung');
+            throw new BadRequestError('Không tìm thấy người dùng');
         }
 
         new OK({
-            message: status === 'verified' ? 'Da xac thuc chu tro' : 'Da tu choi xac thuc',
+            message: status === 'verified' ? 'Đã xác thực chủ trọ' : 'Đã từ chối xác thực',
             metadata: updatedUser,
         }).send(res);
     }
@@ -562,12 +767,20 @@ class controllerUsers {
         }
 
         const updateData = {};
-        if (typeof isActive === 'boolean') updateData.isActive = isActive;
+        const shouldUpdateActive = typeof isActive === 'boolean';
+        if (shouldUpdateActive) {
+            updateData.isActive = isActive;
+            updateData.accountStatus = isActive ? 'active' : 'locked';
+        }
         if (typeof isAdmin === 'boolean') updateData.isAdmin = isAdmin;
 
         const user = await modelUser.findByIdAndUpdate(id, updateData, { new: true });
         if (!user) {
             throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        if (shouldUpdateActive && !isActive) {
+            await modelApiKey.deleteOne({ userId: user._id.toString() });
         }
 
         new OK({ message: 'Cập nhật người dùng thành công', metadata: user }).send(res);

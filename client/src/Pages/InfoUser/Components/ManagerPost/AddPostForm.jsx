@@ -58,6 +58,7 @@ const optionLabels = [
 function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
     const [description, setDescription] = useState(initialValues?.description || '');
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
@@ -73,6 +74,65 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const selectedDuration = Form.useWatch('duration', form);
     const selectedTypeNews = Form.useWatch('typeNews', form);
     const voucherCode = Form.useWatch('voucherCode', form);
+
+    const compressImageFile = (file) =>
+        new Promise((resolve) => {
+            if (!file?.type?.startsWith('image/') || file.size < 1024 * 1024) {
+                resolve(file);
+                return;
+            }
+
+            const image = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            image.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                const maxSide = 1600;
+                const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(image.width * scale);
+                canvas.height = Math.round(image.height * scale);
+                const context = canvas.getContext('2d');
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) {
+                            resolve(file);
+                            return;
+                        }
+                        resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+                    },
+                    'image/jpeg',
+                    0.82,
+                );
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(file);
+            };
+            image.src = objectUrl;
+        });
+
+    const resolveCoordinatesByAddress = async (address) => {
+        if (selectedCoordinates?.lat && selectedCoordinates?.lng) return selectedCoordinates;
+        if (!address?.trim()) return null;
+
+        try {
+            const res = await axios.get('https://rsapi.goong.io/Geocode', {
+                params: {
+                    address,
+                    api_key: import.meta.env.VITE_API_KEY,
+                },
+            });
+            const location = res.data?.results?.[0]?.geometry?.location;
+            if (location?.lat && location?.lng) {
+                return { lat: Number(location.lat), lng: Number(location.lng) };
+            }
+        } catch {
+            return null;
+        }
+
+        return null;
+    };
 
     const typeNewsOptions = useMemo(() => {
         const uniqueTypes = [...new Set(postingPlans.map((plan) => plan.typeNews))];
@@ -211,15 +271,30 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     }, [initialValues, form]);
 
     const handleFinish = async (values) => {
+        if (submitting) return;
+
         try {
+            setSubmitting(true);
+            const newImageFiles = fileList.map((file) => file.originFileObj).filter(Boolean);
+            if (!initialValues && newImageFiles.length === 0) {
+                message.warning('Vui lòng tải lên ít nhất 1 hình ảnh');
+                return;
+            }
+
             const formData = new FormData();
-            fileList.forEach((file) => {
-                formData.append('images', file.originFileObj);
+            const compressedFiles = await Promise.all(newImageFiles.map((file) => compressImageFile(file)));
+            compressedFiles.forEach((file) => {
+                formData.append('images', file);
             });
             // Calculate endDate based on selected duration
             const today = dayjs();
             const endDate = values.duration ? today.add(values.duration, 'day').utc().toISOString() : null;
-            const resImages = await requestUploadImages(formData);
+            const resImages = compressedFiles.length > 0 ? await requestUploadImages(formData) : { images: [] };
+            const resolvedCoordinates = await resolveCoordinatesByAddress(values.location);
+            if (!resolvedCoordinates) {
+                message.warning('Không lấy được tọa độ địa chỉ, bài đăng vẫn được tạo nhưng có thể không hiển thị trên bản đồ');
+            }
+
             const data = {
                 title: values.title,
                 price: values.price,
@@ -230,10 +305,10 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 username: values.username,
                 options: values.options,
                 location: values.location,
-                coordinates: selectedCoordinates,
+                coordinates: resolvedCoordinates,
                 typeNews: values.typeNews,
                 endDate: endDate,
-                images: resImages.images,
+                images: [...fileList.filter((file) => !file.originFileObj).map((file) => file.url).filter(Boolean), ...resImages.images],
                 dateEnd: values.duration,
                 voucherCode: values.voucherCode,
             };
@@ -249,6 +324,8 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             onFinish(data);
         } catch (error) {
             message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -263,7 +340,21 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     };
 
     const handleUploadChange = ({ fileList: newFileList }) => {
-        setFileList(newFileList);
+        setFileList(newFileList.slice(0, 8));
+    };
+
+    const beforeImageUpload = (file) => {
+        if (!file.type?.startsWith('image/')) {
+            message.error('Chỉ hỗ trợ tải lên file hình ảnh');
+            return Upload.LIST_IGNORE;
+        }
+
+        if (file.size / 1024 / 1024 > 8) {
+            message.error('Mỗi ảnh phải nhỏ hơn 8MB');
+            return Upload.LIST_IGNORE;
+        }
+
+        return false;
     };
 
     // Handler for AutoComplete search input change
@@ -455,10 +546,11 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 <Upload
                     listType="picture-card"
                     multiple
-                    beforeUpload={() => false}
+                    beforeUpload={beforeImageUpload}
                     fileList={fileList}
                     onChange={handleUploadChange}
                     accept="image/*"
+                    disabled={submitting}
                 >
                     {fileList.length >= 8 ? null : (
                         <div>
@@ -571,10 +663,10 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             </div>
 
             <Form.Item style={{ marginTop: 24, textAlign: 'right' }}>
-                <Button onClick={handleCancel} style={{ marginRight: 8 }}>
+                <Button onClick={handleCancel} style={{ marginRight: 8 }} disabled={submitting}>
                     Hủy
                 </Button>
-                <Button type="primary" htmlType="submit">
+                <Button type="primary" htmlType="submit" loading={submitting} disabled={submitting}>
                     {initialValues ? 'Cập nhật bài viết' : 'Thêm bài viết'}
                 </Button>
             </Form.Item>

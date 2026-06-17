@@ -12,6 +12,7 @@ function SocketProvider({ children }) {
     const [newMessage, setNewMessage] = useState(null);
     const [newUserMessage, setNewUserMessage] = useState(null);
     const [messagesRead, setMessagesRead] = useState(null);
+    const [socketClient, setSocketClient] = useState(null);
     const socketRef = useRef(null);
 
     const { globalUsersMessage, setGlobalUsersMessage } = useStore();
@@ -23,6 +24,7 @@ function SocketProvider({ children }) {
         });
 
         const socket = socketRef.current;
+        setSocketClient(socket);
 
         socket.on('connect', () => {
             console.log('connected to socket');
@@ -51,6 +53,7 @@ function SocketProvider({ children }) {
         return () => {
             socket.removeAllListeners();
             socket.disconnect();
+            setSocketClient(null);
         };
     }, []);
 
@@ -158,6 +161,7 @@ function SocketProvider({ children }) {
                 usersMessage: globalUsersMessage,
                 setUsersMessage: setGlobalUsersMessage,
                 socketRef,
+                socketClient,
                 newMessage,
                 messagesRead,
             }}

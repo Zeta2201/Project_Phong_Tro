@@ -14,3 +14,36 @@
     margin-right: 10px;
     color: #1890ff;
 }
+
+.email-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .personalInfo :global(.ant-row) {
+        row-gap: 12px !important;
+    }
+
+    .personalInfo :global(.ant-col) {
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+
+    .info-card {
+        width: 100%;
+    }
+
+    .info-item {
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 0;
+
+        > div {
+            min-width: 0;
+            word-break: break-word;
+        }
+    }
+}

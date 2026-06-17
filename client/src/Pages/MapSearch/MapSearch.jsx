@@ -169,9 +169,9 @@ function ClusterMarkers({ posts }) {
                 <div class="${styles.popup}">
                     <img src="${post.images?.[0] || imgDefault}" alt="" />
                     <strong>${post.title || ''}</strong>
-                    <span>${formatMoney(post.price)}/thang</span>
+                    <span>${formatMoney(post.price)}/tháng</span>
                     <small>${post.location || ''}</small>
-                    <a href="/chi-tiet-tin-dang/${post._id}">Xem chi tiet</a>
+                    <a href="/chi-tiet-tin-dang/${post._id}">Xem chi tiết</a>
                 </div>
             `);
             cluster.addLayer(marker);
@@ -276,7 +276,7 @@ function MapSearch() {
             const res = await requestGetMapPosts(params);
             setPosts(res.metadata || []);
         } catch (requestError) {
-            setError(requestError.response?.data?.message || 'Khong the tai bai dang tren ban do');
+            setError(requestError.response?.data?.message || 'Không thể tải bài đăng trên bản đồ');
         } finally {
             setLoading(false);
         }
@@ -297,7 +297,7 @@ function MapSearch() {
                     </MapContainer>
 
                     <div className={cx('mapStatus')}>
-                        {loading ? 'Dang tim quanh khu vuc ban do...' : `${posts.length} tin co toa do trong vung dang xem`}
+                        {loading ? 'Đang tìm quanh khu vực bản đồ...' : `${posts.length} tin có tọa độ trong vùng đang xem`}
                     </div>
 
                     <div className={cx('mapControls')}>
@@ -310,7 +310,7 @@ function MapSearch() {
                     </div>
 
                     <div className={cx('heatLegend')} aria-hidden="true">
-                        <span>Thap</span>
+                        <span>Thấp</span>
                         <div />
                         <span>Cao</span>
                     </div>
@@ -318,9 +318,9 @@ function MapSearch() {
 
                 <aside className={cx('resultPanel')}>
                     <div className={cx('resultHeader')}>
-                        <span>Ban do phong tro</span>
+                        <span>Bản đồ phòng trọ</span>
                         <h1>Search as move</h1>
-                        <p>Keo hoac zoom ban do, danh sach, marker va heatmap se tu cap nhat theo vung dang xem.</p>
+                        <p>Kéo hoặc zoom bản đồ, danh sách, marker và heatmap sẽ tự cập nhật theo vùng đang xem.</p>
                     </div>
 
                     {error && <div className={cx('error')}>{error}</div>}
@@ -331,14 +331,14 @@ function MapSearch() {
                                 <img src={post.images?.[0] || imgDefault} alt={post.title} />
                                 <div>
                                     <strong>{post.title}</strong>
-                                    <span>{formatMoney(post.price)}/thang</span>
+                                    <span>{formatMoney(post.price)}/tháng</span>
                                     <small>{post.location}</small>
                                 </div>
                             </Link>
                         ))}
                         {!loading && posts.length === 0 && (
                             <div className={cx('empty')}>
-                                Chua co bai dang co toa do trong vung nay. Cac bai cu can duoc cap nhat toa do de hien tren ban do.
+                                Chưa có bài đăng có tọa độ trong vùng này. Các bài cũ cần được cập nhật tọa độ để hiển thị trên bản đồ.
                             </div>
                         )}
                     </div>

@@ -17,29 +17,29 @@ import { requestGetAllPosts, requestApprovePost, requestRejectPost, requestResto
 const cx = classNames.bind(styles);
 
 const categoryMap = {
-    'phong-tro': 'Phong tro',
-    'nha-nguyen-can': 'Nha nguyen can',
-    'can-ho-chung-cu': 'Can ho chung cu',
-    'can-ho-mini': 'Can ho mini',
+    'phong-tro': 'Phòng trọ',
+    'nha-nguyen-can': 'Nhà nguyên căn',
+    'can-ho-chung-cu': 'Căn hộ chung cư',
+    'can-ho-mini': 'Căn hộ mini',
 };
 
 const statusMap = {
-    draft: { color: 'default', text: 'Nhap' },
-    pending: { color: 'orange', text: 'Cho duyet' },
-    inactive: { color: 'orange', text: 'Cho duyet' },
-    approved: { color: 'green', text: 'Da duyet' },
-    active: { color: 'green', text: 'Da duyet' },
-    rejected: { color: 'red', text: 'Da tu choi' },
-    hidden: { color: 'gray', text: 'Tam an' },
-    rented: { color: 'blue', text: 'Da cho thue' },
-    deleted: { color: 'default', text: 'Da xoa' },
+    draft: { color: 'default', text: 'Nháp' },
+    pending: { color: 'orange', text: 'Chờ duyệt' },
+    inactive: { color: 'orange', text: 'Chờ duyệt' },
+    approved: { color: 'green', text: 'Đã duyệt' },
+    active: { color: 'green', text: 'Đã duyệt' },
+    rejected: { color: 'red', text: 'Đã từ chối' },
+    hidden: { color: 'gray', text: 'Đã ẩn' },
+    rented: { color: 'blue', text: 'Đã cho thuê' },
+    deleted: { color: 'default', text: 'Đã xóa' },
 };
 
 const availabilityMap = {
-    available: { color: 'green', text: 'Con phong' },
-    unavailable: { color: 'red', text: 'Het phong' },
-    reserved: { color: 'orange', text: 'Da giu cho' },
-    rented: { color: 'blue', text: 'Da cho thue' },
+    available: { color: 'green', text: 'Còn phòng' },
+    unavailable: { color: 'red', text: 'Hết phòng' },
+    reserved: { color: 'orange', text: 'Đã giữ chỗ' },
+    rented: { color: 'blue', text: 'Đã cho thuê' },
 };
 
 function ManagerPost() {
@@ -66,7 +66,7 @@ function ManagerPost() {
             setPosts(res?.metadata || []);
         } catch (error) {
             console.error('Error fetching posts:', error);
-            message.error(error?.response?.data?.message || 'Lay danh sach bai viet that bai');
+            message.error(error?.response?.data?.message || 'Lấy danh sách bài viết thất bại');
         } finally {
             setLoading(false);
         }
@@ -90,12 +90,12 @@ function ManagerPost() {
     const handleApprove = async (postId) => {
         try {
             await requestApprovePost({ id: postId, reason: approvalReason });
-            message.success('Duyet bai viet thanh cong');
+            message.success('Duyệt bài viết thành công');
             handleCloseModal();
             await fetchData();
         } catch (error) {
             console.error(error);
-            message.error(error?.response?.data?.message || 'Duyet bai viet that bai');
+            message.error(error?.response?.data?.message || 'Duyệt bài viết thất bại');
         }
     };
 
@@ -105,26 +105,26 @@ function ManagerPost() {
             const refundAmount = res?.metadata?.refundAmount || 0;
             message.success(
                 refundAmount > 0
-                    ? `Tu choi bai viet thanh cong. Da hoan ${refundAmount.toLocaleString('vi-VN')} VND cho nguoi dang`
-                    : 'Tu choi bai viet thanh cong',
+                    ? `Từ chối bài viết thành công. Đã hoàn ${refundAmount.toLocaleString('vi-VN')} VND cho người đăng`
+                    : 'Từ chối bài viết thành công',
             );
             handleCloseModal();
             await fetchData();
         } catch (error) {
             console.error(error);
-            message.error(error?.response?.data?.message || 'Tu choi bai viet that bai');
+            message.error(error?.response?.data?.message || 'Từ chối bài viết thất bại');
         }
     };
 
     const handleRestore = async (postId) => {
         try {
             const res = await requestRestorePost(postId);
-            message.success(res?.message || 'Khoi phuc bai viet thanh cong');
+            message.success(res?.message || 'Khôi phục bài viết thành công');
             handleCloseModal();
             await fetchData();
         } catch (error) {
             console.error(error);
-            message.error(error?.response?.data?.message || 'Khoi phuc bai viet that bai');
+            message.error(error?.response?.data?.message || 'Khôi phục bài viết thất bại');
         }
     };
 
@@ -135,36 +135,36 @@ function ManagerPost() {
 
     const columns = [
         {
-            title: 'Tieu de',
+            title: 'Tiêu đề',
             dataIndex: 'title',
             key: 'title',
             ellipsis: true,
         },
         {
-            title: 'Nguoi dang',
+            title: 'Người đăng',
             dataIndex: 'username',
             key: 'username',
         },
         {
-            title: 'Loai phong',
+            title: 'Loại phòng',
             dataIndex: 'category',
             key: 'category',
             render: (category) => categoryMap[category] || category,
         },
         {
-            title: 'Gia',
+            title: 'Giá',
             dataIndex: 'price',
             key: 'price',
             render: (price) => `${Number(price || 0).toLocaleString('vi-VN')} VND`,
         },
         {
-            title: 'Loai tin',
+            title: 'Loại tin',
             dataIndex: 'typeNews',
             key: 'typeNews',
             render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thuong'}</Tag>,
         },
         {
-            title: 'Trang thai',
+            title: 'Trạng thái',
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
@@ -173,7 +173,7 @@ function ManagerPost() {
             },
         },
         {
-            title: 'Tinh trang phong',
+            title: 'Tình trạng phòng',
             dataIndex: 'availabilityStatus',
             key: 'availabilityStatus',
             render: (status) => {
@@ -182,35 +182,35 @@ function ManagerPost() {
             },
         },
         {
-            title: 'Ngay dang',
+            title: 'Ngày đăng',
             dataIndex: 'createdAt',
             key: 'createdAt',
             render: (date) => (date ? new Date(date).toLocaleDateString('vi-VN') : '-'),
         },
         {
-            title: 'Thoi gian xoa',
+            title: 'Thời gian xóa',
             dataIndex: 'deletedAt',
             key: 'deletedAt',
             render: (date) => (date ? new Date(date).toLocaleString('vi-VN') : '-'),
         },
         {
-            title: 'Nguoi xoa',
+            title: 'Người xóa',
             dataIndex: 'deletedBy',
             key: 'deletedBy',
             render: (deletedBy) => deletedBy?.fullName || deletedBy?.email || '-',
         },
         {
-            title: 'Thao tac',
+            title: 'Thao tác',
             key: 'action',
             fixed: 'right',
             render: (_, record) => (
                 <Space size="middle">
                     <Button type="default" icon={<EyeOutlined />} onClick={() => handleViewDetails(record)}>
-                        Chi tiet
+                        Chi tiết
                     </Button>
                     {isDeletedPost(record) && (
                         <Button icon={<UndoOutlined />} onClick={() => handleRestore(record._id)}>
-                            Khoi phuc
+                            Khôi phục
                         </Button>
                     )}
                 </Space>
@@ -225,13 +225,13 @@ function ManagerPost() {
             <Row gutter={[16, 16]}>
                 <Col span={6}>
                     <Card>
-                        <Statistic title="Tong so bai viet" value={stats.totalPosts} prefix={<FileTextOutlined />} />
+                        <Statistic title="Tổng số bài viết" value={stats.totalPosts} prefix={<FileTextOutlined />} />
                     </Card>
                 </Col>
                 <Col span={6}>
                     <Card>
                         <Statistic
-                            title="Bai viet da duyet"
+                            title="Bài viết đã duyệt"
                             value={stats.activePosts}
                             prefix={<CheckCircleOutlined />}
                             valueStyle={{ color: '#52c41a' }}
@@ -241,7 +241,7 @@ function ManagerPost() {
                 <Col span={6}>
                     <Card>
                         <Statistic
-                            title="Bai viet cho duyet"
+                            title="Bài viết chờ duyệt"
                             value={stats.inactivePosts}
                             prefix={<CloseCircleOutlined />}
                             valueStyle={{ color: '#faad14' }}
@@ -250,7 +250,7 @@ function ManagerPost() {
                 </Col>
                 <Col span={6}>
                     <Card>
-                        <Statistic title="Bai viet da xoa" value={stats.deletedPosts} prefix={<UndoOutlined />} />
+                        <Statistic title="Bài viết đã xóa" value={stats.deletedPosts} prefix={<UndoOutlined />} />
                     </Card>
                 </Col>
             </Row>
@@ -260,27 +260,27 @@ function ManagerPost() {
             </Card>
 
             <Modal
-                title="Chi tiet bai viet"
+                title="Chi tiết bài viết"
                 open={isModalVisible}
                 onCancel={handleCloseModal}
                 footer={[
                     <Button key="close" onClick={handleCloseModal}>
-                        Dong
+                        Đóng
                     </Button>,
                     isDeletedPost(selectedPost) && (
                         <Button key="restore" icon={<UndoOutlined />} onClick={() => handleRestore(selectedPost._id)}>
-                            Khoi phuc
+                            Khôi phục
                         </Button>
                     ),
                     isPendingPost(selectedPost) && (
                         <Space key="actions" size="middle" style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button key="approve" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleApprove(selectedPost._id)}>
-                                Duyet
+                                Duyệt
                             </Button>
                             <Space.Compact style={{ width: '300px' }}>
                                 <Input.TextArea
                                     key="reason"
-                                    placeholder="Nhap ly do tu choi neu co"
+                                    placeholder="Nhập lý do từ chối nếu có"
                                     value={approvalReason}
                                     onChange={(event) => setApprovalReason(event.target.value)}
                                     autoSize={{ minRows: 1, maxRows: 3 }}
@@ -293,7 +293,7 @@ function ManagerPost() {
                                     onClick={() => handleReject(selectedPost._id)}
                                     style={{ borderRadius: '0 6px 6px 0' }}
                                 >
-                                    Tu choi
+                                    Từ chối
                                 </Button>
                             </Space.Compact>
                         </Space>
@@ -316,69 +316,69 @@ function ManagerPost() {
                         </div>
 
                         <Descriptions bordered column={2}>
-                            <Descriptions.Item label="Tieu de" span={2}>
+                            <Descriptions.Item label="Tiêu đề" span={2}>
                                 {selectedPost.title}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Nguoi dang">{selectedPost.username}</Descriptions.Item>
-                            <Descriptions.Item label="So dien thoai">
+                            <Descriptions.Item label="Người đăng">{selectedPost.username}</Descriptions.Item>
+                            <Descriptions.Item label="Số điện thoại">
                                 <Space>
                                     <PhoneOutlined />
                                     {selectedPost.phone}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Loai phong">{categoryMap[selectedPost.category] || selectedPost.category}</Descriptions.Item>
-                            <Descriptions.Item label="Gia">{Number(selectedPost.price || 0).toLocaleString('vi-VN')} VND</Descriptions.Item>
-                            <Descriptions.Item label="Dien tich">{selectedPost.area}m2</Descriptions.Item>
-                            <Descriptions.Item label="Dia chi" span={2}>
+                            <Descriptions.Item label="Loại phòng">{categoryMap[selectedPost.category] || selectedPost.category}</Descriptions.Item>
+                            <Descriptions.Item label="Giá">{Number(selectedPost.price || 0).toLocaleString('vi-VN')} VND</Descriptions.Item>
+                            <Descriptions.Item label="Diện tích">{selectedPost.area}m2</Descriptions.Item>
+                            <Descriptions.Item label="Địa chỉ" span={2}>
                                 <Space>
                                     <EnvironmentOutlined />
                                     {selectedPost.location}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Loai tin">
+                            <Descriptions.Item label="Loại tin">
                                 <Tag color={selectedPost.typeNews === 'vip' ? 'gold' : 'blue'}>
-                                    {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thuong'}
+                                    {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thường'}
                                 </Tag>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Phi dang">
+                            <Descriptions.Item label="Phí đăng bài">
                                 <Space>
                                     {Number(selectedPost.postingFee || 0).toLocaleString('vi-VN')} VND
-                                    {selectedPost.postingFeeRefunded && <Tag color="cyan">Da hoan tien</Tag>}
+                                    {selectedPost.postingFeeRefunded && <Tag color="cyan">Đã hoàn tiền</Tag>}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Trang thai">
+                            <Descriptions.Item label="Trạng thái">
                                 <Tag color={selectedPostStatus.color}>{selectedPostStatus.text}</Tag>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Tinh trang phong">
+                            <Descriptions.Item label="Tình trạng phòng">
                                 {(() => {
                                     const config = getAvailabilityConfig(selectedPost.availabilityStatus);
                                     return <Tag color={config.color}>{config.text}</Tag>;
                                 })()}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Ngay dang">
+                            <Descriptions.Item label="Ngày đăng">
                                 <Space>
                                     <ClockCircleOutlined />
                                     {selectedPost.createdAt ? new Date(selectedPost.createdAt).toLocaleDateString('vi-VN') : '-'}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Ngay het han">
+                            <Descriptions.Item label="Ngày hết hạn">
                                 <Space>
                                     <ClockCircleOutlined />
                                     {selectedPost.endDate ? new Date(selectedPost.endDate).toLocaleDateString('vi-VN') : '-'}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Thoi gian xoa">
+                            <Descriptions.Item label="Thời gian xóa">
                                 {selectedPost.deletedAt ? new Date(selectedPost.deletedAt).toLocaleString('vi-VN') : '-'}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Nguoi xoa">
+                            <Descriptions.Item label="Người xóa">
                                 {selectedPost.deletedBy?.fullName || selectedPost.deletedBy?.email || '-'}
                             </Descriptions.Item>
                         </Descriptions>
 
-                        <Divider orientation="left">Mo ta chi tiet</Divider>
+                        <Divider orientation="left">Mô tả chi tiết</Divider>
                         <div style={{ marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
 
-                        <Divider orientation="left">Tien ich</Divider>
+                        <Divider orientation="left">Tiện ích</Divider>
                         <Row gutter={[16, 16]}>
                             {selectedPost.options?.map((option, index) => (
                                 <Col span={8} key={`${option}-${index}`}>

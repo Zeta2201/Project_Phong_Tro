@@ -40,10 +40,10 @@ const ensureValidObjectId = (id, message) => {
 
 const buildDefaultTerms = (room) =>
     [
-        'Bên thuê thanh toan tien thue dung han theo thoa thuan hang thang.',
-        'Bên thuê co trach nhiem giu gin tai san, ve sinh va an ninh khu tro.',
-        'Bên cho thue dam bao quyen su dung phong trong thoi han hợp đồng.',
-        'Tiền đặt cọc được xử lý theo thỏa thuần khi kết thúc hợp đồng và sau khi đối chiếu công nợ, hiện trạng phòng.',
+        'Bên thuê thanh toán tiền thuê đúng hạn theo thỏa thuận hàng tháng.',
+        'Bên thuê có trách nhiệm giữ gìn tài sản, vệ sinh và an ninh khu trọ.',
+        'Bên cho thuê đảm bảo quyền sử dụng phòng trong thời hạn hợp đồng.',
+        'Tiền đặt cọc được xử lý theo thỏa thuận khi kết thúc hợp đồng và sau khi đối chiếu công nợ, hiện trạng phòng.',
     ].join('\n') + `\nPhòng thuê   : ${room.title || ''} - ${room.location || ''}.`;
 
 class controllerContract {
@@ -280,7 +280,7 @@ class controllerContract {
                 name: landlord.fullName,
                 contractCode: contract.contractCode,
                 pdfUrl: downloadUrl,
-                body: `Hop dong ${contract.contractCode} da duoc kich hoat. File PDF duoc dinh kem trong email nay.`,
+                body: `Hợp đồng ${contract.contractCode} đã được kích hoạt. File PDF được đính kèm trong email này.`,
                 attachments,
             });
             contract.sentToLandlordAt = now;
@@ -325,7 +325,7 @@ class controllerContract {
         if (!contract) throw new BadRequestError('Hợp đồng không tồn tại');
         await this.ensureCanView(req.user.id, contract);
         if (!contract.tenantSignatureUrl || !contract.landlordSignatureUrl) {
-            throw new BadRequestError('Hop dong chua co du chu ky de tai PDF');
+            throw new BadRequestError('Hợp đồng chưa có đủ chữ ký để tải PDF');
         }
         const pdfBuffer = await generateContractPdfBuffer(contract);
         res.setHeader('Content-Type', 'application/pdf');
@@ -335,11 +335,11 @@ class controllerContract {
 
     async downloadPublicContract(req, res) {
         const { id, code } = req.query;
-        ensureValidObjectId(id, 'Hop dong khong hop le');
+        ensureValidObjectId(id, 'Hợp đồng không hợp lệ');
         const contract = await populateContract(modelContract.findOne({ _id: id, contractCode: code, status: 'active' }));
-        if (!contract) throw new BadRequestError('Hop dong khong ton tai hoac chua co hieu luc');
+        if (!contract) throw new BadRequestError('Hợp đồng không tồn tại hoặc chưa có hiệu lực');
         if (!contract.tenantSignatureUrl || !contract.landlordSignatureUrl) {
-            throw new BadRequestError('Hop dong chua co du chu ky de tai PDF');
+            throw new BadRequestError('Hợp đồng chưa có đủ chữ ký để tải PDF');
         }
         const pdfBuffer = await generateContractPdfBuffer(contract);
         res.setHeader('Content-Type', 'application/pdf');

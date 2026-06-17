@@ -66,12 +66,12 @@ textarea {
 
 @media (max-width: 520px) {
     .main {
-        padding-top: 136px;
+        padding-top: 126px;
     }
 
     .messager {
         right: 12px;
-        bottom: 12px;
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
         max-width: calc(100vw - 24px);
     }
 }

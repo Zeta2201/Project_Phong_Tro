@@ -8,16 +8,18 @@ const asyncHandler = (fn) => {
     };
 };
 
+const isLockedUser = (user) => !user || user.isActive === false || user.accountStatus === 'locked';
+
 const authUser = async (req, res, next) => {
     try {
-        const user = req.cookies.token;
-        if (!user) throw new BadUserRequestError('Vui long dang nhap');
+        const accessToken = req.cookies.token;
+        if (!accessToken) throw new BadUserRequestError('Vui lòng đăng nhập');
 
-        const decoded = await verifyToken(user);
+        const decoded = await verifyToken(accessToken, 'access');
         const findUser = await modelUser.findById(decoded.id);
 
-        if (!findUser || findUser.isActive === false) {
-            throw new BadUserRequestError('Tai khoan cua ban da bi khoa');
+        if (isLockedUser(findUser)) {
+            throw new BadUserRequestError('Tài khoản của bạn đã bị khóa');
         }
 
         req.user = decoded;
@@ -29,18 +31,18 @@ const authUser = async (req, res, next) => {
 
 const authAdmin = async (req, res, next) => {
     try {
-        const user = req.cookies.token;
-        if (!user) throw new BadUserRequestError('Ban khong co quyen truy cap');
+        const accessToken = req.cookies.token;
+        if (!accessToken) throw new BadUserRequestError('Bạn không có quyền truy cập');
 
-        const decoded = await verifyToken(user);
+        const decoded = await verifyToken(accessToken, 'access');
         const findUser = await modelUser.findById(decoded.id);
 
-        if (!findUser || findUser.isActive === false) {
-            throw new BadUserRequestError('Tai khoan cua ban da bi khoa');
+        if (isLockedUser(findUser)) {
+            throw new BadUserRequestError('Tài khoản của bạn đã bị khóa');
         }
 
         if (findUser.isAdmin === false) {
-            throw new BadUser2RequestError('Ban khong co quyen truy cap');
+            throw new BadUser2RequestError('Bạn không có quyền truy cập');
         }
 
         req.user = decoded;
@@ -54,4 +56,5 @@ module.exports = {
     asyncHandler,
     authUser,
     authAdmin,
+    isLockedUser,
 };

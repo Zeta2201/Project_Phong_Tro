@@ -87,6 +87,20 @@
     }
 }
 
+.otp-row {
+    margin-bottom: 8px;
+
+    .otp-input {
+        flex: 1;
+        margin-bottom: 0;
+    }
+}
+
+.otp-note {
+    display: block;
+    margin-bottom: 12px;
+}
+
 .forgot-password {
     display: block;
     text-align: right;

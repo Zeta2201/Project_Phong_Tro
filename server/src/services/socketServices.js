@@ -3,8 +3,8 @@ const usersMap = new Map();
 global.usersMap = usersMap;
 
 const cookie = require('cookie');
-
 const { verifyToken } = require('./tokenSevices');
+
 class SocketServices {
     connection(socket) {
         try {
@@ -16,19 +16,60 @@ class SocketServices {
 
             verifyToken(token)
                 .then((dataDecode) => {
-                    if (dataDecode) {
-                        // Lưu thông tin người dùng vào map khi kết nối thành công
-                        usersMap.set(dataDecode.id.toString(), socket);
-                        console.log(`User connected: ${dataDecode.id}`);
-
-                        // Xử lý khi người dùng ngắt kết nối
-                        socket.on('disconnect', () => {
-                            console.log(`User disconnected: ${dataDecode.id}`);
-                            usersMap.delete(dataDecode.id.toString());
-                        });
-                    } else {
+                    if (!dataDecode) {
                         socket.disconnect();
+                        return;
                     }
+
+                    const currentUserId = dataDecode.id.toString();
+                    usersMap.set(currentUserId, socket);
+                    socket.userId = currentUserId;
+                    console.log(`User connected: ${currentUserId}`);
+
+                    const forwardWebRTCSignal = (eventName, payload = {}) => {
+                        const targetUserId = payload.targetUserId?.toString();
+                        if (!targetUserId) return;
+
+                        const receiverSocket = usersMap.get(targetUserId);
+                        if (!receiverSocket) {
+                            socket.emit('webrtc:user-unavailable', {
+                                targetUserId,
+                                message: 'Nguoi dung hien khong truc tuyen',
+                            });
+                            return;
+                        }
+
+                        const { targetUserId: _targetUserId, ...safePayload } = payload;
+                        receiverSocket.emit(eventName, {
+                            ...safePayload,
+                            fromUserId: currentUserId,
+                        });
+                    };
+
+                    socket.on('webrtc:call', (payload) => {
+                        forwardWebRTCSignal('webrtc:incoming-call', payload);
+                    });
+
+                    socket.on('webrtc:answer', (payload) => {
+                        forwardWebRTCSignal('webrtc:answer', payload);
+                    });
+
+                    socket.on('webrtc:ice-candidate', (payload) => {
+                        forwardWebRTCSignal('webrtc:ice-candidate', payload);
+                    });
+
+                    socket.on('webrtc:reject', (payload) => {
+                        forwardWebRTCSignal('webrtc:reject', payload);
+                    });
+
+                    socket.on('webrtc:end', (payload) => {
+                        forwardWebRTCSignal('webrtc:end', payload);
+                    });
+
+                    socket.on('disconnect', () => {
+                        console.log(`User disconnected: ${currentUserId}`);
+                        usersMap.delete(currentUserId);
+                    });
                 })
                 .catch((error) => {
                     console.error('Socket authentication error:', error);
