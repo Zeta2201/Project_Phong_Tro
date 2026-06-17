@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Table, Card, Row, Col, Statistic, Button, Space, Tag, Modal, Descriptions, Image, Divider, Input, message } from 'antd';
 import {
     FileTextOutlined,
@@ -7,13 +8,39 @@ import {
     PhoneOutlined,
     EnvironmentOutlined,
     ClockCircleOutlined,
+    UndoOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerPost.module.scss';
-import { useEffect, useState } from 'react';
-import { requestGetAllPosts, requestApprovePost, requestRejectPost } from '../../../../config/request';
+import { requestGetAllPosts, requestApprovePost, requestRejectPost, requestRestorePost } from '../../../../config/request';
 
 const cx = classNames.bind(styles);
+
+const categoryMap = {
+    'phong-tro': 'Phong tro',
+    'nha-nguyen-can': 'Nha nguyen can',
+    'can-ho-chung-cu': 'Can ho chung cu',
+    'can-ho-mini': 'Can ho mini',
+};
+
+const statusMap = {
+    draft: { color: 'default', text: 'Nhap' },
+    pending: { color: 'orange', text: 'Cho duyet' },
+    inactive: { color: 'orange', text: 'Cho duyet' },
+    approved: { color: 'green', text: 'Da duyet' },
+    active: { color: 'green', text: 'Da duyet' },
+    rejected: { color: 'red', text: 'Da tu choi' },
+    hidden: { color: 'gray', text: 'Tam an' },
+    rented: { color: 'blue', text: 'Da cho thue' },
+    deleted: { color: 'default', text: 'Da xoa' },
+};
+
+const availabilityMap = {
+    available: { color: 'green', text: 'Con phong' },
+    unavailable: { color: 'red', text: 'Het phong' },
+    reserved: { color: 'orange', text: 'Da giu cho' },
+    rented: { color: 'blue', text: 'Da cho thue' },
+};
 
 function ManagerPost() {
     const [selectedPost, setSelectedPost] = useState(null);
@@ -21,12 +48,33 @@ function ManagerPost() {
     const [approvalReason, setApprovalReason] = useState('');
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({
-        totalPosts: 0,
-        activePosts: 0,
-        inactivePosts: 0,
-        rejectedPosts: 0,
-    });
+
+    const stats = useMemo(
+        () => ({
+            totalPosts: posts.length,
+            activePosts: posts.filter((post) => ['active', 'approved'].includes(post.status) && !post.isDeleted).length,
+            inactivePosts: posts.filter((post) => ['inactive', 'pending'].includes(post.status) && !post.isDeleted).length,
+            deletedPosts: posts.filter((post) => post.isDeleted || post.status === 'deleted').length,
+        }),
+        [posts],
+    );
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const res = await requestGetAllPosts();
+            setPosts(res?.metadata || []);
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            message.error(error?.response?.data?.message || 'Lay danh sach bai viet that bai');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const handleViewDetails = (post) => {
         setSelectedPost(post);
@@ -39,41 +87,15 @@ function ManagerPost() {
         setApprovalReason('');
     };
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const res = await requestGetAllPosts();
-            if (res && res.metadata) {
-                setPosts(res.metadata);
-
-                setStats({
-                    totalPosts: res.metadata.length,
-                    activePosts: res.metadata.filter((post) => post.status === 'active').length,
-                    inactivePosts: res.metadata.filter((post) => post.status === 'inactive').length,
-                    rejectedPosts: res.metadata.filter((post) => post.status === 'rejected').length,
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching posts:', error);
-            message.error(error?.response?.data?.message || 'Lấy danh sách bài viết thất bại');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
     const handleApprove = async (postId) => {
         try {
             await requestApprovePost({ id: postId, reason: approvalReason });
-            message.success('Duyệt bài viết thành công');
+            message.success('Duyet bai viet thanh cong');
             handleCloseModal();
             await fetchData();
         } catch (error) {
             console.error(error);
-            message.error(error?.response?.data?.message || 'Duyệt bài viết thất bại');
+            message.error(error?.response?.data?.message || 'Duyet bai viet that bai');
         }
     };
 
@@ -83,101 +105,66 @@ function ManagerPost() {
             const refundAmount = res?.metadata?.refundAmount || 0;
             message.success(
                 refundAmount > 0
-                    ? `Từ chối bài viết thành công. Đã hoàn ${refundAmount.toLocaleString('vi-VN')} VND cho người đăng`
-                    : 'Từ chối bài viết thành công',
+                    ? `Tu choi bai viet thanh cong. Da hoan ${refundAmount.toLocaleString('vi-VN')} VND cho nguoi dang`
+                    : 'Tu choi bai viet thanh cong',
             );
             handleCloseModal();
             await fetchData();
         } catch (error) {
             console.error(error);
-            message.error(error?.response?.data?.message || 'Từ chối bài viết thất bại');
+            message.error(error?.response?.data?.message || 'Tu choi bai viet that bai');
         }
     };
 
-    const getCategoryName = (category) => {
-        const categoryMap = {
-            'phong-tro': 'Phòng trọ',
-            'nha-nguyen-can': 'Nhà nguyên căn',
-            'can-ho-chung-cu': 'Căn hộ chung cư',
-            'can-ho-mini': 'Căn hộ mini',
-        };
-        return categoryMap[category] || category;
+    const handleRestore = async (postId) => {
+        try {
+            const res = await requestRestorePost(postId);
+            message.success(res?.message || 'Khoi phuc bai viet thanh cong');
+            handleCloseModal();
+            await fetchData();
+        } catch (error) {
+            console.error(error);
+            message.error(error?.response?.data?.message || 'Khoi phuc bai viet that bai');
+        }
     };
 
-    const getStatusConfig = (status) => {
-        return (
-            {
-                active: { color: 'green', text: 'Đã duyệt' },
-                inactive: { color: 'orange', text: 'Chờ duyệt' },
-                rejected: { color: 'red', text: 'Đã từ chối' },
-            }[status] || { color: 'default', text: status }
-        );
-    };
-
-    const getAvailabilityConfig = (availabilityStatus) => {
-        return (
-            {
-                available: { color: 'green', text: 'Còn phòng' },
-                unavailable: { color: 'red', text: 'Hết phòng' },
-                reserved: { color: 'orange', text: 'Đã giữ chỗ' },
-                rented: { color: 'blue', text: 'Đã cho thuê' },
-            }[availabilityStatus || 'available'] || { color: 'default', text: availabilityStatus }
-        );
-    };
+    const getStatusConfig = (status) => statusMap[status] || { color: 'default', text: status };
+    const getAvailabilityConfig = (status) => availabilityMap[status || 'available'] || { color: 'default', text: status };
+    const isPendingPost = (post) => ['inactive', 'pending'].includes(post?.status) && !post?.isDeleted;
+    const isDeletedPost = (post) => post?.isDeleted || post?.status === 'deleted';
 
     const columns = [
         {
-            title: 'Tiêu đề',
+            title: 'Tieu de',
             dataIndex: 'title',
             key: 'title',
+            ellipsis: true,
         },
         {
-            title: 'Người đăng',
+            title: 'Nguoi dang',
             dataIndex: 'username',
             key: 'username',
         },
         {
-            title: 'Loại phòng',
+            title: 'Loai phong',
             dataIndex: 'category',
             key: 'category',
-            render: (category) => getCategoryName(category),
+            render: (category) => categoryMap[category] || category,
         },
         {
-            title: 'Giá',
+            title: 'Gia',
             dataIndex: 'price',
             key: 'price',
-            render: (price) => `${price.toLocaleString('vi-VN')} VND`,
+            render: (price) => `${Number(price || 0).toLocaleString('vi-VN')} VND`,
         },
         {
-            title: 'Diện tích',
-            dataIndex: 'area',
-            key: 'area',
-            render: (area) => `${area}m²`,
-        },
-        {
-            title: 'Địa chỉ',
-            dataIndex: 'location',
-            key: 'location',
-        },
-        {
-            title: 'Loại tin',
+            title: 'Loai tin',
             dataIndex: 'typeNews',
             key: 'typeNews',
-            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thường'}</Tag>,
+            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thuong'}</Tag>,
         },
         {
-            title: 'Phí đăng',
-            dataIndex: 'postingFee',
-            key: 'postingFee',
-            render: (postingFee, record) => (
-                <Space direction="vertical" size={0}>
-                    <span>{Number(postingFee || 0).toLocaleString('vi-VN')} VND</span>
-                    {record.postingFeeRefunded && <Tag color="cyan">Đã hoàn</Tag>}
-                </Space>
-            ),
-        },
-        {
-            title: 'Trạng thái',
+            title: 'Trang thai',
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
@@ -186,28 +173,46 @@ function ManagerPost() {
             },
         },
         {
-            title: 'Tình trạng phòng',
+            title: 'Tinh trang phong',
             dataIndex: 'availabilityStatus',
             key: 'availabilityStatus',
-            render: (availabilityStatus) => {
-                const config = getAvailabilityConfig(availabilityStatus);
+            render: (status) => {
+                const config = getAvailabilityConfig(status);
                 return <Tag color={config.color}>{config.text}</Tag>;
             },
         },
         {
-            title: 'Ngày đăng',
+            title: 'Ngay dang',
             dataIndex: 'createdAt',
             key: 'createdAt',
-            render: (date) => new Date(date).toLocaleDateString('vi-VN'),
+            render: (date) => (date ? new Date(date).toLocaleDateString('vi-VN') : '-'),
         },
         {
-            title: 'Thao tác',
+            title: 'Thoi gian xoa',
+            dataIndex: 'deletedAt',
+            key: 'deletedAt',
+            render: (date) => (date ? new Date(date).toLocaleString('vi-VN') : '-'),
+        },
+        {
+            title: 'Nguoi xoa',
+            dataIndex: 'deletedBy',
+            key: 'deletedBy',
+            render: (deletedBy) => deletedBy?.fullName || deletedBy?.email || '-',
+        },
+        {
+            title: 'Thao tac',
             key: 'action',
+            fixed: 'right',
             render: (_, record) => (
                 <Space size="middle">
                     <Button type="default" icon={<EyeOutlined />} onClick={() => handleViewDetails(record)}>
-                        Chi tiết
+                        Chi tiet
                     </Button>
+                    {isDeletedPost(record) && (
+                        <Button icon={<UndoOutlined />} onClick={() => handleRestore(record._id)}>
+                            Khoi phuc
+                        </Button>
+                    )}
                 </Space>
             ),
         },
@@ -218,63 +223,66 @@ function ManagerPost() {
     return (
         <div className={cx('manager-post')}>
             <Row gutter={[16, 16]}>
-                <Col span={8}>
+                <Col span={6}>
                     <Card>
-                        <Statistic title="Tổng số bài viết" value={stats.totalPosts} prefix={<FileTextOutlined />} />
+                        <Statistic title="Tong so bai viet" value={stats.totalPosts} prefix={<FileTextOutlined />} />
                     </Card>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                     <Card>
                         <Statistic
-                            title="Bài viết đã duyệt"
+                            title="Bai viet da duyet"
                             value={stats.activePosts}
                             prefix={<CheckCircleOutlined />}
                             valueStyle={{ color: '#52c41a' }}
                         />
                     </Card>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                     <Card>
                         <Statistic
-                            title="Bài viết chờ duyệt"
+                            title="Bai viet cho duyet"
                             value={stats.inactivePosts}
                             prefix={<CloseCircleOutlined />}
                             valueStyle={{ color: '#faad14' }}
                         />
                     </Card>
                 </Col>
+                <Col span={6}>
+                    <Card>
+                        <Statistic title="Bai viet da xoa" value={stats.deletedPosts} prefix={<UndoOutlined />} />
+                    </Card>
+                </Col>
             </Row>
 
             <Card style={{ marginTop: 16 }}>
-                <Table
-                    columns={columns}
-                    dataSource={posts}
-                    pagination={{ pageSize: 10 }}
-                    scroll={{ x: 1500 }}
-                    loading={loading}
-                    rowKey="_id"
-                />
+                <Table columns={columns} dataSource={posts} pagination={{ pageSize: 10 }} scroll={{ x: 1500 }} loading={loading} rowKey="_id" />
             </Card>
 
             <Modal
-                title="Chi tiết bài viết"
+                title="Chi tiet bai viet"
                 open={isModalVisible}
                 onCancel={handleCloseModal}
                 footer={[
                     <Button key="close" onClick={handleCloseModal}>
-                        Đóng
+                        Dong
                     </Button>,
-                    selectedPost?.status === 'inactive' && (
+                    isDeletedPost(selectedPost) && (
+                        <Button key="restore" icon={<UndoOutlined />} onClick={() => handleRestore(selectedPost._id)}>
+                            Khoi phuc
+                        </Button>
+                    ),
+                    isPendingPost(selectedPost) && (
                         <Space key="actions" size="middle" style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <Button key="approve" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleApprove(selectedPost._id)}>
-                                Duyệt
+                                Duyet
                             </Button>
                             <Space.Compact style={{ width: '300px' }}>
                                 <Input.TextArea
                                     key="reason"
-                                    placeholder="Nhập lý do từ chối (nếu có)"
+                                    placeholder="Nhap ly do tu choi neu co"
                                     value={approvalReason}
-                                    onChange={(e) => setApprovalReason(e.target.value)}
+                                    onChange={(event) => setApprovalReason(event.target.value)}
                                     autoSize={{ minRows: 1, maxRows: 3 }}
                                     style={{ borderRadius: '6px 0 0 6px' }}
                                 />
@@ -285,7 +293,7 @@ function ManagerPost() {
                                     onClick={() => handleReject(selectedPost._id)}
                                     style={{ borderRadius: '0 6px 6px 0' }}
                                 >
-                                    Từ chối
+                                    Tu choi
                                 </Button>
                             </Space.Compact>
                         </Space>
@@ -299,12 +307,8 @@ function ManagerPost() {
                             <Image.PreviewGroup>
                                 <Row gutter={[8, 8]}>
                                     {selectedPost.images?.map((image, index) => (
-                                        <Col span={8} key={index}>
-                                            <Image
-                                                src={image}
-                                                alt={`Anh ${index + 1}`}
-                                                style={{ width: '100%', height: 200, objectFit: 'cover' }}
-                                            />
+                                        <Col span={8} key={image || index}>
+                                            <Image src={image} alt={`Anh ${index + 1}`} style={{ width: '100%', height: 200, objectFit: 'cover' }} />
                                         </Col>
                                     ))}
                                 </Row>
@@ -312,74 +316,75 @@ function ManagerPost() {
                         </div>
 
                         <Descriptions bordered column={2}>
-                            <Descriptions.Item label="Tiêu đề" span={2}>
+                            <Descriptions.Item label="Tieu de" span={2}>
                                 {selectedPost.title}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Người đăng">{selectedPost.username}</Descriptions.Item>
-                            <Descriptions.Item label="Số điện thoại">
+                            <Descriptions.Item label="Nguoi dang">{selectedPost.username}</Descriptions.Item>
+                            <Descriptions.Item label="So dien thoai">
                                 <Space>
                                     <PhoneOutlined />
                                     {selectedPost.phone}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Loại phòng">
-                                {getCategoryName(selectedPost.category)}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Giá">
-                                {selectedPost.price.toLocaleString('vi-VN')} VND
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Diện tích">{selectedPost.area}m²</Descriptions.Item>
-                            <Descriptions.Item label="Địa chỉ" span={2}>
+                            <Descriptions.Item label="Loai phong">{categoryMap[selectedPost.category] || selectedPost.category}</Descriptions.Item>
+                            <Descriptions.Item label="Gia">{Number(selectedPost.price || 0).toLocaleString('vi-VN')} VND</Descriptions.Item>
+                            <Descriptions.Item label="Dien tich">{selectedPost.area}m2</Descriptions.Item>
+                            <Descriptions.Item label="Dia chi" span={2}>
                                 <Space>
                                     <EnvironmentOutlined />
                                     {selectedPost.location}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Loại tin">
+                            <Descriptions.Item label="Loai tin">
                                 <Tag color={selectedPost.typeNews === 'vip' ? 'gold' : 'blue'}>
-                                    {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thường'}
+                                    {selectedPost.typeNews === 'vip' ? 'VIP' : 'Thuong'}
                                 </Tag>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Phí đăng">
+                            <Descriptions.Item label="Phi dang">
                                 <Space>
                                     {Number(selectedPost.postingFee || 0).toLocaleString('vi-VN')} VND
-                                    {selectedPost.postingFeeRefunded && <Tag color="cyan">Đã hoàn tiền</Tag>}
+                                    {selectedPost.postingFeeRefunded && <Tag color="cyan">Da hoan tien</Tag>}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Trạng thái">
+                            <Descriptions.Item label="Trang thai">
                                 <Tag color={selectedPostStatus.color}>{selectedPostStatus.text}</Tag>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Tình trạng phòng">
+                            <Descriptions.Item label="Tinh trang phong">
                                 {(() => {
-                                    const availabilityConfig = getAvailabilityConfig(selectedPost.availabilityStatus);
-                                    return <Tag color={availabilityConfig.color}>{availabilityConfig.text}</Tag>;
+                                    const config = getAvailabilityConfig(selectedPost.availabilityStatus);
+                                    return <Tag color={config.color}>{config.text}</Tag>;
                                 })()}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Ngày đăng">
+                            <Descriptions.Item label="Ngay dang">
                                 <Space>
                                     <ClockCircleOutlined />
-                                    {new Date(selectedPost.createdAt).toLocaleDateString('vi-VN')}
+                                    {selectedPost.createdAt ? new Date(selectedPost.createdAt).toLocaleDateString('vi-VN') : '-'}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label="Ngày hết hạn">
+                            <Descriptions.Item label="Ngay het han">
                                 <Space>
                                     <ClockCircleOutlined />
-                                    {new Date(selectedPost.endDate).toLocaleDateString('vi-VN')}
+                                    {selectedPost.endDate ? new Date(selectedPost.endDate).toLocaleDateString('vi-VN') : '-'}
                                 </Space>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Thoi gian xoa">
+                                {selectedPost.deletedAt ? new Date(selectedPost.deletedAt).toLocaleString('vi-VN') : '-'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Nguoi xoa">
+                                {selectedPost.deletedBy?.fullName || selectedPost.deletedBy?.email || '-'}
                             </Descriptions.Item>
                         </Descriptions>
 
-                        <Divider orientation="left">Mô tả chi tiết</Divider>
+                        <Divider orientation="left">Mo ta chi tiet</Divider>
                         <div style={{ marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
 
-                        <Divider orientation="left">Tiện ích</Divider>
+                        <Divider orientation="left">Tien ich</Divider>
                         <Row gutter={[16, 16]}>
-                            {selectedPost.options &&
-                                selectedPost.options.map((option, index) => (
-                                    <Col span={8} key={index}>
-                                        <Tag color="green">{option}</Tag>
-                                    </Col>
-                                ))}
+                            {selectedPost.options?.map((option, index) => (
+                                <Col span={8} key={`${option}-${index}`}>
+                                    <Tag color="green">{option}</Tag>
+                                </Col>
+                            ))}
                         </Row>
                     </div>
                 )}

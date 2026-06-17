@@ -1,11 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Table, Card, Row, Col, Statistic, Button, Space, Tag, Input, Select, message } from 'antd';
+import { Table, Card, Row, Col, Statistic, Button, Space, Tag, Input, Select, message, Popconfirm } from 'antd';
 import { DownloadOutlined, UserOutlined, UserAddOutlined, DollarOutlined } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerUser.module.scss';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { requestGetAdminStats, requestGetUsers, requestUpdateUserAdmin } from '../../../../config/request';
+import { requestGetAdminStats, requestGetUsers, requestUpdateUserAdmin, requestUpdateVerificationStatus } from '../../../../config/request';
 import { useStore } from '../../../../hooks/useStore';
 import { exportRowsToExcel, formatCurrency } from '../../../../utils/exportReport';
 
@@ -52,23 +52,20 @@ function ManagerUser() {
                       ? statsRes.metadata.totalRevenue
                       : totalRevenueFromUsers;
 
-            const data = usersPayload;
-
             const now = new Date();
             const thirtyDaysAgo = new Date(now);
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-            const newStats = {
-                totalUsers: data.length,
-                newUsers: data.filter((item) => new Date(item.user.createdAt) > thirtyDaysAgo).length,
-                activeUsers: data.filter((item) => item.user.isActive).length,
-                inactiveUsers: data.filter((item) => !item.user.isActive).length,
+            setStats({
+                totalUsers: usersPayload.length,
+                newUsers: usersPayload.filter((item) => new Date(item.user.createdAt) > thirtyDaysAgo).length,
+                activeUsers: usersPayload.filter((item) => item.user.isActive).length,
+                inactiveUsers: usersPayload.filter((item) => !item.user.isActive).length,
                 totalRevenue,
-            };
-
-            setStats(newStats);
+            });
         } catch (error) {
             console.error(error);
+            message.error(error?.response?.data?.message || 'Khong the tai danh sach nguoi dung');
         } finally {
             setLoading(false);
         }
@@ -91,7 +88,7 @@ function ManagerUser() {
                 isActive: nextIsActive,
             });
 
-            message.success(`Đã ${record.user.isActive ? 'khóa' : 'mở khóa'} người dùng`);
+            message.success(nextIsActive ? 'Da mo khoa nguoi dung' : 'Da khoa nguoi dung');
 
             if (record.user._id === dataUser._id) {
                 if (!nextIsActive) {
@@ -99,13 +96,12 @@ function ManagerUser() {
                     navigate('/login');
                     return;
                 }
-
                 await fetchAuth();
             }
 
             await fetchData();
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Không thể cập nhật trạng thái');
+            message.error(error?.response?.data?.message || 'Khong the cap nhat trang thai');
         }
     };
 
@@ -118,11 +114,10 @@ function ManagerUser() {
                 isAdmin: nextIsAdmin,
             });
 
-            message.success(`Đã ${record.user.isAdmin ? 'gỡ quyền admin' : 'cấp quyền admin'} cho người dùng`);
+            message.success(nextIsAdmin ? 'Da cap quyen admin' : 'Da go quyen admin');
 
             if (record.user._id === dataUser._id) {
                 await fetchAuth();
-
                 if (!nextIsAdmin) {
                     navigate('/');
                     return;
@@ -131,36 +126,60 @@ function ManagerUser() {
 
             await fetchData();
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Không thể cập nhật quyền');
+            message.error(error?.response?.data?.message || 'Khong the cap nhat quyen');
         }
     };
+
+    const handleVerificationAction = async (record, status) => {
+        try {
+            await requestUpdateVerificationStatus({
+                id: record.user._id,
+                status,
+                reason: status === 'rejected' ? 'Thong tin CCCD chua hop le hoac anh khong ro' : '',
+            });
+            message.success(status === 'verified' ? 'Da xac thuc chu tro' : 'Da tu choi xac thuc');
+            await fetchData();
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Khong the cap nhat xac thuc');
+        }
+    };
+
+    const getVerificationConfig = (status) =>
+        ({
+            none: { color: 'default', text: 'Chua gui' },
+            pending: { color: 'orange', text: 'Cho duyet' },
+            verified: { color: 'green', text: 'Da xac thuc' },
+            rejected: { color: 'red', text: 'Tu choi' },
+        })[status || 'none'] || { color: 'default', text: status };
 
     const handleExportExcel = () => {
         exportRowsToExcel({
             fileName: 'bao_cao_nguoi_dung',
             sheets: [
                 {
-                    name: 'Tổng quan',
+                    name: 'Tong quan',
                     rows: [
-                        { 'Chi tiêu': 'ổng số người dùng', 'Giá trị': stats.totalUsers },
-                        { 'Chi tiêu': 'Người dùng mới 30 ngày', 'Giá trị': stats.newUsers },
-                        { 'Chi tiêu': 'Người dùng hoạt động', 'Giá trị': stats.activeUsers },
-                        { 'Chi tiêu': 'Người dùng bị khóa', 'Giá trị': stats.inactiveUsers },
-                        { 'Chi tiêu': 'Tổng doanh thu', 'Giá trị': formatCurrency(stats.totalRevenue) },
+                        { 'Chi tieu': 'Tong so nguoi dung', 'Gia tri': stats.totalUsers },
+                        { 'Chi tieu': 'Nguoi dung moi 30 ngay', 'Gia tri': stats.newUsers },
+                        { 'Chi tieu': 'Nguoi dung hoat dong', 'Gia tri': stats.activeUsers },
+                        { 'Chi tieu': 'Nguoi dung bi khoa', 'Gia tri': stats.inactiveUsers },
+                        { 'Chi tieu': 'Tong doanh thu', 'Gia tri': formatCurrency(stats.totalRevenue) },
                     ],
                 },
                 {
-                    name: 'Người dùng',
+                    name: 'Nguoi dung',
                     rows: userData.map((item) => ({
-                        'Họ và tên': item.user?.fullName || '',
+                        'Ho ten': item.user?.fullName || '',
                         Email: item.user?.email || '',
-                        'Số điện thoại': item.user?.phone || '',
-                        'Địa chỉ': item.user?.address || '',
-                        'Vai trò': item.user?.isAdmin ? 'Admin' : 'User',
-                        'Trạng thái': item.user?.isActive ? 'Hoạt động' : 'Bị khóa',
-                        'Ngày tham gia': item.user?.createdAt ? new Date(item.user.createdAt).toLocaleString('vi-VN') : '',
-                        'Số bài đăng': item.totalPost || 0,
-                        'Tổng chi tiêu': item.totalSpent || 0,
+                        'So dien thoai': item.user?.phone || '',
+                        'Dia chi': item.user?.address || '',
+                        'Vai tro': item.user?.isAdmin ? 'Admin' : 'User',
+                        'Trang thai': item.user?.isActive ? 'Hoat dong' : 'Bi khoa',
+                        'Xac thuc CCCD': getVerificationConfig(item.user?.verificationStatus).text,
+                        'So CCCD': item.user?.cccdNumber || '',
+                        'Ngay tham gia': item.user?.createdAt ? new Date(item.user.createdAt).toLocaleString('vi-VN') : '',
+                        'So bai dang': item.totalPost || 0,
+                        'Tong chi tieu': item.totalSpent || 0,
                     })),
                 },
             ],
@@ -169,7 +188,7 @@ function ManagerUser() {
 
     const columns = [
         {
-            title: 'Họ và tên',
+            title: 'Ho ten',
             dataIndex: ['user', 'fullName'],
             key: 'fullName',
         },
@@ -179,58 +198,91 @@ function ManagerUser() {
             key: 'email',
         },
         {
-            title: 'Số điện thoại',
+            title: 'So dien thoai',
             dataIndex: ['user', 'phone'],
             key: 'phone',
         },
         {
-            title: 'Địa chỉ',
+            title: 'Dia chi',
             dataIndex: ['user', 'address'],
             key: 'address',
+            ellipsis: true,
         },
         {
-            title: 'Vai trò',
+            title: 'Vai tro',
             dataIndex: ['user', 'isAdmin'],
             key: 'role',
             render: (isAdmin) => <Tag color={isAdmin ? 'purple' : 'blue'}>{isAdmin ? 'Admin' : 'User'}</Tag>,
         },
         {
-            title: 'Trạng thái',
-            key: 'activeStatus',
-            render: (_, record) => (
-                <Tag color={record.user.isActive ? 'green' : 'red'}>
-                    {record.user.isActive ? 'Hoạt động' : 'Bị khóa'}
-                </Tag>
-            ),
+            title: 'Xac thuc CCCD',
+            key: 'verificationStatus',
+            render: (_, record) => {
+                const config = getVerificationConfig(record.user.verificationStatus);
+                return (
+                    <Space direction="vertical" size={4}>
+                        <Tag color={config.color}>{config.text}</Tag>
+                        {record.user.cccdFullName && <span>{record.user.cccdFullName}</span>}
+                        {record.user.cccdNumber && <span>CCCD: {record.user.cccdNumber}</span>}
+                        {record.user.cccdDob && <span>NS: {record.user.cccdDob}</span>}
+                        {record.user.cccdImageUrl && (
+                            <a href={record.user.cccdImageUrl} target="_blank" rel="noreferrer">
+                                Xem anh CCCD
+                            </a>
+                        )}
+                    </Space>
+                );
+            },
         },
         {
-            title: 'Ngày tham gia',
+            title: 'Trang thai',
+            key: 'activeStatus',
+            render: (_, record) => <Tag color={record.user.isActive ? 'green' : 'red'}>{record.user.isActive ? 'Hoat dong' : 'Bi khoa'}</Tag>,
+        },
+        {
+            title: 'Ngay tham gia',
             dataIndex: ['user', 'createdAt'],
             key: 'joinDate',
             render: (date) => new Date(date).toLocaleDateString('vi-VN'),
         },
         {
-            title: 'Số bài đăng',
+            title: 'So bai dang',
             dataIndex: 'totalPost',
             key: 'totalPost',
         },
         {
-            title: 'Tổng chi tiêu',
+            title: 'Tong chi tieu',
             dataIndex: 'totalSpent',
             key: 'totalSpent',
-            render: (amount) => `${amount.toLocaleString('vi-VN')} VND`,
+            render: (amount = 0) => `${amount.toLocaleString('vi-VN')} VND`,
         },
         {
-            title: 'Hành động',
+            title: 'Hanh dong',
             key: 'action',
+            fixed: 'right',
             render: (_, record) => (
-                <Space size="middle">
+                <Space size="middle" wrap>
                     <Button type="default" onClick={() => handleToggleActive(record)}>
-                        {record.user.isActive ? 'Khóa' : 'Mở khóa'}
+                        {record.user.isActive ? 'Khoa' : 'Mo khoa'}
                     </Button>
                     <Button type="primary" danger={record.user.isAdmin} onClick={() => handleToggleAdmin(record)}>
-                        {record.user.isAdmin ? 'Gỡ admin' : 'Cấp admin'}
+                        {record.user.isAdmin ? 'Go admin' : 'Cap admin'}
                     </Button>
+                    {record.user.verificationStatus === 'pending' && (
+                        <>
+                            <Button type="primary" onClick={() => handleVerificationAction(record, 'verified')}>
+                                Duyet CCCD
+                            </Button>
+                            <Popconfirm
+                                title="Tu choi xac thuc CCCD?"
+                                onConfirm={() => handleVerificationAction(record, 'rejected')}
+                                okText="Tu choi"
+                                cancelText="Huy"
+                            >
+                                <Button danger>Tu choi CCCD</Button>
+                            </Popconfirm>
+                        </>
+                    )}
                 </Space>
             ),
         },
@@ -240,33 +292,28 @@ function ManagerUser() {
         <div className={cx('manager-user')}>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                 <Col xs={24} sm={24} md={12} lg={8}>
-                    <Input.Search
-                        placeholder="Tìm theo tên, email hoặc số điện thoại"
-                        allowClear
-                        enterButton="Tìm"
-                        onSearch={handleSearch}
-                    />
+                    <Input.Search placeholder="Tim theo ten, email hoac so dien thoai" allowClear enterButton="Tim" onSearch={handleSearch} />
                 </Col>
                 <Col xs={24} sm={12} md={6} lg={4}>
                     <Select
-                        placeholder="Trạng thái"
+                        placeholder="Trang thai"
                         value={statusFilter}
                         onChange={(value) => setStatusFilter(value)}
                         options={[
-                            { label: 'Tất cả', value: '' },
-                            { label: 'Hoạt động', value: 'active' },
-                            { label: 'Bị khóa', value: 'inactive' },
+                            { label: 'Tat ca', value: '' },
+                            { label: 'Hoat dong', value: 'active' },
+                            { label: 'Bi khoa', value: 'inactive' },
                         ]}
                         style={{ width: '100%' }}
                     />
                 </Col>
                 <Col xs={24} sm={12} md={6} lg={4}>
                     <Select
-                        placeholder="Vai trò"
+                        placeholder="Vai tro"
                         value={roleFilter}
                         onChange={(value) => setRoleFilter(value)}
                         options={[
-                            { label: 'Tất cả', value: '' },
+                            { label: 'Tat ca', value: '' },
                             { label: 'Admin', value: 'admin' },
                             { label: 'User', value: 'user' },
                         ]}
@@ -275,7 +322,7 @@ function ManagerUser() {
                 </Col>
                 <Col xs={24} sm={12} md={6} lg={4}>
                     <Button icon={<DownloadOutlined />} onClick={handleExportExcel} block>
-                        Xuất Excel
+                        Xuat Excel
                     </Button>
                 </Col>
             </Row>
@@ -283,13 +330,13 @@ function ManagerUser() {
             <Row gutter={[16, 16]}>
                 <Col span={8}>
                     <Card>
-                        <Statistic title="Tổng số người dùng" value={stats.totalUsers} prefix={<UserOutlined />} />
+                        <Statistic title="Tong so nguoi dung" value={stats.totalUsers} prefix={<UserOutlined />} />
                     </Card>
                 </Col>
                 <Col span={8}>
                     <Card>
                         <Statistic
-                            title="Người dùng mới"
+                            title="Nguoi dung moi"
                             value={stats.newUsers}
                             prefix={<UserAddOutlined />}
                             valueStyle={{ color: '#3f8600' }}
@@ -300,7 +347,7 @@ function ManagerUser() {
                 <Col span={8}>
                     <Card>
                         <Statistic
-                            title="Tổng doanh thu"
+                            title="Tong doanh thu"
                             value={stats.totalRevenue}
                             prefix={<DollarOutlined />}
                             formatter={(value) => `${value.toLocaleString('vi-VN')} VND`}
@@ -315,7 +362,7 @@ function ManagerUser() {
                     columns={columns}
                     dataSource={userData}
                     pagination={{ pageSize: 10 }}
-                    scroll={{ x: 1500 }}
+                    scroll={{ x: 1800 }}
                     loading={loading}
                     rowKey={(record) => record.user._id}
                 />

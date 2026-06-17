@@ -137,7 +137,8 @@ const provinceAliases = {
     'ho-chi-minh': 'Hồ Chí Minh',
 };
 
-const publicPostsOnly = (posts = []) => posts.filter((post) => post?.status === 'active');
+const publicPostsOnly = (posts = []) =>
+    posts.filter((post) => ['active', 'approved'].includes(post?.status) && !post?.isDeleted);
 
 function HomePage() {
     const [dataPost, setDataPost] = useState([]);

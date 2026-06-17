@@ -15,11 +15,14 @@ const CryptoJS = require('crypto-js');
 const jwt = require('jsonwebtoken');
 const otpGenerator = require('otp-generator');
 const { google } = require('googleapis');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const { AiSearchKeyword } = require('../utils/AISearch/AISearch');
 const { inferPostingFeeFromPost } = require('../utils/postingFee');
+const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
 
 const googleOAuthClient = new google.auth.OAuth2();
+const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
 
 const buildCookieOptions = (maxAge, httpOnly = true) => ({
     httpOnly,
@@ -27,6 +30,61 @@ const buildCookieOptions = (maxAge, httpOnly = true) => ({
     sameSite: 'Strict',
     maxAge,
 });
+
+const parseJsonFromText = (text = '') => {
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return {};
+
+    try {
+        return JSON.parse(match[0]);
+    } catch {
+        return {};
+    }
+};
+
+const extractCccdInfo = async (file) => {
+    if (!genAI) {
+        return {
+            rawText: '',
+            data: {},
+            note: 'Chua cau hinh GOOGLE_API_KEY, vui long kiem tra thu cong',
+        };
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `
+Doc thong tin tren anh CCCD/CMND Viet Nam.
+Chi tra ve JSON hop le, khong markdown:
+{
+  "fullName": "",
+  "cccdNumber": "",
+  "dob": "",
+  "address": "",
+  "rawText": ""
+}
+Neu khong thay truong nao thi de chuoi rong.
+`;
+
+    const result = await model.generateContent([
+        prompt,
+        {
+            inlineData: {
+                data: file.buffer.toString('base64'),
+                mimeType: file.mimetype,
+            },
+        },
+    ]);
+
+    const text = result.response.text();
+    const data = parseJsonFromText(text);
+
+    return {
+        rawText: data.rawText || text,
+        data,
+        note: '',
+    };
+};
 
 class controllerUsers {
     async register(req, res) {
@@ -216,7 +274,10 @@ class controllerUsers {
             const totalPosts = await modelPost.countDocuments();
 
             // Get active posts count
-            const activePosts = await modelPost.countDocuments({ status: 'active' });
+            const activePosts = await modelPost.countDocuments({
+                status: { $in: ['active', 'approved'] },
+                isDeleted: { $ne: true },
+            });
 
             // Get new posts in the last 30 days
             const newPosts = await modelPost.countDocuments({
@@ -426,6 +487,74 @@ class controllerUsers {
         new OK({ message: 'Cập nhật thông tin thành công', metadata: user }).send(res);
     }
 
+    async submitCccdVerification(req, res) {
+        const { id } = req.user;
+        if (!req.file) {
+            throw new BadRequestError('Vui long tai anh CCCD');
+        }
+
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(req.file.mimetype)) {
+            throw new BadRequestError('Chi ho tro anh JPG, PNG hoac WEBP');
+        }
+
+        const imageUrl = await uploadImageToCloudinary(req.file, 'phongtro/cccd-verifications');
+        let ocrResult = { data: {}, rawText: '', note: '' };
+
+        try {
+            ocrResult = await extractCccdInfo(req.file);
+        } catch (error) {
+            ocrResult.note = `OCR that bai: ${error.message}`;
+        }
+
+        const extracted = ocrResult.data || {};
+        const updatedUser = await modelUser.findByIdAndUpdate(
+            id,
+            {
+                cccdImageUrl: imageUrl,
+                cccdFullName: extracted.fullName || '',
+                cccdNumber: extracted.cccdNumber || '',
+                cccdDob: extracted.dob || '',
+                cccdAddress: extracted.address || '',
+                cccdOcrRawText: ocrResult.rawText || ocrResult.note || '',
+                verificationStatus: 'pending',
+                verificationRejectReason: '',
+                verifiedAt: null,
+            },
+            { new: true },
+        );
+
+        new OK({
+            message: 'Da gui CCCD de xac thuc, vui long cho admin duyet',
+            metadata: updatedUser,
+        }).send(res);
+    }
+
+    async updateVerificationStatus(req, res) {
+        const { id, status, reason } = req.body;
+        if (!id || !['verified', 'rejected'].includes(status)) {
+            throw new BadRequestError('Trang thai xac thuc khong hop le');
+        }
+
+        const updatedUser = await modelUser.findByIdAndUpdate(
+            id,
+            {
+                verificationStatus: status,
+                verifiedAt: status === 'verified' ? new Date() : null,
+                verificationRejectReason: status === 'rejected' ? reason || '' : '',
+            },
+            { new: true },
+        );
+
+        if (!updatedUser) {
+            throw new BadRequestError('Khong tim thay nguoi dung');
+        }
+
+        new OK({
+            message: status === 'verified' ? 'Da xac thuc chu tro' : 'Da tu choi xac thuc',
+            metadata: updatedUser,
+        }).send(res);
+    }
+
     async updateUserAdmin(req, res) {
         const { id, isActive, isAdmin } = req.body;
         if (!id) {
@@ -472,7 +601,11 @@ class controllerUsers {
         const dataUser = await modelUser.find(filter).sort({ createdAt: -1 });
         const data = await Promise.all(
             dataUser.map(async (user) => {
-                const post = await modelPost.find({ userId: user._id, status: 'active' });
+                const post = await modelPost.find({
+                    userId: user._id,
+                    status: { $in: ['active', 'approved'] },
+                    isDeleted: { $ne: true },
+                });
                 const totalPost = post.length;
                 const totalSpent = post.reduce((sum, post) => sum + inferPostingFeeFromPost(post), 0);
                 return { user, totalPost, totalSpent };

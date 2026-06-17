@@ -3,6 +3,7 @@ const modelUser = require('../models/users.model');
 const modelFavourite = require('../models/favourite.model');
 const modelReservation = require('../models/reservation.model');
 const modelDeposit = require('../models/deposit.model');
+const modelContract = require('../models/contract.model');
 const modelMessager = require('../models/Messager.model');
 const modelReport = require('../models/report.model');
 
@@ -17,6 +18,24 @@ const { buildNumericCondition, ensureDefaultFilterOptions, getActiveFilterOption
 const getRefundablePostingFee = (post) => {
     if (!post || post.postingFeeRefunded) return 0;
     return inferPostingFeeFromPost(post);
+};
+
+const PUBLIC_POST_STATUSES = ['active', 'approved'];
+const PENDING_POST_STATUSES = ['inactive', 'pending'];
+const BLOCKING_DEPOSIT_STATUSES = ['pending', 'holding', 'completed'];
+const ACTIVE_CONTRACT_STATUSES = ['active'];
+
+const publicPostFilter = (extra = {}) => ({
+    ...extra,
+    status: extra.status || { $in: PUBLIC_POST_STATUSES },
+    isDeleted: { $ne: true },
+});
+
+const isPublicPost = (post) => post && PUBLIC_POST_STATUSES.includes(post.status) && post.isDeleted !== true;
+
+const canManagePost = async (userId, post) => {
+    const user = await modelUser.findById(userId).select('isAdmin');
+    return Boolean(user?.isAdmin || post.userId.toString() === userId);
 };
 
 const normalizeVietnameseText = (value = '') =>
@@ -63,7 +82,10 @@ const parseCoordinates = (coordinates = {}) => {
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const getLandlordReputation = async (landlordId) => {
-    const posts = await modelPost.find({ userId: landlordId }).select('_id availabilityStatus ratingAverage ratingCount').lean();
+    const posts = await modelPost
+        .find({ userId: landlordId, isDeleted: { $ne: true }, status: { $ne: 'deleted' } })
+        .select('_id availabilityStatus ratingAverage ratingCount')
+        .lean();
     const postIds = posts.map((post) => post._id);
     const postCount = posts.length;
 
@@ -232,7 +254,7 @@ class controllerPosts {
                 username,
                 phone,
                 options,
-                status: 'inactive',
+                status: 'pending',
                 availabilityStatus: 'available',
                 userId: id,
                 endDate: endDate ? endDate : null,
@@ -265,7 +287,7 @@ class controllerPosts {
         await ensureDefaultFilterOptions();
         const { category, priceRange, areaRange, typeNews, province, location } = req.query;
 
-        const filter = { status: 'active' };
+        const filter = publicPostFilter();
         const locationTerms = getLocationSearchTerms(province, location);
 
         const [categoryOption, typeNewsOption, priceOption, areaOption] = await Promise.all([
@@ -297,8 +319,12 @@ class controllerPosts {
     async getPostById(req, res) {
         await expireAcceptedReservations();
         const { id } = req.query;
-        const data = await modelPost.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true });
-        if (!data) {
+        const data = await modelPost.findOneAndUpdate(
+            { _id: id, status: { $in: PUBLIC_POST_STATUSES }, isDeleted: { $ne: true } },
+            { $inc: { viewCount: 1 } },
+            { new: true },
+        );
+        if (!data || !isPublicPost(data)) {
             throw new BadRequestError('Post not found');
         }
         const findUser = await modelUser.findById(data.userId);
@@ -307,7 +333,7 @@ class controllerPosts {
         const userFavourite = findFavourite.map((item) => item.userId);
 
         const [lengthPost, reputation] = await Promise.all([
-            modelPost.countDocuments({ userId: data.userId }),
+            modelPost.countDocuments({ userId: data.userId, isDeleted: { $ne: true }, status: { $ne: 'deleted' } }),
             getLandlordReputation(data.userId),
         ]);
         let statusUser = '';
@@ -341,7 +367,7 @@ class controllerPosts {
 
     async getPostByUserId(req, res) {
         const { id } = req.user;
-        const data = await modelPost.find({ userId: id });
+        const data = await modelPost.find({ userId: id }).populate('deletedBy', 'fullName email').sort({ createdAt: -1 });
         return new OK({
             message: 'Post fetched successfully',
             metadata: data,
@@ -354,10 +380,9 @@ class controllerPosts {
         fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 3);
 
         const data = await modelPost
-            .find({
+            .find(publicPostFilter({
                 createdAt: { $gte: fiveDaysAgo },
-                status: 'active',
-            })
+            }))
             .sort({ createdAt: -1 })
             .limit(8);
 
@@ -369,46 +394,101 @@ class controllerPosts {
 
     async getPostVip(req, res) {
         await expireAcceptedReservations();
-        const data = await modelPost.find({ typeNews: 'vip', status: 'active' }).limit(5);
+        const data = await modelPost.find(publicPostFilter({ typeNews: 'vip' })).limit(5);
         return new OK({
             message: 'Post fetched successfully',
             metadata: data,
         }).send(res);
     }
 
-    async deletePost(req, res) {
+    async softDeletePost(req, res) {
         const { id: userId } = req.user;
-        const { id } = req.body;
+        const id = req.params.id || req.body.id;
         const findPost = await modelPost.findById(id);
         if (!findPost) {
             throw new BadRequestError('Post not found');
         }
-        if (findPost.userId.toString() !== userId) {
+        if (findPost.isDeleted || findPost.status === 'deleted') {
+            throw new BadRequestError('Bai viet da bi xoa truoc do');
+        }
+        if (!(await canManagePost(userId, findPost))) {
             throw new BadRequestError('Bạn không có quyền xóa bài viết này');
         }
         const activeDeposit = await modelDeposit.exists({
             roomId: id,
-            status: { $in: ['pending', 'holding', 'disputed'] },
+            status: { $in: BLOCKING_DEPOSIT_STATUSES },
         });
         if (activeDeposit) {
-            throw new BadRequestError('Phòng đang có giao dịch cọc, không thể xóa bài viết');
+            throw new BadRequestError('Bai viet dang co giao dich dat coc dang xu ly/da hoan tat, khong the xoa');
         }
-        const refundAmount = getRefundablePostingFee(findPost);
+        const activeContract = await modelContract.exists({
+            roomId: id,
+            status: { $in: ACTIVE_CONTRACT_STATUSES },
+            endDate: { $gte: new Date() },
+        });
+        if (activeContract) {
+            throw new BadRequestError('Bai viet dang co hop dong con hieu luc, khong the xoa');
+        }
 
-        await modelPost.findByIdAndDelete(id);
-        await modelFavourite.deleteMany({ postId: id });
-        if (refundAmount > 0) {
-            await modelUser.findByIdAndUpdate(findPost.userId, { $inc: { balance: refundAmount } });
-        }
+        const updatedPost = await modelPost.findByIdAndUpdate(
+            id,
+            {
+                status: 'deleted',
+                isDeleted: true,
+                deletedAt: new Date(),
+                deletedBy: userId,
+            },
+            { new: true },
+        ).populate('deletedBy', 'fullName email');
+
         return new OK({
-            message: 'Xoá bài viết thành công',
-            metadata: { ...findPost._doc, refundAmount },
+            message: 'Xoa bai viet thanh cong',
+            metadata: updatedPost,
+        }).send(res);
+    }
+
+    async deletePost(req, res) {
+        return this.softDeletePost(req, res);
+    }
+
+    async restorePost(req, res) {
+        const { id: userId } = req.user;
+        const id = req.params.id || req.body.id;
+        const findPost = await modelPost.findById(id);
+        if (!findPost) {
+            throw new BadRequestError('Post not found');
+        }
+        if (!(await canManagePost(userId, findPost))) {
+            throw new BadRequestError('Ban khong co quyen khoi phuc bai viet nay');
+        }
+        if (!findPost.isDeleted && findPost.status !== 'deleted') {
+            throw new BadRequestError('Chi co the khoi phuc bai viet da bi xoa');
+        }
+
+        const restoredStatus = findPost.availabilityStatus === 'rented' ? 'rented' : 'pending';
+        const updatedPost = await modelPost.findByIdAndUpdate(
+            id,
+            {
+                status: restoredStatus,
+                isDeleted: false,
+                deletedAt: null,
+                deletedBy: null,
+            },
+            { new: true },
+        ).populate('deletedBy', 'fullName email');
+
+        return new OK({
+            message: 'Khoi phuc bai viet thanh cong',
+            metadata: updatedPost,
         }).send(res);
     }
 
     async getOwnerAnalytics(req, res) {
         const { id: ownerId } = req.user;
-        const posts = await modelPost.find({ userId: ownerId }).sort({ createdAt: -1 }).lean();
+        const posts = await modelPost
+            .find({ userId: ownerId, isDeleted: { $ne: true }, status: { $ne: 'deleted' } })
+            .sort({ createdAt: -1 })
+            .lean();
         const postIds = posts.map((post) => post._id);
 
         const [favoriteStats, depositStats, incomingChatCount, chatSenders] = await Promise.all([
@@ -487,7 +567,8 @@ class controllerPosts {
         }
 
         const filter = {
-            status: 'active',
+            status: { $in: PUBLIC_POST_STATUSES },
+            isDeleted: { $ne: true },
             'coordinates.lat': { $gte: bounds.south, $lte: bounds.north },
             'coordinates.lng': { $gte: bounds.west, $lte: bounds.east },
         };
@@ -524,6 +605,9 @@ class controllerPosts {
         if (!findPost) {
             throw new BadRequestError('Post not found');
         }
+        if (findPost.isDeleted || findPost.status === 'deleted') {
+            throw new BadRequestError('Bai viet da bi xoa, khong the cap nhat');
+        }
 
         if (findPost.userId.toString() !== userId) {
             throw new BadRequestError('Bạn không có quyền cập nhật bài viết này');
@@ -548,9 +632,13 @@ class controllerPosts {
         const { status } = req.query;
         const filter = {};
         if (status) {
-            filter.status = status;
+            if (status === 'deleted') {
+                filter.$or = [{ status: 'deleted' }, { isDeleted: true }];
+            } else {
+                filter.status = status;
+            }
         }
-        const data = await modelPost.find(filter).sort({ createdAt: -1 });
+        const data = await modelPost.find(filter).populate('deletedBy', 'fullName email').sort({ createdAt: -1 });
         return new OK({
             message: 'Posts fetched successfully',
             metadata: data,
@@ -563,14 +651,17 @@ class controllerPosts {
         if (!findPost) {
             throw new BadRequestError('Post not found');
         }
-        if (findPost.status !== 'inactive') {
+        if (findPost.isDeleted || findPost.status === 'deleted') {
+            throw new BadRequestError('Khong the duyet bai viet da bi xoa');
+        }
+        if (!PENDING_POST_STATUSES.includes(findPost.status)) {
             throw new BadRequestError('Chỉ có thể duyệt bài viết đang chờ duyệt');
         }
         const findUser = await modelUser.findById(findPost.userId);
         if (!findUser) {
             throw new BadRequestError('User not found');
         }
-        const updatedPost = await modelPost.findByIdAndUpdate(id, { status: 'active' }, { new: true });
+        const updatedPost = await modelPost.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
         await SendMailApprove(findUser.email, findPost);
         return new OK({
             message: 'Duyệt bài viết thành công',
@@ -584,7 +675,10 @@ class controllerPosts {
         if (!findPost) {
             throw new BadRequestError('Post not found');
         }
-        if (findPost.status !== 'inactive') {
+        if (findPost.isDeleted || findPost.status === 'deleted') {
+            throw new BadRequestError('Khong the tu choi bai viet da bi xoa');
+        }
+        if (!PENDING_POST_STATUSES.includes(findPost.status)) {
             throw new BadRequestError('Chỉ có thể từ chối bài viết đang chờ duyệt');
         }
         const findUser = await modelUser.findById(findPost.userId);
@@ -594,7 +688,7 @@ class controllerPosts {
 
         const refundAmount = getRefundablePostingFee(findPost);
         const updatedPost = await modelPost.findOneAndUpdate(
-            { _id: id, status: 'inactive' },
+            { _id: id, status: { $in: PENDING_POST_STATUSES }, isDeleted: { $ne: true } },
             {
                 status: 'rejected',
                 postingFeeRefunded: true,
@@ -632,15 +726,16 @@ class controllerPosts {
             // Tìm bài viết có location chứa "Hoàng Mai, Hà Nội"
             const data = await modelPost.find({
                 location: { $regex: new RegExp(districtCity, 'i') },
-                status: 'active',
+                status: { $in: PUBLIC_POST_STATUSES },
+                isDeleted: { $ne: true },
             });
 
             return new OK({
                 message: 'Post fetched successfully',
-                metadata: data.length ? data : await modelPost.find({ status: 'active' }).sort({ createdAt: -1 }).limit(8),
+                metadata: data.length ? data : await modelPost.find(publicPostFilter()).sort({ createdAt: -1 }).limit(8),
             }).send(res);
         } else {
-            const data = await modelPost.find({ status: 'active' }).sort({ createdAt: -1 }).limit(8);
+            const data = await modelPost.find(publicPostFilter()).sort({ createdAt: -1 }).limit(8);
             return new OK({
                 message: 'Post fetched successfully',
                 metadata: data,

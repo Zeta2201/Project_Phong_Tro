@@ -6,11 +6,17 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 const modelPost = require('../../models/post.model');
 
+const publicPostFilter = (extra = {}) => ({
+    ...extra,
+    status: extra.status || { $in: ['active', 'approved'] },
+    isDeleted: { $ne: true },
+});
+
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const findPostsByKeyword = async (question, limit = 20) => {
     const keyword = String(question || '').trim();
-    const baseFilter = { status: 'active' };
+    const baseFilter = publicPostFilter();
 
     if (!keyword) {
         return modelPost.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean();
@@ -62,7 +68,7 @@ async function AiSearchKeyword(question) {
 async function AiSearch(question) {
     console.log('question', question);
     try {
-        const posts = await modelPost.find({ status: 'active' }).limit(20); // Hoặc query trước nếu có AI location
+        const posts = await modelPost.find(publicPostFilter()).limit(20); // Hoặc query trước nếu có AI location
         const postData = posts.map((post) => JSON.stringify(post)).join(',\n');
 
         const prompt = `

@@ -87,6 +87,18 @@ export const requestUpdateUser = async (data) => {
     return res.data;
 };
 
+export const requestSubmitCccdVerification = async (data) => {
+    const res = await request.post('/api/submit-cccd-verification', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+};
+
+export const requestUpdateVerificationStatus = async (data) => {
+    const res = await request.post('/api/admin/update-verification-status', data);
+    return res.data;
+};
+
 export const requestChangePassword = async (data) => {
     const res = await request.post('/api/change-password', data);
     return res.data;
@@ -155,7 +167,12 @@ export const requestRejectPost = async (data) => {
 };
 
 export const requestDeletePost = async (data) => {
-    const res = await request.post('/api/delete-post', data);
+    const res = data?.id ? await request.patch(`/api/posts/${data.id}/delete`) : await request.post('/api/delete-post', data);
+    return res.data;
+};
+
+export const requestRestorePost = async (id) => {
+    const res = await request.patch(`/api/posts/${id}/restore`);
     return res.data;
 };
 

@@ -11,3 +11,30 @@
     color: #1890ff;
     margin-bottom: 16px;
 }
+
+.restore-button,
+.delete-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 108px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.restore-button {
+    color: #1677ff;
+    border-color: #91caff;
+    background: #f0f7ff;
+}
+
+.restore-button:hover,
+.restore-button:focus {
+    color: #0958d9 !important;
+    border-color: #4096ff !important;
+    background: #e6f4ff !important;
+}

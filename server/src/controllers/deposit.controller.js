@@ -144,7 +144,9 @@ class controllerDeposit {
         if (!PAYMENT_METHODS.includes(paymentMethod)) throw new BadRequestError('Phuong thuc thanh toan khong hop le');
 
         const room = await modelPost.findById(roomId);
-        if (!room || room.status !== 'active') throw new BadRequestError('Phong khong ton tai hoac chua duoc hien thi');
+        if (!room || !['active', 'approved'].includes(room.status) || room.isDeleted) {
+            throw new BadRequestError('Phong khong ton tai hoac chua duoc hien thi');
+        }
         if ((room.availabilityStatus || 'available') !== 'available') throw new BadRequestError('Phong hien khong con trong');
         if (room.userId.toString() === tenantId) throw new BadRequestError('Ban khong the dat coc phong cua chinh minh');
 

@@ -57,7 +57,21 @@ const modelPost = new Schema(
         status: {
             type: String,
             required: true,
-            enum: ['active', 'inactive', 'rejected'],
+            enum: ['draft', 'pending', 'approved', 'rejected', 'hidden', 'rented', 'deleted', 'active', 'inactive'],
+        },
+        isDeleted: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+        deletedAt: {
+            type: Date,
+            default: null,
+        },
+        deletedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+            default: null,
         },
         availabilityStatus: {
             type: String,

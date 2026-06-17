@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Layout, Menu, Button, message } from 'antd';
 import {
     MenuFoldOutlined,
@@ -21,7 +21,7 @@ import {
     AuditOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { requestGetAdmin, requestLogout } from '../../config/request';
+import { requestLogout } from '../../config/request';
 import Dashboard from './Components/Dashborad/Dashborad';
 import classNames from 'classnames/bind';
 import styles from './Index.module.scss';
@@ -60,18 +60,6 @@ function Admin() {
             message.error(error?.response?.data?.message || 'Dang xuat that bai');
         }
     };
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                await requestGetAdmin();
-            } catch (error) {
-                navigate('/');
-            }
-        };
-
-        fetchData();
-    }, [navigate]);
 
     const menuItems = [
         {

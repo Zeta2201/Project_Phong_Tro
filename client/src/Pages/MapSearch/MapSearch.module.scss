@@ -44,6 +44,73 @@
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
 }
 
+.heatCanvas {
+    mix-blend-mode: multiply;
+}
+
+.mapControls {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    z-index: 500;
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+
+    button {
+        height: 34px;
+        padding: 0 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #475569;
+        font-weight: 800;
+        cursor: pointer;
+
+        &:hover {
+            border-color: #0f766e;
+            color: #0f766e;
+        }
+    }
+
+    .active {
+        border-color: #0f766e;
+        background: #0f766e;
+        color: #ffffff;
+
+        &:hover {
+            color: #ffffff;
+        }
+    }
+}
+
+.heatLegend {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 500;
+    display: grid;
+    grid-template-columns: auto 132px auto;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+
+    div {
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2563eb, #22c55e, #facc15, #f97316, #dc2626);
+    }
+}
+
 .resultPanel {
     display: flex;
     flex-direction: column;
@@ -200,5 +267,97 @@
 
     .map {
         height: 520px;
+    }
+
+    .mapControls {
+        top: auto;
+        right: 12px;
+        bottom: 54px;
+    }
+
+    .heatLegend {
+        right: 12px;
+        bottom: 12px;
+        grid-template-columns: auto 96px auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .page {
+        width: calc(100% - 20px);
+        padding: 12px 0 32px;
+    }
+
+    .mapShell {
+        gap: 12px;
+    }
+
+    .mapPanel,
+    .resultPanel {
+        border-radius: 8px;
+    }
+
+    .map {
+        height: 430px;
+    }
+
+    .mapStatus {
+        left: 10px;
+        top: 10px;
+        max-width: calc(100% - 20px);
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .mapControls {
+        left: 10px;
+        right: auto;
+        bottom: 52px;
+        gap: 6px;
+
+        button {
+            height: 32px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+    }
+
+    .heatLegend {
+        left: 10px;
+        right: auto;
+        bottom: 10px;
+        grid-template-columns: auto 86px auto;
+        padding: 8px;
+    }
+
+    .resultPanel {
+        min-height: auto;
+    }
+
+    .resultHeader {
+        padding: 14px;
+
+        h1 {
+            font-size: 22px;
+        }
+
+        p {
+            font-size: 14px;
+        }
+    }
+
+    .resultList {
+        max-height: 440px;
+        padding: 12px;
+    }
+
+    .resultItem {
+        grid-template-columns: 82px minmax(0, 1fr);
+        gap: 10px;
+
+        img {
+            width: 82px;
+            height: 74px;
+        }
     }
 }

@@ -18,6 +18,7 @@ import PostingRules from '../Pages/LegalPages/PostingRules';
 import PaymentPolicy from '../Pages/LegalPages/PaymentPolicy';
 import OperationRegulations from '../Pages/LegalPages/OperationRegulations';
 import MapSearch from '../Pages/MapSearch/MapSearch';
+import AdminRoute from './AdminRoute';
 
 export const publicRoutes = [
     {
@@ -43,6 +44,13 @@ export const publicRoutes = [
     },
     { path: '/login', element: <LoginUser /> },
     { path: '/register', element: <RegisterUser /> },
-    { path: '/admin', element: <Admin /> },
+    {
+        path: '/admin',
+        element: (
+            <AdminRoute>
+                <Admin />
+            </AdminRoute>
+        ),
+    },
     { path: '/forgot-password', element: <ForgotPassword /> },
 ];

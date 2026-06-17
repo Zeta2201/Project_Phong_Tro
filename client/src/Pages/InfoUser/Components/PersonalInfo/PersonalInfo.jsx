@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Row, Col, Card, Typography, Table, Modal, Form, Input, Button, Upload, message, AutoComplete } from 'antd';
+import { Row, Col, Card, Typography, Table, Modal, Form, Input, Button, Upload, message, AutoComplete, Tag, Descriptions } from 'antd';
 import {
     UserOutlined,
     PhoneOutlined,
@@ -8,6 +8,7 @@ import {
     HeartOutlined,
     EditOutlined,
     UploadOutlined,
+    SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './PersonalInfo.module.scss';
@@ -15,6 +16,7 @@ import { useStore } from '../../../../hooks/useStore';
 import { useState, useEffect } from 'react';
 import {
     requestGetFavourite,
+    requestSubmitCccdVerification,
     requestUpdateUser,
     requestUploadImage,
     requestUploadImages,
@@ -33,6 +35,7 @@ function PersonalInfo() {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
     const [avatarUrl, setAvatarUrl] = useState(dataUser?.avatar || '');
+    const [cccdUploading, setCccdUploading] = useState(false);
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
 
@@ -114,6 +117,32 @@ function PersonalInfo() {
             message.success('Tải ảnh lên thành công!');
         } else if (info.file.status === 'error') {
             message.error('Tải ảnh lên thất bại!');
+        }
+    };
+
+    const getVerificationConfig = (status) =>
+        ({
+            none: { color: 'default', text: 'Chua xac thuc' },
+            pending: { color: 'orange', text: 'Cho admin duyet' },
+            verified: { color: 'green', text: 'Da xac thuc' },
+            rejected: { color: 'red', text: 'Bi tu choi' },
+        })[status || 'none'] || { color: 'default', text: status };
+
+    const handleSubmitCccd = async ({ file, onSuccess, onError }) => {
+        const formData = new FormData();
+        formData.append('cccd', file);
+        setCccdUploading(true);
+
+        try {
+            const res = await requestSubmitCccdVerification(formData);
+            message.success(res.message);
+            await fetchAuth();
+            onSuccess?.(res);
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Gui xac thuc CCCD that bai');
+            onError?.(error);
+        } finally {
+            setCccdUploading(false);
         }
     };
 
@@ -221,6 +250,58 @@ function PersonalInfo() {
             </Row>
 
             <div style={{ marginTop: '24px' }}>
+                <Card style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <SafetyCertificateOutlined style={{ fontSize: 20, marginRight: 8, color: '#0f766e' }} />
+                            <Title level={4} style={{ margin: 0 }}>
+                                Xac thuc chu tro bang CCCD
+                            </Title>
+                        </div>
+                        <Tag color={getVerificationConfig(dataUser.verificationStatus).color}>
+                            {getVerificationConfig(dataUser.verificationStatus).text}
+                        </Tag>
+                    </div>
+
+                    <Descriptions bordered size="small" column={1}>
+                        <Descriptions.Item label="Ho ten OCR">{dataUser.cccdFullName || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="So CCCD">{dataUser.cccdNumber || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Ngay sinh">{dataUser.cccdDob || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Dia chi">{dataUser.cccdAddress || '-'}</Descriptions.Item>
+                        {dataUser.verificationRejectReason && (
+                            <Descriptions.Item label="Ly do tu choi">{dataUser.verificationRejectReason}</Descriptions.Item>
+                        )}
+                    </Descriptions>
+
+                    {dataUser.cccdImageUrl && (
+                        <div style={{ marginTop: 14 }}>
+                            <img
+                                src={dataUser.cccdImageUrl}
+                                alt="CCCD"
+                                style={{ width: 260, maxWidth: '100%', borderRadius: 8, border: '1px solid #e5e7eb' }}
+                            />
+                        </div>
+                    )}
+
+                    <Upload
+                        accept="image/png,image/jpeg,image/webp"
+                        showUploadList={false}
+                        customRequest={handleSubmitCccd}
+                        disabled={cccdUploading}
+                        beforeUpload={(file) => {
+                            const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+                            if (!isImage) message.error('Chi ho tro anh JPG, PNG hoac WEBP');
+                            const isLt5M = file.size / 1024 / 1024 < 5;
+                            if (!isLt5M) message.error('Anh CCCD phai nho hon 5MB');
+                            return isImage && isLt5M;
+                        }}
+                    >
+                        <Button type="primary" icon={<UploadOutlined />} loading={cccdUploading} style={{ marginTop: 14 }}>
+                            Tai anh CCCD va doc OCR
+                        </Button>
+                    </Upload>
+                </Card>
+
                 <Card>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
                         <HeartOutlined style={{ fontSize: '20px', marginRight: '8px', color: '#ff4d4f' }} />

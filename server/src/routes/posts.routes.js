@@ -13,6 +13,8 @@ router.get('/api/get-post-by-user-id', authUser, asyncHandler(controllerPosts.ge
 router.get('/api/owner/analytics', authUser, asyncHandler(controllerPosts.getOwnerAnalytics));
 router.get('/api/get-new-post', asyncHandler(controllerPosts.getNewPost));
 router.get('/api/get-post-vip', asyncHandler(controllerPosts.getPostVip));
+router.patch('/api/posts/:id/delete', authUser, asyncHandler(controllerPosts.softDeletePost));
+router.patch('/api/posts/:id/restore', authUser, asyncHandler(controllerPosts.restorePost));
 router.post('/api/delete-post', authUser, asyncHandler(controllerPosts.deletePost));
 router.post('/api/update-post-availability', authUser, asyncHandler(controllerPosts.updatePostAvailability));
 

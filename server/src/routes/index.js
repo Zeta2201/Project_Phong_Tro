@@ -31,6 +31,8 @@ function routes(app) {
     app.get('/api/refresh-token', userRoutes);
     app.get('/api/recharge-user', userRoutes);
     app.post('/api/update-user', userRoutes);
+    app.post('/api/submit-cccd-verification', userRoutes);
+    app.post('/api/admin/update-verification-status', userRoutes);
     app.post('/api/update-user-admin', userRoutes);
     app.post('/api/change-password', userRoutes);
 
@@ -141,6 +143,8 @@ function routes(app) {
     app.get('/api/owner/analytics', postRoutes);
     app.get('/api/get-new-post', postRoutes);
     app.get('/api/get-post-vip', postRoutes);
+    app.patch('/api/posts/:id/delete', postRoutes);
+    app.patch('/api/posts/:id/restore', postRoutes);
     app.post('/api/delete-post', postRoutes);
     app.post('/api/update-post-availability', postRoutes);
 

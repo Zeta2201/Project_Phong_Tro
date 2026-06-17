@@ -13,6 +13,10 @@ class controllerFavourite {
         const findPost = await modelPost.findById(postId);
         const findFavourite = await modelFavourite.findOne({ userId: id, postId });
 
+        if (!findPost || findPost.isDeleted || findPost.status === 'deleted') {
+            throw new BadRequestError('Bai viet khong ton tai hoac da bi xoa');
+        }
+
         if (findFavourite) {
             throw new BadRequestError('Bạn đã thêm vào yêu thích');
         }
@@ -49,7 +53,11 @@ class controllerFavourite {
     async getFavourite(req, res) {
         const { id } = req.user;
         const findFavourite = await modelFavourite.find({ userId: id });
-        const findPost = await modelPost.find({ _id: { $in: findFavourite.map((item) => item.postId) } });
+        const findPost = await modelPost.find({
+            _id: { $in: findFavourite.map((item) => item.postId) },
+            isDeleted: { $ne: true },
+            status: { $ne: 'deleted' },
+        });
         return new OK({
             message: 'Lấy danh sách yêu thích thành công',
             metadata: findPost,

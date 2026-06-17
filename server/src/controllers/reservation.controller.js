@@ -54,7 +54,7 @@ class controllerReservation {
         await expireReservations(postId);
 
         const post = await modelPost.findById(postId);
-        if (!post || post.status !== 'active') {
+        if (!post || !['active', 'approved'].includes(post.status) || post.isDeleted) {
             throw new BadRequestError('Bai viet khong ton tai hoac chua duoc hien thi');
         }
 
