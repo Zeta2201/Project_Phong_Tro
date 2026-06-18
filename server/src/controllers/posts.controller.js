@@ -14,6 +14,7 @@ const SendMailReject = require('../utils/SendMail/SendMailReject');
 const { getPostingFeeByPlan, inferPostingFeeFromPost } = require('../utils/postingFee');
 const { normalizeVoucherCode, previewVoucher, markVoucherUsed } = require('../utils/voucher');
 const { buildNumericCondition, ensureDefaultFilterOptions, getActiveFilterOption } = require('../services/filterOption.service');
+const { addPoints, refundPoints, calculateEarnPoints } = require('../services/reward.service');
 
 const getRefundablePostingFee = (post) => {
     if (!post || post.postingFeeRefunded) return 0;
@@ -43,14 +44,14 @@ const normalizeVietnameseText = (value = '') =>
         .toString()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
+        .replace(/Ä‘/g, 'd')
+        .replace(/Ä/g, 'D')
         .toLowerCase();
 
 const locationAliases = {
-    'can tho': ['Cần Thơ', 'Can Tho'],
-    'ha noi': ['Hà Nội', 'Ha Noi'],
-    'ho chi minh': ['Hồ Chí Minh', 'Ho Chi Minh', 'TP.HCM', 'TP HCM', 'Sài Gòn', 'Sai Gon'],
+    'can tho': ['Cáº§n ThÆ¡', 'Can Tho'],
+    'ha noi': ['HÃ  Ná»™i', 'Ha Noi'],
+    'ho chi minh': ['Há»“ ChÃ­ Minh', 'Ho Chi Minh', 'TP.HCM', 'TP HCM', 'SÃ i GÃ²n', 'Sai Gon'],
 };
 
 const getLocationSearchTerms = (province, location) => {
@@ -78,6 +79,30 @@ const parseCoordinates = (coordinates = {}) => {
     const lat = parseCoordinate(safeCoordinates.lat);
     const lng = parseCoordinate(safeCoordinates.lng);
     return lat !== null && lng !== null ? { lat, lng } : { lat: null, lng: null };
+};
+
+const getDistanceKm = (fromLat, fromLng, toLat, toLng) => {
+    const toRadians = (value) => (value * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+    const dLat = toRadians(toLat - fromLat);
+    const dLng = toRadians(toLng - fromLng);
+    const lat1 = toRadians(fromLat);
+    const lat2 = toRadians(toLat);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const buildRadiusBounds = (lat, lng, radiusKm) => {
+    const latDelta = radiusKm / 111.32;
+    const lngDelta = radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180) || 1);
+    return {
+        north: lat + latDelta,
+        south: lat - latDelta,
+        east: lng + lngDelta,
+        west: lng - lngDelta,
+    };
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -201,7 +226,7 @@ class controllerPosts {
             !typeNews ||
             !dateEnd
         ) {
-            throw new BadRequestError('Vui lòng nhập đầy đủ thông tin');
+            throw new BadRequestError('Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin');
         }
 
         const user = await modelUser.findById(id);
@@ -222,7 +247,7 @@ class controllerPosts {
         }).select('_id');
 
         if (recentPost) {
-            throw new BadRequestError('Vui lòng chờ một chút trước khi đăng bài tiếp theo');
+            throw new BadRequestError('Vui lÃ²ng chá» má»™t chÃºt trÆ°á»›c khi Ä‘Äƒng bÃ i tiáº¿p theo');
         }
 
         const normalizedVoucherCode = normalizeVoucherCode(voucherCode);
@@ -238,7 +263,7 @@ class controllerPosts {
         const postingFee = voucherResult.finalAmount;
 
         if (user.balance < postingFee) {
-            throw new BadRequestError('Số dư không đủ');
+            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
         }
 
         const chargedUser = await modelUser.findOneAndUpdate(
@@ -248,7 +273,7 @@ class controllerPosts {
         );
 
         if (!chargedUser) {
-            throw new BadRequestError('Số dư không đủ');
+            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
         }
 
         let post;
@@ -281,6 +306,13 @@ class controllerPosts {
                 userId: id,
                 postId: post._id,
                 discountAmount: voucherResult.discountAmount,
+            });
+            await addPoints({
+                userId: id,
+                points: calculateEarnPoints(postingFee),
+                source: typeNews === 'vip' ? 'vip_upgrade' : 'listing_payment',
+                referenceId: post._id,
+                description: `Tich diem thanh toan dang tin: ${post.title}`,
             });
         } catch (error) {
             await modelUser.findByIdAndUpdate(id, { $inc: { balance: postingFee } });
@@ -351,9 +383,9 @@ class controllerPosts {
         const socket = global.usersMap.get(findUser._id.toString());
 
         if (socket) {
-            statusUser = 'Đang hoạt động';
+            statusUser = 'Äang hoáº¡t Ä‘á»™ng';
         } else {
-            statusUser = 'Đang offline';
+            statusUser = 'Äang offline';
         }
         const dataUser = {
             _id: findUser._id,
@@ -423,7 +455,7 @@ class controllerPosts {
             throw new BadRequestError('Bai viet da bi xoa truoc do');
         }
         if (!(await canManagePost(userId, findPost))) {
-            throw new BadRequestError('Bạn không có quyền xóa bài viết này');
+            throw new BadRequestError('Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a bÃ i viáº¿t nÃ y');
         }
         const activeDeposit = await modelDeposit.exists({
             roomId: id,
@@ -553,7 +585,7 @@ class controllerPosts {
         totals.conversionRate = totals.viewCount > 0 ? Number(((totals.depositCount / totals.viewCount) * 100).toFixed(2)) : 0;
 
         new OK({
-            message: 'Lấy phân tích chủ trọ thành công',
+            message: 'Láº¥y phÃ¢n tÃ­ch chá»§ trá» thÃ nh cÃ´ng',
             metadata: {
                 totals,
                 posts: postAnalytics,
@@ -564,14 +596,22 @@ class controllerPosts {
     async getMapPosts(req, res) {
         await expireAcceptedReservations();
         await ensureDefaultFilterOptions();
-        const { north, south, east, west, category, priceRange, areaRange, typeNews, province, location } = req.query;
+        const { north, south, east, west, lat, lng, radiusKm, category, priceRange, areaRange, typeNews, province, location } = req.query;
 
-        const bounds = {
-            north: parseCoordinate(north),
-            south: parseCoordinate(south),
-            east: parseCoordinate(east),
-            west: parseCoordinate(west),
-        };
+        const centerLat = parseCoordinate(lat);
+        const centerLng = parseCoordinate(lng);
+        const radius = parseCoordinate(radiusKm);
+        const hasRadiusSearch = centerLat !== null && centerLng !== null && radius !== null;
+        const radiusLimit = hasRadiusSearch ? Math.max(0.1, Math.min(radius, 50)) : null;
+
+        const bounds = hasRadiusSearch
+            ? buildRadiusBounds(centerLat, centerLng, radiusLimit)
+            : {
+                  north: parseCoordinate(north),
+                  south: parseCoordinate(south),
+                  east: parseCoordinate(east),
+                  west: parseCoordinate(west),
+              };
 
         if (Object.values(bounds).some((value) => value === null)) {
             throw new BadRequestError('Vùng bản đồ không hợp lệ');
@@ -597,19 +637,36 @@ class controllerPosts {
         if (priceOption) filter.price = buildNumericCondition(priceOption);
         if (areaOption) filter.area = buildNumericCondition(areaOption);
 
-        const posts = (await modelPost.find(filter).sort({ createdAt: -1 }).limit(300)).filter((post) =>
-            matchesLocation(post, locationTerms),
-        );
+        const posts = (await modelPost.find(filter).sort({ createdAt: -1 }).limit(300))
+            .filter((post) => matchesLocation(post, locationTerms))
+            .map((post) => {
+                if (!hasRadiusSearch) return post;
+                const postLat = Number(post.coordinates?.lat);
+                const postLng = Number(post.coordinates?.lng);
+                const distanceKm = getDistanceKm(centerLat, centerLng, postLat, postLng);
+                return { post, distanceKm };
+            })
+            .filter((item) => {
+                if (!hasRadiusSearch) return true;
+                return Number.isFinite(item.distanceKm) && item.distanceKm <= radiusLimit;
+            })
+            .sort((a, b) => {
+                if (!hasRadiusSearch) return 0;
+                return a.distanceKm - b.distanceKm;
+            })
+            .map((item) => {
+                if (!hasRadiusSearch) return item;
+                return { ...item.post._doc, distanceKm: Number(item.distanceKm.toFixed(2)) };
+            });
 
         new OK({ message: 'Lấy bài đăng trên bản đồ thành công', metadata: posts }).send(res);
     }
-
     async updatePostAvailability(req, res) {
         const { id: userId } = req.user;
         const { id, availabilityStatus } = req.body;
 
         if (!id || !['available', 'unavailable'].includes(availabilityStatus)) {
-            throw new BadRequestError('Trạng thái phòng không hợp lệ');
+            throw new BadRequestError('Tráº¡ng thÃ¡i phÃ²ng khÃ´ng há»£p lá»‡');
         }
 
         const findPost = await modelPost.findById(id);
@@ -621,7 +678,7 @@ class controllerPosts {
         }
 
         if (findPost.userId.toString() !== userId) {
-            throw new BadRequestError('Bạn không có quyền cập nhật bài viết này');
+            throw new BadRequestError('Báº¡n khÃ´ng cÃ³ quyá»n cáº­p nháº­t bÃ i viáº¿t nÃ y');
         }
 
         const activeDeposit = await modelDeposit.exists({
@@ -629,12 +686,12 @@ class controllerPosts {
             status: { $in: ['holding', 'disputed'] },
         });
         if (activeDeposit) {
-            throw new BadRequestError('Phòng đang có giao dịch cọc, không thể cập nhật thủ công');
+            throw new BadRequestError('PhÃ²ng Ä‘ang cÃ³ giao dá»‹ch cá»c, khÃ´ng thá»ƒ cáº­p nháº­t thá»§ cÃ´ng');
         }
 
         const updatedPost = await modelPost.findByIdAndUpdate(id, { availabilityStatus }, { new: true });
         return new OK({
-            message: availabilityStatus === 'available' ? 'Đã cập nhật còn phòng' : 'Đã cập nhật hết phòng',
+            message: availabilityStatus === 'available' ? 'ÄÃ£ cáº­p nháº­t cÃ²n phÃ²ng' : 'ÄÃ£ cáº­p nháº­t háº¿t phÃ²ng',
             metadata: updatedPost,
         }).send(res);
     }
@@ -666,7 +723,7 @@ class controllerPosts {
             throw new BadRequestError('Khong the duyet bai viet da bi xoa');
         }
         if (!PENDING_POST_STATUSES.includes(findPost.status)) {
-            throw new BadRequestError('Chỉ có thể duyệt bài viết đang chờ duyệt');
+            throw new BadRequestError('Chá»‰ cÃ³ thá»ƒ duyá»‡t bÃ i viáº¿t Ä‘ang chá» duyá»‡t');
         }
         const findUser = await modelUser.findById(findPost.userId);
         if (!findUser) {
@@ -675,7 +732,7 @@ class controllerPosts {
         const updatedPost = await modelPost.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
         await SendMailApprove(findUser.email, findPost);
         return new OK({
-            message: 'Duyệt bài viết thành công',
+            message: 'Duyá»‡t bÃ i viáº¿t thÃ nh cÃ´ng',
             metadata: updatedPost,
         }).send(res);
     }
@@ -690,7 +747,7 @@ class controllerPosts {
             throw new BadRequestError('Khong the tu choi bai viet da bi xoa');
         }
         if (!PENDING_POST_STATUSES.includes(findPost.status)) {
-            throw new BadRequestError('Chỉ có thể từ chối bài viết đang chờ duyệt');
+            throw new BadRequestError('Chá»‰ cÃ³ thá»ƒ tá»« chá»‘i bÃ i viáº¿t Ä‘ang chá» duyá»‡t');
         }
         const findUser = await modelUser.findById(findPost.userId);
         if (!findUser) {
@@ -709,16 +766,22 @@ class controllerPosts {
         );
 
         if (!updatedPost) {
-            throw new BadRequestError('Bài viết đã được xử lý trước đó');
+            throw new BadRequestError('BÃ i viáº¿t Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ trÆ°á»›c Ä‘Ã³');
         }
 
         if (refundAmount > 0) {
             await modelUser.findByIdAndUpdate(findPost.userId, { $inc: { balance: refundAmount } });
+            await refundPoints({
+                userId: findPost.userId,
+                source: findPost.typeNews === 'vip' ? 'vip_upgrade' : 'listing_payment',
+                referenceId: findPost._id,
+                description: `Thu hoi diem do bai dang bi tu choi: ${findPost.title}`,
+            });
         }
 
         await SendMailReject(findUser.email, updatedPost, reason);
         return new OK({
-            message: 'Từ chối bài viết thành công',
+            message: 'Tá»« chá»‘i bÃ i viáº¿t thÃ nh cÃ´ng',
             metadata: { ...updatedPost._doc, refundAmount },
         }).send(res);
     }
@@ -730,11 +793,11 @@ class controllerPosts {
         const address = findUser.address;
 
         if (address) {
-            // Lấy phần quận/huyện + tỉnh/thành
+            // Láº¥y pháº§n quáº­n/huyá»‡n + tá»‰nh/thÃ nh
             const addressParts = address.split(',');
-            const districtCity = addressParts.slice(-2).join(',').trim(); // "Hoàng Mai, Hà Nội"
+            const districtCity = addressParts.slice(-2).join(',').trim(); // "HoÃ ng Mai, HÃ  Ná»™i"
 
-            // Tìm bài viết có location chứa "Hoàng Mai, Hà Nội"
+            // TÃ¬m bÃ i viáº¿t cÃ³ location chá»©a "HoÃ ng Mai, HÃ  Ná»™i"
             const data = await modelPost.find({
                 location: { $regex: new RegExp(districtCity, 'i') },
                 status: { $in: PUBLIC_POST_STATUSES },

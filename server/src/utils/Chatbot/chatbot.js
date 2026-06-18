@@ -27,11 +27,11 @@ const formatPrice = (price) => `${Number(price || 0).toLocaleString('vi-VN')} VN
 const formatPostForPrompt = (post, index) =>
     [
         `${index + 1}. ${post.title}`,
-        `Gia: ${formatPrice(post.price)}`,
-        `Dien tich: ${post.area || '-'} m2`,
-        `Dia chi: ${post.location || '-'}`,
-        `Loai phong: ${post.category || '-'}`,
-        `Tinh trang: ${post.availabilityStatus || 'available'}`,
+        `Giá: ${formatPrice(post.price)}`,
+        `Điênn tích: ${post.area || '-'} m2`,
+        `Địa chỉ: ${post.location || '-'}`,
+        `Loại phòng: ${post.category || '-'}`,
+        `Tình trạng: ${post.availabilityStatus || 'available'}`,
     ].join(' | ');
 
 const formatSuggestion = (post) => ({
@@ -67,16 +67,16 @@ const getRelevantPosts = async (question) => {
 const buildFallbackAnswer = (question, suggestions) => {
     if (!suggestions.length) {
         return [
-            'Hien tai minh chua tim thay phong phu hop trong danh sach dang hien thi.',
-            'Ban co the cho minh them khu vuc, muc gia du kien, dien tich mong muon va so nguoi o de minh loc lai chinh xac hon.',
+            'Hiện tại mình chưa tìm thấy phong phù hợp trong danh sách đang hiển thị.',
+            'Bạn có thể cho mình thêm khu vực, mức giá dự kiến, diện tích mong muốn và số người ở để mình lọc lại chính xác hơn.',
         ].join('\n');
     }
 
     const top = suggestions[0];
     return [
-        `Minh tim thay ${suggestions.length} phong co the phu hop voi nhu cau cua ban.`,
-        `Goi y noi bat: ${top.title}, gia ${formatPrice(top.price)}, dien tich ${top.area || '-'} m2 tai ${top.location || 'khu vuc dang cap nhat'}.`,
-        'Ban nen xem ky vi tri, tien ich, tinh trang phong va lien he chu tro de xac nhan phong con trong truoc khi dat coc.',
+        `Mình tìm thấy ${suggestions.length} phòng có thể phù hợp với nhu cầu của bạn.`,
+        `Gợi ý nổi bật: ${top.title}, giá ${formatPrice(top.price)}, diện tích ${top.area || '-'} m2 tại ${top.location || 'khu vực đang cập nhật'}.`,
+        'Bạn nên xem kỹ vị trí, tiện ích, tình trạng phòng và liên hệ chủ trọ để xác nhận phòng còn trong trước khi đặt cọc.',
     ].join('\n');
 };
 
@@ -84,7 +84,7 @@ async function askQuestion(question) {
     const cleanQuestion = String(question || '').trim();
     if (!cleanQuestion) {
         return {
-            answer: 'Ban hay cho minh biet khu vuc, ngan sach va dien tich mong muon de minh goi y phong phu hop.',
+            answer: 'Bạn hay cho mình biết khu vực, ngân sách và diện tích mong muốn để mình gợi ý phòng phù hợp.',
             suggestions: [],
         };
     }
@@ -102,20 +102,20 @@ async function askQuestion(question) {
     try {
         const postData = relevantPosts.map(formatPostForPrompt).join('\n');
         const prompt = `
-Ban la AI Chatbot ho tro thue phong tro cho website tim phong tai Viet Nam.
+Bạn là AI Chatbot hỗ trơ thuê phòng trọ cho website tìm phòng tại Việt Nam.
 
-Nhiem vu:
-- Tra loi bang tieng Viet tu nhien, than thien, ngan gon.
-- Tu van nguoi thue ve khu vuc, ngan sach, dien tich, tien ich, tinh trang phong, dat coc va hop dong.
-- Chi goi y phong dua tren danh sach bai dang cong khai ben duoi.
-- Neu thong tin nguoi dung chua du, hay hoi lai 1-2 cau hoi ro rang.
-- Nhac nguoi dung khong chuyen tien coc khi chua xac minh chu tro, phong va dieu khoan.
-- Khong noi rang ban co the thuc hien giao dich thay nguoi dung.
+Nhiệm vụ:
+- Trả lời bằng tiếng Việt tự nhiên, thân thiện, ngắn gọn.
+- Tư vấn người thuê về khu vực, ngân sách, diện tích, tiện ích, tình trạng phòng, đặt cọc và hợp đồng.
+- Chỉ gợi ý phòng dựa trên danh sách bài đăng công khai bên dưới.
+- Nếu thông tin người dùng chưa đủ, hay hỏi lại 1-2 câu hỏi rõ ràng.
+- Nhắc người dùng không chuyển tiền cọc khi chưa xác minh chủ trọ, phòng và điều khoản.
+- Không nói rằng bạn có thể thực hiện giao dịch thay người dùng.
 
-Danh sach phong dang hien thi:
-${postData || 'Chua co phong cong khai phu hop.'}
+Danh sách phòng đang hiển thị:
+${postData || 'Chưa có phòng công khai phù hợp.'}
 
-Cau hoi cua nguoi dung: ${cleanQuestion}
+Câu hỏi của người dùng: ${cleanQuestion}
 `;
 
         const result = await model.generateContent(prompt);

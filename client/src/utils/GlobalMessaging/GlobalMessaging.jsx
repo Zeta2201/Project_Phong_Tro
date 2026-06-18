@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useStore } from '../../hooks/useStore';

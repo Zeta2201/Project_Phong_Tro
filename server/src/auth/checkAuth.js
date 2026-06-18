@@ -41,11 +41,12 @@ const authAdmin = async (req, res, next) => {
             throw new BadUserRequestError('Tài khoản của bạn đã bị khóa');
         }
 
-        if (findUser.isAdmin === false) {
+        const role = findUser.role || (findUser.isAdmin ? 'admin' : 'user');
+        if (!['admin', 'super_admin'].includes(role) && findUser.isAdmin === false) {
             throw new BadUser2RequestError('Bạn không có quyền truy cập');
         }
 
-        req.user = decoded;
+        req.user = { ...decoded, role };
         next();
     } catch (error) {
         next(error);
@@ -58,3 +59,4 @@ module.exports = {
     authAdmin,
     isLockedUser,
 };
+

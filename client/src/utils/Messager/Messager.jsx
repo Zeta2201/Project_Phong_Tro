@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import { useEffect, useState, useRef } from 'react';
 import classNames from 'classnames/bind';
 import styles from './Messager.module.scss';
@@ -172,10 +174,10 @@ function Messager({ user, setUsersMessage, usersMessage }) {
                 </div>
 
                 <div className={cx('close')}>
-                    <button onClick={() => handleStartCall('audio')} title="Goi audio" aria-label="Goi audio">
+                    <button onClick={() => handleStartCall('audio')} title="Gọi audio" aria-label="Goi audio">
                         <FontAwesomeIcon icon={faPhone} />
                     </button>
-                    <button onClick={() => handleStartCall('video')} title="Goi video" aria-label="Goi video">
+                    <button onClick={() => handleStartCall('video')} title="Gọi video" aria-label="Goi video">
                         <FontAwesomeIcon icon={faVideo} />
                     </button>
                     <button onClick={handleCloseMessager}>

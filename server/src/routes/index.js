@@ -14,6 +14,7 @@ const postingPlanRoutes = require('./postingPlan.routes');
 const contractRoutes = require('./contract.routes');
 const voucherRoutes = require('./voucher.routes');
 const bannerRoutes = require('./banner.routes');
+const rewardRoutes = require('./reward.routes');
 
 const multer = require('multer');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
@@ -37,6 +38,10 @@ function routes(app) {
     app.post('/api/submit-cccd-verification', userRoutes);
     app.post('/api/admin/update-verification-status', userRoutes);
     app.post('/api/update-user-admin', userRoutes);
+    app.patch('/api/admin/users/:id/lock', userRoutes);
+    app.patch('/api/admin/users/:id/unlock', userRoutes);
+    app.patch('/api/admin/users/:id/promote', userRoutes);
+    app.patch('/api/admin/users/:id/demote', userRoutes);
     app.post('/api/change-password', userRoutes);
 
     app.get('/api/get-users', userRoutes);
@@ -129,6 +134,21 @@ function routes(app) {
     app.post('/api/admin/vouchers', voucherRoutes);
     app.post('/api/admin/update-voucher', voucherRoutes);
     app.post('/api/admin/toggle-voucher', voucherRoutes);
+
+    /// rewards
+    app.get('/api/rewards/me', rewardRoutes);
+    app.get('/api/rewards/history', rewardRoutes);
+    app.get('/api/rewards/vouchers', rewardRoutes);
+    app.post('/api/rewards/redeem/:voucherId', rewardRoutes);
+    app.get('/api/rewards/my-vouchers', rewardRoutes);
+    app.get('/api/admin/rewards/users', rewardRoutes);
+    app.get('/api/admin/rewards/transactions', rewardRoutes);
+    app.patch('/api/admin/rewards/users/:id/adjust', rewardRoutes);
+    app.post('/api/admin/rewards/backfill-listing-points', rewardRoutes);
+    app.get('/api/admin/rewards/vouchers', rewardRoutes);
+    app.post('/api/admin/rewards/vouchers', rewardRoutes);
+    app.patch('/api/admin/rewards/vouchers/:id', rewardRoutes);
+    app.delete('/api/admin/rewards/vouchers/:id', rewardRoutes);
 
     /// banners
     app.get('/api/banners/active', bannerRoutes);

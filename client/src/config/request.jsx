@@ -145,6 +145,26 @@ export const requestUpdateUserAdmin = async (data) => {
     return res.data;
 };
 
+export const requestLockAdminUser = async (id) => {
+    const res = await request.patch(`/api/admin/users/${id}/lock`);
+    return res.data;
+};
+
+export const requestUnlockAdminUser = async (id) => {
+    const res = await request.patch(`/api/admin/users/${id}/unlock`);
+    return res.data;
+};
+
+export const requestPromoteAdminUser = async (id) => {
+    const res = await request.patch(`/api/admin/users/${id}/promote`);
+    return res.data;
+};
+
+export const requestDemoteAdminUser = async (id) => {
+    const res = await request.patch(`/api/admin/users/${id}/demote`);
+    return res.data;
+};
+
 export const requestGetAdminStats = async () => {
     const res = await request.get('/api/get-admin-stats');
     return res.data;
@@ -308,6 +328,71 @@ export const requestUpdateVoucher = async (data) => {
 
 export const requestToggleVoucher = async (data) => {
     const res = await request.post('/api/admin/toggle-voucher', data);
+    return res.data;
+};
+
+export const requestGetMyRewards = async () => {
+    const res = await request.get('/api/rewards/me');
+    return res.data;
+};
+
+export const requestGetRewardHistory = async () => {
+    const res = await request.get('/api/rewards/history');
+    return res.data;
+};
+
+export const requestGetRewardVouchers = async () => {
+    const res = await request.get('/api/rewards/vouchers');
+    return res.data;
+};
+
+export const requestRedeemRewardVoucher = async (voucherId) => {
+    const res = await request.post(`/api/rewards/redeem/${voucherId}`);
+    return res.data;
+};
+
+export const requestGetMyRewardVouchers = async () => {
+    const res = await request.get('/api/rewards/my-vouchers');
+    return res.data;
+};
+
+export const requestGetAdminRewardUsers = async () => {
+    const res = await request.get('/api/admin/rewards/users');
+    return res.data;
+};
+
+export const requestGetAdminRewardTransactions = async () => {
+    const res = await request.get('/api/admin/rewards/transactions');
+    return res.data;
+};
+
+export const requestAdjustRewardPoints = async (id, data) => {
+    const res = await request.patch(`/api/admin/rewards/users/${id}/adjust`, data);
+    return res.data;
+};
+
+export const requestBackfillListingRewardPoints = async () => {
+    const res = await request.post('/api/admin/rewards/backfill-listing-points');
+    return res.data;
+};
+
+export const requestGetAdminRewardVouchers = async () => {
+    const res = await request.get('/api/admin/rewards/vouchers');
+    return res.data;
+};
+
+export const requestCreateRewardVoucher = async (data) => {
+    const res = await request.post('/api/admin/rewards/vouchers', data);
+    return res.data;
+};
+
+export const requestUpdateRewardVoucher = async (id, data) => {
+    const res = await request.patch(`/api/admin/rewards/vouchers/${id}`, data);
+    return res.data;
+};
+
+export const requestDeleteRewardVoucher = async (id) => {
+    const res = await request.delete(`/api/admin/rewards/vouchers/${id}`);
     return res.data;
 };
 

@@ -4,11 +4,21 @@ const modelRechargeUser = require('../models/RechargeUser.model');
 const modelPost = require('../models/post.model');
 const modelKeyWordSearch = require('../models/keyWordSearch.model');
 const modelOtp = require('../models/otp.model');
+const modelFavourite = require('../models/favourite.model');
+const modelReservation = require('../models/reservation.model');
+const modelDeposit = require('../models/deposit.model');
+const modelContract = require('../models/contract.model');
+const modelMessager = require('../models/Messager.model');
+const modelReport = require('../models/report.model');
+const modelComment = require('../models/comment.model');
+const modelReview = require('../models/review.model');
+const modelVoucher = require('../models/voucher.model');
+const modelContact = require('../models/contact.model');
 
 const sendMailForgotPassword = require('../utils/SendMail/sendMailForgotPassword');
 const sendMailChangeEmail = require('../utils/SendMail/sendMailChangeEmail');
 const sendMailRegisterOtp = require('../utils/SendMail/sendMailRegisterOtp');
-const { BadRequestError } = require('../core/error.response');
+const { BadRequestError, BadUser2RequestError } = require('../core/error.response');
 const { createApiKey, createToken, createRefreshToken, verifyToken } = require('../services/tokenSevices');
 const { Created, OK } = require('../core/success.response');
 
@@ -28,6 +38,81 @@ const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GO
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_CHANGE_OTP_EXPIRES_MS = 10 * 60 * 1000;
 const REGISTER_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const ADMIN_ROLES = ['admin', 'super_admin'];
+
+const getEffectiveRole = (user) => {
+    if (!user) return 'user';
+    if (user.role === 'super_admin') return 'super_admin';
+    if (user.role === 'admin' || user.isAdmin === true) return 'admin';
+    if (user.role === 'landlord') return 'landlord';
+    return 'user';
+};
+
+const isAdminRole = (role) => ADMIN_ROLES.includes(role);
+const isSuperAdminRole = (role) => role === 'super_admin';
+
+const buildRoleUpdate = (role) => ({
+    role,
+    isAdmin: isAdminRole(role),
+});
+
+const getActiveAdminFilter = (excludeId = null) => {
+    const filter = {
+        isActive: true,
+        accountStatus: { $ne: 'locked' },
+        $or: [{ role: { $in: ADMIN_ROLES } }, { isAdmin: true }],
+    };
+    if (excludeId) filter._id = { $ne: excludeId };
+    return filter;
+};
+
+const ensureAdminWillRemain = async (targetUserId) => {
+    const remainingAdminCount = await modelUser.countDocuments(getActiveAdminFilter(targetUserId));
+    if (remainingAdminCount <= 0) {
+        throw new BadUser2RequestError('Không thể thao tác với tài khoản quản trị cuối cùng của hệ thống');
+    }
+};
+
+const getAdminActorAndTarget = async (actorId, targetId) => {
+    const [actor, target] = await Promise.all([modelUser.findById(actorId), modelUser.findById(targetId)]);
+    if (!actor) throw new BadUser2RequestError('Không xác định được tài khoản quản trị hiện tại');
+    if (!target) throw new BadRequestError('Không tìm thấy người dùng');
+
+    const actorRole = getEffectiveRole(actor);
+    const targetRole = getEffectiveRole(target);
+    if (!isAdminRole(actorRole)) {
+        throw new BadUser2RequestError('Bạn không có quyền thực hiện thao tác này');
+    }
+
+    return { actor, target, actorRole, targetRole, isSelf: actor._id.toString() === target._id.toString() };
+};
+
+const assertCanChangeActiveStatus = async ({ actorRole, targetRole, isSelf, target, nextIsActive }) => {
+    if (isSelf && nextIsActive === false) {
+        throw new BadUser2RequestError('Không thể tự khóa tài khoản đang đăng nhập');
+    }
+    if (actorRole === 'admin' && isAdminRole(targetRole)) {
+        throw new BadUser2RequestError('Admin thường không được khóa hoặc mở khóa admin khác');
+    }
+    if (nextIsActive === false && isAdminRole(targetRole)) {
+        await ensureAdminWillRemain(target._id);
+    }
+};
+
+const assertCanChangeRole = async ({ actorRole, targetRole, isSelf, target, nextRole }) => {
+    if (!isSuperAdminRole(actorRole)) {
+        throw new BadUser2RequestError('Chỉ super admin mới được cấp hoặc gỡ quyền admin');
+    }
+    if (isSelf && targetRole === 'super_admin' && nextRole !== 'super_admin') {
+        throw new BadUser2RequestError('Không thể tự gỡ quyền super admin của chính mình');
+    }
+    if (isSelf && isAdminRole(targetRole) && !isAdminRole(nextRole)) {
+        throw new BadUser2RequestError('Không thể tự gỡ quyền admin của chính mình');
+    }
+    if (isAdminRole(targetRole) && !isAdminRole(nextRole)) {
+        await ensureAdminWillRemain(target._id);
+    }
+};
 
 const buildCookieOptions = (maxAge, httpOnly = true) => ({
     httpOnly,
@@ -746,9 +831,16 @@ class controllerUsers {
                 verificationStatus: status,
                 verifiedAt: status === 'verified' ? new Date() : null,
                 verificationRejectReason: status === 'rejected' ? reason || '' : '',
+                ...(status === 'verified' ? { role: 'landlord' } : {}),
             },
             { new: true },
         );
+
+        if (updatedUser && isAdminRole(getEffectiveRole(updatedUser))) {
+            updatedUser.role = getEffectiveRole(updatedUser);
+            updatedUser.isAdmin = true;
+            await updatedUser.save();
+        }
 
         if (!updatedUser) {
             throw new BadRequestError('Không tìm thấy người dùng');
@@ -763,29 +855,81 @@ class controllerUsers {
     async updateUserAdmin(req, res) {
         const { id, isActive, isAdmin } = req.body;
         if (!id) {
-            throw new BadRequestError('Id người dùng bắt buộc');
+            throw new BadRequestError('Id ngu?i d�ng b?t bu?c');
         }
 
+        const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, id);
         const updateData = {};
         const shouldUpdateActive = typeof isActive === 'boolean';
+
         if (shouldUpdateActive) {
+            await assertCanChangeActiveStatus({ actorRole, targetRole, isSelf, target, nextIsActive: isActive });
             updateData.isActive = isActive;
             updateData.accountStatus = isActive ? 'active' : 'locked';
         }
-        if (typeof isAdmin === 'boolean') updateData.isAdmin = isAdmin;
+
+        if (typeof isAdmin === 'boolean') {
+            const nextRole = isAdmin ? 'admin' : targetRole === 'landlord' ? 'landlord' : 'user';
+            await assertCanChangeRole({ actorRole, targetRole, isSelf, target, nextRole });
+            Object.assign(updateData, buildRoleUpdate(nextRole));
+        }
 
         const user = await modelUser.findByIdAndUpdate(id, updateData, { new: true });
         if (!user) {
-            throw new BadRequestError('Không tìm thấy người dùng');
+            throw new BadRequestError('Kh�ng t�m th?y ngu?i d�ng');
         }
 
         if (shouldUpdateActive && !isActive) {
             await modelApiKey.deleteOne({ userId: user._id.toString() });
         }
 
-        new OK({ message: 'Cập nhật người dùng thành công', metadata: user }).send(res);
+        new OK({ message: 'C?p nh?t ngu?i d�ng th�nh c�ng', metadata: user }).send(res);
     }
 
+    async lockUser(req, res) {
+        const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, req.params.id);
+        await assertCanChangeActiveStatus({ actorRole, targetRole, isSelf, target, nextIsActive: false });
+
+        target.isActive = false;
+        target.accountStatus = 'locked';
+        await target.save();
+        await modelApiKey.deleteOne({ userId: target._id.toString() });
+
+        new OK({ message: '�� kh�a t�i kho?n', metadata: target }).send(res);
+    }
+
+    async unlockUser(req, res) {
+        const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, req.params.id);
+        await assertCanChangeActiveStatus({ actorRole, targetRole, isSelf, target, nextIsActive: true });
+
+        target.isActive = true;
+        target.accountStatus = 'active';
+        await target.save();
+
+        new OK({ message: '�� m? kh�a t�i kho?n', metadata: target }).send(res);
+    }
+
+    async promoteUser(req, res) {
+        const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, req.params.id);
+        await assertCanChangeRole({ actorRole, targetRole, isSelf, target, nextRole: 'admin' });
+
+        Object.assign(target, buildRoleUpdate('admin'));
+        await target.save();
+
+        new OK({ message: '�� c?p quy?n admin', metadata: target }).send(res);
+    }
+
+    async demoteUser(req, res) {
+        const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, req.params.id);
+        const nextRole = target.role === 'landlord' ? 'landlord' : 'user';
+        await assertCanChangeRole({ actorRole, targetRole, isSelf, target, nextRole });
+
+        Object.assign(target, buildRoleUpdate(nextRole));
+        await target.save();
+        await modelApiKey.deleteOne({ userId: target._id.toString() });
+
+        new OK({ message: '�� g? quy?n admin', metadata: target }).send(res);
+    }
     async getUsers(req, res) {
         const { q, status, role } = req.query;
         const filter = {};
@@ -805,13 +949,8 @@ class controllerUsers {
             filter.isActive = false;
         }
 
-        if (role === 'admin') {
-            filter.isAdmin = true;
-        } else if (role === 'user') {
-            filter.isAdmin = false;
-        }
-
-        const dataUser = await modelUser.find(filter).sort({ createdAt: -1 });
+        const rawUsers = await modelUser.find(filter).sort({ createdAt: -1 });
+        const dataUser = role ? rawUsers.filter((user) => getEffectiveRole(user) === role) : rawUsers;
         const data = await Promise.all(
             dataUser.map(async (user) => {
                 const post = await modelPost.find({
@@ -821,7 +960,7 @@ class controllerUsers {
                 });
                 const totalPost = post.length;
                 const totalSpent = post.reduce((sum, post) => sum + inferPostingFeeFromPost(post), 0);
-                return { user, totalPost, totalSpent };
+                return { user: { ...user._doc, role: getEffectiveRole(user) }, totalPost, totalSpent };
             }),
         );
 
@@ -1071,3 +1210,4 @@ class controllerUsers {
 }
 
 module.exports = new controllerUsers();
+

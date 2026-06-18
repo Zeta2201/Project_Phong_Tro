@@ -6,6 +6,9 @@ const normalizeVoucherCode = (code = '') => code.toString().trim().toUpperCase()
 const validateVoucherPayload = ({ voucher, userId, typeNews, orderValue, now = new Date() }) => {
     if (!voucher) throw new BadRequestError('Voucher không tồn tại');
     if (!voucher.isActive) throw new BadRequestError('Voucher đã tắt');
+    if (voucher.userId && voucher.userId.toString() !== userId?.toString()) {
+        throw new BadRequestError('Voucher không thuộc tài khoản của bạn');
+    }
     if (voucher.startAt && new Date(voucher.startAt) > now) throw new BadRequestError('Voucher chưa đến thời gian sử dụng');
     if (voucher.endAt && new Date(voucher.endAt) < now) throw new BadRequestError('Voucher đã hết hạn');
     if (voucher.minOrderValue && orderValue < voucher.minOrderValue) {

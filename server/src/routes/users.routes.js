@@ -24,6 +24,10 @@ router.post('/api/users/verify-change-email', authUser, asyncHandler(controllerU
 router.post('/api/submit-cccd-verification', authUser, upload.single('cccd'), asyncHandler(controllerUsers.submitCccdVerification));
 router.post('/api/admin/update-verification-status', authAdmin, asyncHandler(controllerUsers.updateVerificationStatus));
 router.post('/api/update-user-admin', authAdmin, asyncHandler(controllerUsers.updateUserAdmin));
+router.patch('/api/admin/users/:id/lock', authAdmin, asyncHandler(controllerUsers.lockUser));
+router.patch('/api/admin/users/:id/unlock', authAdmin, asyncHandler(controllerUsers.unlockUser));
+router.patch('/api/admin/users/:id/promote', authAdmin, asyncHandler(controllerUsers.promoteUser));
+router.patch('/api/admin/users/:id/demote', authAdmin, asyncHandler(controllerUsers.demoteUser));
 router.post('/api/change-password', authUser, asyncHandler(controllerUsers.changePassword));
 router.post('/api/forgot-password', asyncHandler(controllerUsers.forgotPassword));
 router.post('/api/reset-password', asyncHandler(controllerUsers.resetPassword));

@@ -29,6 +29,9 @@ const voucherSchema = new Schema(
         usedCount: { type: Number, default: 0, min: 0 },
         usedBy: { type: [voucherUsageSchema], default: [] },
         isActive: { type: Boolean, default: true, index: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null, index: true },
+        source: { type: String, enum: ['admin', 'reward'], default: 'admin', index: true },
+        rewardVoucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'rewardVoucher', default: null },
     },
     { timestamps: true },
 );

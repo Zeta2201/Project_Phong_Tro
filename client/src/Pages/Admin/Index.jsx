@@ -19,6 +19,7 @@ import {
     GiftOutlined,
     PictureOutlined,
     AuditOutlined,
+    TrophyOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { requestLogout } from '../../config/request';
@@ -39,6 +40,7 @@ import ManagerPostingPlans from './Components/ManagerPostingPlans/ManagerPosting
 import ManagerContracts from './Components/ManagerContracts/ManagerContracts';
 import ManagerVouchers from './Components/ManagerVouchers/ManagerVouchers';
 import ManagerBanners from './Components/ManagerBanners/ManagerBanners';
+import ManagerRewards from './Components/ManagerRewards/ManagerRewards';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -135,6 +137,12 @@ function Admin() {
             onClick: () => setType('vouchers'),
         },
         {
+            key: 'rewards',
+            icon: <TrophyOutlined />,
+            label: 'Quản lý tích điểm',
+            onClick: () => setType('rewards'),
+        },
+        {
             key: 'banners',
             icon: <PictureOutlined />,
             label: 'Quản lý banner',
@@ -192,6 +200,7 @@ function Admin() {
                     {type === 'contracts' && <ManagerContracts />}
                     {type === 'posting-plans' && <ManagerPostingPlans />}
                     {type === 'vouchers' && <ManagerVouchers />}
+                    {type === 'rewards' && <ManagerRewards />}
                     {type === 'banners' && <ManagerBanners />}
                     {type === 'filters' && <ManagerFilters />}
                 </Content>

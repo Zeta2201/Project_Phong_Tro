@@ -45,7 +45,8 @@
 }
 
 .heatCanvas {
-    mix-blend-mode: multiply;
+    opacity: 0.9;
+    mix-blend-mode: normal;
 }
 
 .mapControls {
@@ -151,6 +152,88 @@
     font-weight: 700;
 }
 
+.radiusSearchBox {
+    display: grid;
+    gap: 10px;
+    padding: 14px 18px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+
+    label {
+        color: #334155;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    input,
+    select {
+        width: 100%;
+        height: 40px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 700;
+        outline: none;
+
+        &:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+        }
+    }
+
+    input {
+        padding: 0 12px;
+    }
+
+    select {
+        padding: 0 10px;
+    }
+}
+
+.radiusRow {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+}
+
+.radiusActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid #0f766e;
+        border-radius: 6px;
+        background: #0f766e;
+        color: #ffffff;
+        font-weight: 900;
+        cursor: pointer;
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    }
+
+    .ghost {
+        border-color: #cbd5e1;
+        background: #ffffff;
+        color: #334155;
+    }
+}
+
+.radiusHint {
+    margin: 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
 .resultList {
     display: flex;
     flex-direction: column;
@@ -199,6 +282,15 @@
         display: block;
         margin-bottom: 6px;
         color: #15803d;
+        font-weight: 900;
+    }
+
+    em {
+        display: block;
+        margin-bottom: 6px;
+        color: #0f766e;
+        font-size: 12px;
+        font-style: normal;
         font-weight: 900;
     }
 

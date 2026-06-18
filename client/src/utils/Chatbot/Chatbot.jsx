@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Chatbot.module.scss';
@@ -131,7 +133,7 @@ const Chatbot = () => {
             setMessages((prev) => [
                 ...prev,
                 {
-                    text: 'Xin loi, hien tai minh chua the ket noi AI. Ban vui long thu lai sau.',
+                    text: 'Xin lỗi, hiện tại mình chưa thể kết nối AI. Bạn vui lòng thử lại sau.',
                     sender: 'bot',
                     suggestions: [],
                 },
@@ -229,7 +231,7 @@ const Chatbot = () => {
                 onPointerUp={handleChatButtonPointerUp}
                 onPointerCancel={handleChatButtonPointerUp}
                 onClick={handleChatButtonClick}
-                aria-label="Mo tro ly AI thue phong"
+                aria-label="Mở trợ lý AI thuê phòng"
             >
                 <FontAwesomeIcon icon={faComments} />
                 <span>AI</span>
@@ -240,9 +242,9 @@ const Chatbot = () => {
                     <div className={styles.chatHeader}>
                         <div>
                             <span>AI Rent Assistant</span>
-                            <h2>Ho tro thue phong</h2>
+                            <h2>Hỗ trợ thuê phòng</h2>
                         </div>
-                        <button className={styles.closeButton} onClick={() => setIsOpen(false)} aria-label="Dong chat">
+                        <button className={styles.closeButton} onClick={() => setIsOpen(false)} aria-label="Đóng chat">
                             <FontAwesomeIcon icon={faTimes} />
                         </button>
                     </div>
@@ -274,9 +276,9 @@ const Chatbot = () => {
                                                 <img src={post.image || imgDefault} alt={post.title} />
                                                 <div>
                                                     <strong>{post.title}</strong>
-                                                    <span>{Number(post.price || 0).toLocaleString('vi-VN')} VND/thang</span>
+                                                    <span>{Number(post.price || 0).toLocaleString('vi-VN')} VND/tháng</span>
                                                     <small>
-                                                        {post.area || '-'} m2 - {post.location || 'Dang cap nhat'}
+                                                        {post.area || '-'} m2 - {post.location || 'Đang cập nhật'}
                                                     </small>
                                                 </div>
                                             </Link>
@@ -289,7 +291,7 @@ const Chatbot = () => {
                         {isLoading && (
                             <div className={`${styles.message} ${styles.botMessage}`}>
                                 <div className={styles.messageContent}>
-                                    <span className={styles.typingIndicator}>Dang tim phong phu hop...</span>
+                                    <span className={styles.typingIndicator}>Đang tìm phòng phù hợp...</span>
                                 </div>
                             </div>
                         )}
@@ -301,11 +303,11 @@ const Chatbot = () => {
                             type="text"
                             value={inputMessage}
                             onChange={(event) => setInputMessage(event.target.value)}
-                            placeholder="Nhap khu vuc, ngan sach, nhu cau..."
+                            placeholder="Nhập khu vực, ngân sách, nhu cầu..."
                             className={styles.input}
                             disabled={isLoading}
                         />
-                        <button type="submit" className={styles.sendButton} disabled={isLoading || !inputMessage.trim()} aria-label="Gui tin nhan">
+                        <button type="submit" className={styles.sendButton} disabled={isLoading || !inputMessage.trim()} aria-label="Gửi tin nhắn">
                             <FontAwesomeIcon icon={faPaperPlane} />
                         </button>
                     </form>

@@ -10,6 +10,7 @@ import {
     SafetyCertificateOutlined,
     AuditOutlined,
     BarChartOutlined,
+    GiftOutlined,
 } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
@@ -23,6 +24,7 @@ import ManagerReservation from './Components/ManagerReservation/ManagerReservati
 import ManagerDeposit from './Components/ManagerDeposit/ManagerDeposit';
 import ManagerContract from './Components/ManagerContract/ManagerContract';
 import OwnerAnalytics from './Components/OwnerAnalytics/OwnerAnalytics';
+import Rewards from './Components/Rewards/Rewards';
 import styles from './InfoUser.module.scss';
 
 import userNotFound from '../../assets/images/img_default.png';
@@ -62,6 +64,7 @@ function InfoUser() {
         { key: 'analytics', icon: <BarChartOutlined />, label: 'Phân tích chủ trọ' },
         { key: 'reservations', icon: <ScheduleOutlined />, label: 'Quản lý giữ chỗ' },
         { key: 'recharge', icon: <DollarCircleOutlined />, label: 'Nạp tiền' },
+        { key: 'rewards', icon: <GiftOutlined />, label: 'Điểm thưởng' },
         { key: 'tenant-deposits', icon: <SafetyCertificateOutlined />, label: 'Lịch sử đặt cọc' },
         { key: 'landlord-deposits', icon: <SafetyCertificateOutlined />, label: 'Quản lý cọc chủ trọ' },
         { key: 'tenant-contracts', icon: <AuditOutlined />, label: 'Hợp đồng của tôi' },
@@ -74,6 +77,7 @@ function InfoUser() {
         analytics: 'Phân tích chủ trọ',
         reservations: 'Quản lý giữ chỗ',
         recharge: 'Nạp tiền',
+        rewards: 'Điểm thưởng',
         'change-password': 'Đổi mật khẩu',
         'tenant-deposits': 'Lịch sử đặt cọc',
         'landlord-deposits': 'Quản lý cọc chủ trọ',
@@ -164,6 +168,7 @@ function InfoUser() {
                         {selectedMenu === 'analytics' && <OwnerAnalytics />}
                         {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
+                        {selectedMenu === 'rewards' && <Rewards />}
                         {selectedMenu === 'change-password' && <ChangePassword />}
                         {selectedMenu === 'tenant-deposits' && <ManagerDeposit role="tenant" />}
                         {selectedMenu === 'landlord-deposits' && <ManagerDeposit role="landlord" />}

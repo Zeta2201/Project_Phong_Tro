@@ -161,7 +161,7 @@ function ManagerPost() {
             title: 'Loại tin',
             dataIndex: 'typeNews',
             key: 'typeNews',
-            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thuong'}</Tag>,
+            render: (type) => <Tag color={type === 'vip' ? 'gold' : 'blue'}>{type === 'vip' ? 'VIP' : 'Thường'}</Tag>,
         },
         {
             title: 'Trạng thái',
