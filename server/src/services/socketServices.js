@@ -4,6 +4,7 @@ global.usersMap = usersMap;
 
 const cookie = require('cookie');
 const { verifyToken } = require('./tokenSevices');
+const { getUserRoom } = require('./notification.service');
 
 class SocketServices {
     connection(socket) {
@@ -24,6 +25,7 @@ class SocketServices {
                     const currentUserId = dataDecode.id.toString();
                     usersMap.set(currentUserId, socket);
                     socket.userId = currentUserId;
+                    socket.join(getUserRoom(currentUserId));
                     console.log(`User connected: ${currentUserId}`);
 
                     const forwardWebRTCSignal = (eventName, payload = {}) => {

@@ -8,6 +8,7 @@ const modelPost = require('../models/post.model');
 const modelUser = require('../models/users.model');
 const { Created, OK } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { createNotification, notifyAdmins } = require('../services/notification.service');
 
 const ACTIVE_STATUSES = ['pending', 'holding', 'disputed'];
 const DEPOSIT_STATUSES = ['pending', 'holding', 'completed', 'refunded', 'cancelled', 'disputed'];
@@ -47,6 +48,8 @@ const formatDeposit = (deposit) => ({
     tenant: deposit.tenantId,
     landlord: deposit.landlordId,
 });
+
+const depositLink = (tab) => `/trang-ca-nhan?tab=${tab}`;
 
 const releaseRoom = async (roomId) => {
     await modelPost.findOneAndUpdate(
@@ -111,6 +114,22 @@ const markDepositPaid = async (depositId, expectedAmount = null) => {
     deposit.balanceHeld = true;
     deposit.expiredAt = getHoldingExpiredAt();
     await deposit.save();
+    await createNotification(
+        deposit.tenantId,
+        'Đặt cọc thành công',
+        'Thanh toán đặt cọc của bạn đã được ghi nhận',
+        'deposit',
+        depositLink('tenant-deposits'),
+        { depositId: deposit._id, roomId: deposit.roomId },
+    );
+    await createNotification(
+        deposit.landlordId,
+        'Có người đặt cọc phòng',
+        'Một người thuê vừa đặt cọc phòng của bạn',
+        'deposit',
+        depositLink('landlord-deposits'),
+        { depositId: deposit._id, roomId: deposit.roomId },
+    );
     return deposit;
 };
 
@@ -177,6 +196,14 @@ class controllerDeposit {
                 balanceHeld: walletCharged,
                 expiredAt: getExpiredAt(),
             });
+            await createNotification(
+                room.userId,
+                'Có yêu cầu đặt cọc mới',
+                `Người thuê vừa tạo yêu cầu đặt cọc cho phòng "${room.title || 'của bạn'}"`,
+                'deposit',
+                depositLink('landlord-deposits'),
+                { depositId: deposit._id, roomId },
+            );
             new Created({ message: 'Đã tạo yêu cầu đặt cọc', metadata: deposit }).send(res);
         } catch (error) {
             if (walletCharged) {
@@ -288,6 +315,14 @@ class controllerDeposit {
         deposit.landlordConfirm = true;
         await deposit.save();
         await completeIfConfirmed(deposit);
+        await createNotification(
+            deposit.tenantId,
+            'Chủ trọ đã xác nhận đặt cọc',
+            'Chủ trọ đã xác nhận giao dịch đặt cọc của bạn',
+            'deposit',
+            depositLink('tenant-deposits'),
+            { depositId: deposit._id, roomId: deposit.roomId },
+        );
         new OK({ message: 'Đã xác nhận cho thuê', metadata: deposit }).send(res);
     }
 
@@ -309,6 +344,13 @@ class controllerDeposit {
         deposit.status = 'disputed';
         deposit.adminNote = normalizeNote(req.body.note);
         await deposit.save();
+        await notifyAdmins(
+            'Có tranh chấp đặt cọc',
+            'Một giao dịch đặt cọc vừa được chuyển sang trạng thái tranh chấp',
+            'deposit',
+            '/admin?type=deposits',
+            { depositId: deposit._id, roomId: deposit.roomId },
+        );
         new OK({ message: 'Đã chuyển giao dịch sang tranh chấp', metadata: deposit }).send(res);
     }
 

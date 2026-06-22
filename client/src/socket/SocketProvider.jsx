@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
 import SocketContext from './SocketContext';
-import { requestGetMessagesByUserId } from '../config/request';
+import { requestGetMessagesByUserId, requestGetNotifications } from '../config/request';
 import { useStore } from '../hooks/useStore';
 
 function SocketProvider({ children }) {
@@ -12,6 +12,8 @@ function SocketProvider({ children }) {
     const [newMessage, setNewMessage] = useState(null);
     const [newUserMessage, setNewUserMessage] = useState(null);
     const [messagesRead, setMessagesRead] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
     const [socketClient, setSocketClient] = useState(null);
     const socketRef = useRef(null);
 
@@ -50,11 +52,35 @@ function SocketProvider({ children }) {
             setMessagesRead(data);
         });
 
+        socket.on('notification:new', (notification) => {
+            setNotifications((current) => [notification, ...current].slice(0, 10));
+            setNotificationUnreadCount((current) => current + 1);
+        });
+
+        socket.on('notification:unread-count', (data) => {
+            setNotificationUnreadCount(Number(data?.count || 0));
+        });
+
         return () => {
             socket.removeAllListeners();
             socket.disconnect();
             setSocketClient(null);
         };
+    }, []);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const res = await requestGetNotifications({ page: 1, limit: 10 });
+                setNotifications(res.metadata?.notifications || []);
+                setNotificationUnreadCount(res.metadata?.unreadCount || 0);
+            } catch {
+                setNotifications([]);
+                setNotificationUnreadCount(0);
+            }
+        };
+
+        fetchNotifications();
     }, []);
 
     useEffect(() => {
@@ -164,6 +190,10 @@ function SocketProvider({ children }) {
                 socketClient,
                 newMessage,
                 messagesRead,
+                notifications,
+                setNotifications,
+                notificationUnreadCount,
+                setNotificationUnreadCount,
             }}
         >
             {children}

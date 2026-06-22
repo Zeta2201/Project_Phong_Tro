@@ -3,6 +3,7 @@ const modelUser = require('../models/users.model');
 const modelPost = require('../models/post.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { notifyAdmins } = require('../services/notification.service');
 
 class controllerReport {
     async createReport(req, res) {
@@ -31,6 +32,13 @@ class controllerReport {
             reason,
             details: details || '',
         });
+        await notifyAdmins(
+            'Có báo cáo mới',
+            `${user.fullName || 'Người dùng'} vừa báo cáo một bài đăng`,
+            'report',
+            '/admin?type=reports',
+            { reportId: report._id, postId },
+        );
 
         new Created({ message: 'Bao cao bai viet thanh cong', metadata: report }).send(res);
     }

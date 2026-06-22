@@ -15,6 +15,7 @@ const { getPostingFeeByPlan, inferPostingFeeFromPost } = require('../utils/posti
 const { normalizeVoucherCode, previewVoucher, markVoucherUsed } = require('../utils/voucher');
 const { buildNumericCondition, ensureDefaultFilterOptions, getActiveFilterOption } = require('../services/filterOption.service');
 const { addPoints, refundPoints, calculateEarnPoints } = require('../services/reward.service');
+const { createNotification, notifyAdmins } = require('../services/notification.service');
 
 const getRefundablePostingFee = (post) => {
     if (!post || post.postingFeeRefunded) return 0;
@@ -314,6 +315,13 @@ class controllerPosts {
                 referenceId: post._id,
                 description: `Tich diem thanh toan dang tin: ${post.title}`,
             });
+            await notifyAdmins(
+                'Có tin đăng chờ duyệt',
+                `Tin "${post.title}" vừa được gửi và đang chờ duyệt`,
+                'post',
+                '/admin?type=posts',
+                { postId: post._id, ownerId: id },
+            );
         } catch (error) {
             await modelUser.findByIdAndUpdate(id, { $inc: { balance: postingFee } });
             throw error;
@@ -731,6 +739,14 @@ class controllerPosts {
         }
         const updatedPost = await modelPost.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
         await SendMailApprove(findUser.email, findPost);
+        await createNotification(
+            findPost.userId,
+            'Tin đăng đã được duyệt',
+            `Tin "${findPost.title}" đã được duyệt và hiển thị`,
+            'post',
+            `/chi-tiet-tin-dang/${findPost._id}`,
+            { postId: findPost._id },
+        );
         return new OK({
             message: 'Duyá»‡t bÃ i viáº¿t thÃ nh cÃ´ng',
             metadata: updatedPost,
@@ -780,6 +796,14 @@ class controllerPosts {
         }
 
         await SendMailReject(findUser.email, updatedPost, reason);
+        await createNotification(
+            findPost.userId,
+            'Tin đăng bị từ chối',
+            `Tin "${findPost.title}" đã bị từ chối${reason ? `: ${reason}` : ''}`,
+            'post',
+            '/trang-ca-nhan?tab=posts',
+            { postId: findPost._id, reason },
+        );
         return new OK({
             message: 'Tá»« chá»‘i bÃ i viáº¿t thÃ nh cÃ´ng',
             metadata: { ...updatedPost._doc, refundAmount },

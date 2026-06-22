@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Layout, Menu, Button, message } from 'antd';
 import {
     MenuFoldOutlined,
@@ -20,8 +20,9 @@ import {
     PictureOutlined,
     AuditOutlined,
     TrophyOutlined,
+    BellOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { requestLogout } from '../../config/request';
 import Dashboard from './Components/Dashborad/Dashborad';
 import classNames from 'classnames/bind';
@@ -41,6 +42,7 @@ import ManagerContracts from './Components/ManagerContracts/ManagerContracts';
 import ManagerVouchers from './Components/ManagerVouchers/ManagerVouchers';
 import ManagerBanners from './Components/ManagerBanners/ManagerBanners';
 import ManagerRewards from './Components/ManagerRewards/ManagerRewards';
+import ManagerNotifications from './Components/ManagerNotifications/ManagerNotifications';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -49,8 +51,14 @@ const cx = classNames.bind(styles);
 function Admin() {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { clearAuthState } = useStore();
     const [type, setType] = useState('dashboard');
+
+    useEffect(() => {
+        const nextType = new URLSearchParams(location.search).get('type');
+        if (nextType) setType(nextType);
+    }, [location.search]);
 
     const handleLogout = async () => {
         try {
@@ -149,6 +157,12 @@ function Admin() {
             onClick: () => setType('banners'),
         },
         {
+            key: 'notifications',
+            icon: <BellOutlined />,
+            label: 'Quản lý thông báo',
+            onClick: () => setType('notifications'),
+        },
+        {
             key: 'filters',
             icon: <FilterOutlined />,
             label: 'Quản lý bộ lọc',
@@ -170,7 +184,7 @@ function Admin() {
                         </div>
                     )}
                 </div>
-                <Menu theme="dark" mode="inline" defaultSelectedKeys={['dashboard']} items={menuItems} className={cx('menu')} />
+                <Menu theme="dark" mode="inline" selectedKeys={[type]} items={menuItems} className={cx('menu')} />
             </Sider>
             <Layout>
                 <Header className={cx('header')}>
@@ -202,6 +216,7 @@ function Admin() {
                     {type === 'vouchers' && <ManagerVouchers />}
                     {type === 'rewards' && <ManagerRewards />}
                     {type === 'banners' && <ManagerBanners />}
+                    {type === 'notifications' && <ManagerNotifications />}
                     {type === 'filters' && <ManagerFilters />}
                 </Content>
             </Layout>

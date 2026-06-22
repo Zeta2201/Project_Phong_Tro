@@ -6,6 +6,7 @@ const modelUser = require('../models/users.model');
 const mongoose = require('mongoose');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { createNotification, notifyAdmins } = require('../services/notification.service');
 
 const REVIEW_EDIT_RATING_DAYS = 7;
 const REVIEW_REPORT_THRESHOLD = 5;
@@ -200,6 +201,14 @@ class controllerReview {
         });
 
         await recalculatePostRating(roomId);
+        await createNotification(
+            post.userId,
+            'Có đánh giá mới',
+            `Phòng "${post.title || ''}" vừa nhận đánh giá mới`,
+            'post',
+            `/chi-tiet-tin-dang/${roomId}`,
+            { reviewId: review._id, roomId },
+        );
 
         new Created({ message: 'Tạo đánh giá thành công', metadata: review }).send(res);
     }
@@ -316,6 +325,13 @@ class controllerReview {
 
         await review.save();
         await recalculatePostRating(review.roomId);
+        await notifyAdmins(
+            'Có báo cáo đánh giá mới',
+            'Một đánh giá vừa được người dùng báo cáo',
+            'report',
+            '/admin?type=reviews',
+            { reviewId: review._id, roomId: review.roomId, reason },
+        );
 
         new OK({ message: 'Đã gửi báo cáo đánh giá', metadata: review }).send(res);
     }

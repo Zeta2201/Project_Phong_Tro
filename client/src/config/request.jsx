@@ -185,6 +185,46 @@ export const requestGetRechargeStats = async (params = {}) => {
     return res.data;
 };
 
+export const requestGetNotifications = async (params = {}) => {
+    const res = await request.get('/api/notifications', { params });
+    return res.data;
+};
+
+export const requestGetNotificationUnreadCount = async () => {
+    const res = await request.get('/api/notifications/unread-count');
+    return res.data;
+};
+
+export const requestMarkNotificationRead = async (id) => {
+    const res = await request.patch(`/api/notifications/${id}/read`);
+    return res.data;
+};
+
+export const requestMarkAllNotificationsRead = async () => {
+    const res = await request.patch('/api/notifications/read-all');
+    return res.data;
+};
+
+export const requestDeleteNotification = async (id) => {
+    const res = await request.delete(`/api/notifications/${id}`);
+    return res.data;
+};
+
+export const requestGetAdminNotifications = async (params = {}) => {
+    const res = await request.get('/api/admin/notifications', { params });
+    return res.data;
+};
+
+export const requestGetAdminNotificationHistory = async (params = {}) => {
+    const res = await request.get('/api/admin/notifications/history', { params });
+    return res.data;
+};
+
+export const requestBroadcastNotification = async (data) => {
+    const res = await request.post('/api/admin/notifications/broadcast', data);
+    return res.data;
+};
+
 //// posts
 
 export const requestUploadImages = async (data) => {

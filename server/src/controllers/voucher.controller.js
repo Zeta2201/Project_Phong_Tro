@@ -3,6 +3,7 @@ const modelVoucher = require('../models/voucher.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 const { normalizeVoucherCode, previewVoucher } = require('../utils/voucher');
+const { createBroadcastNotification } = require('../services/notification.service');
 
 const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '');
 const normalizeApplicableTypes = (value) => {
@@ -89,6 +90,17 @@ class VoucherController {
         const payload = buildVoucherPayload(req.body);
         try {
             const voucher = await modelVoucher.create(payload);
+            if (voucher.isActive) {
+                await createBroadcastNotification(
+                    'all',
+                    'Có voucher mới',
+                    `Voucher "${voucher.name}" vừa được phát hành`,
+                    'voucher',
+                    '/trang-ca-nhan?tab=rewards',
+                    { voucherId: voucher._id, code: voucher.code },
+                    req.user.id,
+                );
+            }
             new Created({ message: 'Tạo voucher thành công', metadata: voucher }).send(res);
         } catch (error) {
             if (error.code === 11000) throw new BadRequestError('Mã voucher đã tồn tại');

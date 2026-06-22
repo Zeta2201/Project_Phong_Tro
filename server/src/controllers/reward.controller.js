@@ -6,6 +6,7 @@ const modelVoucher = require('../models/voucher.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 const { getRankProgress, adjustPoints, redeemVoucher, addPoints, calculateEarnPoints } = require('../services/reward.service');
+const { createBroadcastNotification, createNotification } = require('../services/notification.service');
 
 const DEFAULT_REWARD_VOUCHERS = [
     {
@@ -119,6 +120,14 @@ class RewardController {
 
     async redeem(req, res) {
         const voucher = await redeemVoucher({ userId: req.user.id, rewardVoucherId: req.params.voucherId });
+        await createNotification(
+            req.user.id,
+            'Đổi voucher thành công',
+            `Bạn vừa đổi voucher ${voucher.code}`,
+            'voucher',
+            '/trang-ca-nhan?tab=rewards',
+            { voucherId: voucher._id, code: voucher.code },
+        );
         return new Created({
             message: 'Đổi voucher thành công',
             metadata: voucher,
@@ -185,6 +194,15 @@ class RewardController {
 
     async createRewardVoucher(req, res) {
         const voucher = await modelRewardVoucher.create(buildRewardVoucherPayload(req.body));
+        await createBroadcastNotification(
+            'all',
+            'Có voucher đổi điểm mới',
+            `Voucher "${voucher.name}" vừa được thêm vào kho đổi điểm`,
+            'voucher',
+            '/trang-ca-nhan?tab=rewards',
+            { rewardVoucherId: voucher._id },
+            req.user.id,
+        );
         return new Created({
             message: 'Tạo voucher đổi điểm thành công',
             metadata: voucher,

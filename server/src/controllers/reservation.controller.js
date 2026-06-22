@@ -3,6 +3,7 @@ const modelPost = require('../models/post.model');
 const modelUser = require('../models/users.model');
 const { OK, Created } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { createNotification } = require('../services/notification.service');
 
 const RESERVATION_HOLD_HOURS = 24;
 
@@ -90,6 +91,14 @@ class controllerReservation {
             note: note || '',
             visitDate: visitDate || null,
         });
+        await createNotification(
+            post.userId,
+            'Có lịch xem phòng mới',
+            `${tenant.fullName || 'Người thuê'} vừa gửi yêu cầu xem phòng "${post.title || ''}"`,
+            'post',
+            '/trang-ca-nhan?tab=reservations',
+            { reservationId: reservation._id, postId },
+        );
 
         new Created({ message: 'Da gui yeu cau giu cho', metadata: reservation }).send(res);
     }
@@ -166,6 +175,16 @@ class controllerReservation {
                 { status: 'rejected', ownerNote: 'Phong da duoc giu cho boi nguoi khac', handledAt: new Date() },
             );
         }
+        const statusText = status === 'accepted' ? 'được xác nhận' : status === 'rejected' ? 'bị từ chối' : 'đã bị hủy';
+        const receiverId = status === 'cancelled' && isTenant ? reservation.ownerId : reservation.tenantId;
+        await createNotification(
+            receiverId,
+            'Cập nhật lịch xem phòng',
+            `Yêu cầu xem phòng của bạn ${statusText}`,
+            'post',
+            '/trang-ca-nhan?tab=reservations',
+            { reservationId: reservation._id, postId: reservation.postId, status },
+        );
 
         new OK({ message: 'Cap nhat yeu cau giu cho thanh cong', metadata: reservation }).send(res);
     }

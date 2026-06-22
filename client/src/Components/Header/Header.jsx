@@ -3,7 +3,7 @@ import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/logo.png';
-import { Dropdown, Menu, Avatar, Space } from 'antd';
+import { Avatar, Badge, Button, Dropdown, Empty, List, Menu, Space, Typography, message } from 'antd';
 import {
     UserOutlined,
     LogoutOutlined,
@@ -19,14 +19,17 @@ import {
     FileTextOutlined,
     BarChartOutlined,
     EnvironmentOutlined,
+    BellOutlined,
+    DeleteOutlined,
 } from '@ant-design/icons';
 
 import { useStore } from '../../hooks/useStore';
 import { useState } from 'react';
-import { requestLogout } from '../../config/request';
+import { requestDeleteNotification, requestLogout, requestMarkAllNotificationsRead, requestMarkNotificationRead } from '../../config/request';
 import { useSocket } from '../../hooks/useSocket';
 
 const cx = classNames.bind(styles);
+const { Text } = Typography;
 
 const navItems = [
     { to: '/', label: 'Trang chủ', icon: <HomeOutlined /> },
@@ -40,7 +43,7 @@ const navItems = [
 
 function Header() {
     const { dataUser, dataSearch, setValueSearch, clearAuthState } = useStore();
-    const { dataMessagersUser } = useSocket();
+    const { notifications, setNotifications, notificationUnreadCount, setNotificationUnreadCount } = useSocket();
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -94,6 +97,96 @@ function Header() {
         setIsMobileMenuOpen(false);
         navigate(`/search/${encodeURIComponent(keyword)}`);
     };
+
+    const markNotificationLocal = (id, changes) => {
+        setNotifications((current) => current.map((item) => (item._id === id ? { ...item, ...changes } : item)));
+    };
+
+    const handleOpenNotification = async (notification) => {
+        try {
+            if (!notification.isRead) {
+                const res = await requestMarkNotificationRead(notification._id);
+                markNotificationLocal(notification._id, { isRead: true });
+                setNotificationUnreadCount(res.metadata?.unreadCount || 0);
+            }
+            if (notification.link) navigate(notification.link);
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Không thể mở thông báo');
+        }
+    };
+
+    const handleMarkAllNotificationsRead = async () => {
+        try {
+            await requestMarkAllNotificationsRead();
+            setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+            setNotificationUnreadCount(0);
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Không thể đánh dấu đã đọc');
+        }
+    };
+
+    const handleDeleteNotification = async (event, notificationId) => {
+        event.stopPropagation();
+        try {
+            const res = await requestDeleteNotification(notificationId);
+            setNotifications((current) => current.filter((item) => item._id !== notificationId));
+            setNotificationUnreadCount(res.metadata?.unreadCount || 0);
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Không thể xóa thông báo');
+        }
+    };
+
+    const notificationDropdown = (
+        <div className={cx('notificationDropdown')}>
+            <div className={cx('notificationHeader')}>
+                <strong>Thông báo</strong>
+                <Button type="link" size="small" onClick={handleMarkAllNotificationsRead} disabled={!notificationUnreadCount}>
+                    Đọc tất cả
+                </Button>
+            </div>
+            {notifications?.length ? (
+                <List
+                    className={cx('notificationList')}
+                    dataSource={notifications}
+                    renderItem={(item) => (
+                        <List.Item
+                            className={cx('notificationItem', { unread: !item.isRead })}
+                            onClick={() => handleOpenNotification(item)}
+                            actions={[
+                                <Button
+                                    key="delete"
+                                    type="text"
+                                    size="small"
+                                    icon={<DeleteOutlined />}
+                                    onClick={(event) => handleDeleteNotification(event, item._id)}
+                                    aria-label="Xóa thông báo"
+                                />,
+                            ]}
+                        >
+                            <List.Item.Meta
+                                title={
+                                    <Space size={6}>
+                                        {!item.isRead && <span className={cx('unreadDot')} />}
+                                        <span>{item.title}</span>
+                                    </Space>
+                                }
+                                description={
+                                    <>
+                                        <Text type="secondary">{item.message}</Text>
+                                        <div className={cx('notificationTime')}>
+                                            {item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}
+                                        </div>
+                                    </>
+                                }
+                            />
+                        </List.Item>
+                    )}
+                />
+            ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có thông báo" />
+            )}
+        </div>
+    );
 
     const renderNav = () => (
         <nav className={cx('nav')} aria-label="Điều hướng chính">
@@ -168,12 +261,20 @@ function Header() {
                         <>
                             <Link to="/trang-ca-nhan?tab=posts" className={cx('post-link')}>
                                 <PlusCircleOutlined />
-                                <span>Đăng tin</span>
+                                {/* <span>Đăng tin</span> */}
                             </Link>
 
                             <Link to="/tin-yeu-thich" className={cx('favourite-link')} aria-label="Tin yêu thích">
                                 <HeartOutlined />
                             </Link>
+
+                            <Dropdown dropdownRender={() => notificationDropdown} trigger={['click']} placement="bottomRight">
+                                <button type="button" className={cx('notificationButton')} aria-label="Thông báo">
+                                    <Badge count={notificationUnreadCount} size="small" overflowCount={99}>
+                                        <BellOutlined />
+                                    </Badge>
+                                </button>
+                            </Dropdown>
 
                             <Dropdown overlay={menu} placement="bottomRight">
                                 <a onClick={(e) => e.preventDefault()} className={cx('user-menu-link')}>

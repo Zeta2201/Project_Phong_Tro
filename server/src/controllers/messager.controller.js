@@ -1,6 +1,7 @@
 const { BadRequestError } = require('../core/error.response');
 const modelMessager = require('../models/Messager.model');
 const modelUser = require('../models/users.model');
+const { createNotification } = require('../services/notification.service');
 
 const { Created, OK } = require('../core/success.response');
 
@@ -24,6 +25,15 @@ class controllerMessager {
                 message: newMessage,
             });
         }
+        const sender = await modelUser.findById(id).select('fullName').lean();
+        await createNotification(
+            receiverId,
+            'Tin nhắn mới',
+            `${sender?.fullName || 'Người dùng'} đã gửi cho bạn một tin nhắn mới`,
+            'chat',
+            '/trang-ca-nhan?tab=messages',
+            { messageId: newMessage._id, senderId: id },
+        );
         const messages = await modelMessager.find({
             $or: [
                 { senderId: id, receiverId },

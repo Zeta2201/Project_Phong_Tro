@@ -7,6 +7,7 @@ const { BadRequestError } = require('../core/error.response');
 const { uploadBufferToCloudinary } = require('../utils/cloudinaryUpload');
 const { generateContractPdfBuffer } = require('../utils/contractPdf');
 const sendContractMail = require('../utils/SendMail/sendContractMail');
+const { createNotification } = require('../services/notification.service');
 
 const CONTRACT_STATUSES = [
     'draft',
@@ -83,6 +84,14 @@ class controllerContract {
         });
 
         await this.notifyContractCreated(contract);
+        await createNotification(
+            contract.tenantId,
+            'Hợp đồng cần ký',
+            `Hợp đồng ${contract.contractCode} đang chờ bạn ký`,
+            'contract',
+            '/trang-ca-nhan?tab=tenant-contracts',
+            { contractId: contract._id, contractCode: contract.contractCode },
+        );
         const populated = await populateContract(modelContract.findById(contract._id));
         new Created({ message: 'Đã tạo hợp đồng và gửi thông báo cho người thuê', metadata: formatContract(populated) }).send(res);
     }
@@ -150,6 +159,14 @@ class controllerContract {
         contract.status = 'waiting_landlord_signature';
         await contract.save();
         await this.notifyLandlordTenantSigned(contract);
+        await createNotification(
+            contract.landlordId,
+            'Hợp đồng cần chủ trọ ký',
+            `Người thuê đã ký hợp đồng ${contract.contractCode}`,
+            'contract',
+            '/trang-ca-nhan?tab=landlord-contracts',
+            { contractId: contract._id, contractCode: contract.contractCode },
+        );
 
         const populated = await populateContract(modelContract.findById(contract._id));
         new OK({ message: 'Người thuê đã ký hợp đồng', metadata: formatContract(populated) }).send(res);
@@ -232,6 +249,22 @@ class controllerContract {
         freshContract.status = 'active';
         await freshContract.save();
         await this.sendFinalContractEmails(freshContract, pdfBuffer);
+        await createNotification(
+            freshContract.tenantId,
+            'Hợp đồng đã hoàn tất',
+            `Hợp đồng ${freshContract.contractCode} đã được ký hoàn tất`,
+            'contract',
+            '/trang-ca-nhan?tab=tenant-contracts',
+            { contractId: freshContract._id, contractCode: freshContract.contractCode },
+        );
+        await createNotification(
+            freshContract.landlordId,
+            'Hợp đồng đã hoàn tất',
+            `Hợp đồng ${freshContract.contractCode} đã được ký hoàn tất`,
+            'contract',
+            '/trang-ca-nhan?tab=landlord-contracts',
+            { contractId: freshContract._id, contractCode: freshContract.contractCode },
+        );
     }
 
     async generatePdf(req, res) {

@@ -1,6 +1,7 @@
 const modelContact = require('../models/contact.model');
 const { Created, OK } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
+const { notifyAdmins } = require('../services/notification.service');
 
 const CONTACT_STATUSES = ['pending', 'resolved', 'rejected'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,6 +25,13 @@ class controllerContact {
         }
 
         const contact = await modelContact.create({ name, email, phone, message });
+        await notifyAdmins(
+            'Có liên hệ mới',
+            `${name} vừa gửi yêu cầu liên hệ`,
+            'system',
+            '/admin?type=contacts',
+            { contactId: contact._id, email },
+        );
         new Created({ message: 'Da gui yeu cau lien he', metadata: contact }).send(res);
     }
 

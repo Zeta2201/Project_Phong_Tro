@@ -15,6 +15,7 @@ const contractRoutes = require('./contract.routes');
 const voucherRoutes = require('./voucher.routes');
 const bannerRoutes = require('./banner.routes');
 const rewardRoutes = require('./reward.routes');
+const notificationRoutes = require('./notification.routes');
 
 const multer = require('multer');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
@@ -49,6 +50,14 @@ function routes(app) {
     app.get('/api/get-users', userRoutes);
     app.get('/api/get-admin-stats', userRoutes);
     app.get('/api/get-recharge-stats', userRoutes);
+    app.get('/api/admin/notifications', notificationRoutes);
+    app.post('/api/admin/notifications/broadcast', notificationRoutes);
+    app.get('/api/admin/notifications/history', notificationRoutes);
+    app.get('/api/notifications', notificationRoutes);
+    app.get('/api/notifications/unread-count', notificationRoutes);
+    app.patch('/api/notifications/read-all', notificationRoutes);
+    app.patch('/api/notifications/:id/read', notificationRoutes);
+    app.delete('/api/notifications/:id', notificationRoutes);
 
     app.get('/api/get-hot-search', userRoutes);
     app.get('/api/search', userRoutes);

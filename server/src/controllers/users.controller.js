@@ -33,6 +33,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { AiSearchKeyword } = require('../utils/AISearch/AISearch');
 const { inferPostingFeeFromPost } = require('../utils/postingFee');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
+const { notifyAdmins } = require('../services/notification.service');
 
 const googleOAuthClient = new google.auth.OAuth2();
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
@@ -937,6 +938,13 @@ class controllerUsers {
             },
             { new: true },
         );
+        await notifyAdmins(
+            'Có yêu cầu xác thực CCCD',
+            `${updatedUser?.fullName || 'Người dùng'} vừa gửi yêu cầu xác thực CCCD`,
+            'verification',
+            '/admin?type=users',
+            { userId: updatedUser?._id },
+        );
 
         new OK({
             message: 'Đã gửi CCCD để xác thực, vui lòng chờ admin duyệt',
@@ -1340,4 +1348,3 @@ class controllerUsers {
 }
 
 module.exports = new controllerUsers();
-
