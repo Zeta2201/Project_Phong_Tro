@@ -179,6 +179,52 @@ function DetailPost() {
         message.success('Đã thêm phòng vào danh sách so sánh');
     };
 
+    const copyShareLink = async (url) => {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(url);
+            return;
+        }
+
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+    };
+
+    const handleSharePost = async () => {
+        const shareUrl = `${window.location.origin}/chi-tiet-tin-dang/${post?._id || id}`;
+        const shareData = {
+            title: post?.title || 'Phong tro tren NestFinder',
+            text: post?.title ? `Xem phong tro: ${post.title}` : 'Xem phong tro tren NestFinder',
+            url: shareUrl,
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                return;
+            }
+
+            await copyShareLink(shareUrl);
+            message.success('Da sao chep lien ket chia se');
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+
+            try {
+                await copyShareLink(shareUrl);
+                message.success('Da sao chep lien ket chia se');
+            } catch {
+                message.error('Khong the chia se bai viet luc nay');
+            }
+        }
+    };
+
     const handleCreateFavourite = async () => {
         try {
             const res = await requestCreateFavourite({ postId: post._id });
@@ -718,7 +764,7 @@ function DetailPost() {
                                     {compared ? <CheckOutlined /> : <BarChartOutlined />}
                                     {compared ? 'Đã chọn' : 'So sanh'}
                                 </button>
-                                <button className={cx('action-btn')}>
+                                <button type="button" className={cx('action-btn')} onClick={handleSharePost}>
                                     <FontAwesomeIcon icon={faShareAlt} />
                                     Chia sẻ
                                 </button>

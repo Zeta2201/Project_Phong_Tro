@@ -919,7 +919,7 @@ class controllerUsers {
         };
 
         if (!hasRequiredCccdInfo(cccdData)) {
-            throw new BadRequestError('Vui long nhap ho ten va so CCCD de gui xac thuc.');
+            throw new BadRequestError('Vui lòng nhập họ tên và số CCCD để xác thực.');
         }
 
         const updatedUser = await modelUser.findByIdAndUpdate(
@@ -956,7 +956,7 @@ class controllerUsers {
         }
 
         if (status === 'verified' && !hasRequiredCccdInfo(targetUser)) {
-            throw new BadRequestError('Khong the duyet vi thong tin OCR CCCD dang trong. Vui long yeu cau nguoi dung tai lai anh CCCD ro hon.');
+            throw new BadRequestError('Không thể duyệt vì thông tin OCR CCCD đang trống. Vui lòng yêu cầu người dùng tải lại ảnh CCCD rõ hơn.');
         }
 
         const updatedUser = await modelUser.findByIdAndUpdate(
@@ -985,7 +985,7 @@ class controllerUsers {
     async updateUserAdmin(req, res) {
         const { id, isActive, isAdmin } = req.body;
         if (!id) {
-            throw new BadRequestError('Id ngu?i d�ng b?t bu?c');
+            throw new BadRequestError('Id người dùng bắt buộc');
         }
 
         const { actorRole, target, targetRole, isSelf } = await getAdminActorAndTarget(req.user.id, id);
@@ -1006,14 +1006,14 @@ class controllerUsers {
 
         const user = await modelUser.findByIdAndUpdate(id, updateData, { new: true });
         if (!user) {
-            throw new BadRequestError('Kh�ng t�m th?y ngu?i d�ng');
+            throw new BadRequestError('Không tìm thấy người dùng');
         }
 
         if (shouldUpdateActive && !isActive) {
             await modelApiKey.deleteOne({ userId: user._id.toString() });
         }
 
-        new OK({ message: 'C?p nh?t ngu?i d�ng th�nh c�ng', metadata: user }).send(res);
+        new OK({ message: 'Cập nhật người dùng thành công', metadata: user }).send(res);
     }
 
     async lockUser(req, res) {
@@ -1025,7 +1025,7 @@ class controllerUsers {
         await target.save();
         await modelApiKey.deleteOne({ userId: target._id.toString() });
 
-        new OK({ message: '�� kh�a t�i kho?n', metadata: target }).send(res);
+        new OK({ message: 'Khóa tài khoản thành công', metadata: target }).send(res);
     }
 
     async unlockUser(req, res) {
@@ -1036,7 +1036,7 @@ class controllerUsers {
         target.accountStatus = 'active';
         await target.save();
 
-        new OK({ message: '�� m? kh�a t�i kho?n', metadata: target }).send(res);
+        new OK({ message: 'Mở khóa tài khoản thành công', metadata: target }).send(res);
     }
 
     async promoteUser(req, res) {
@@ -1046,7 +1046,7 @@ class controllerUsers {
         Object.assign(target, buildRoleUpdate('admin'));
         await target.save();
 
-        new OK({ message: '�� c?p quy?n admin', metadata: target }).send(res);
+        new OK({ message: 'Cấp quyền admin thành công', metadata: target }).send(res);
     }
 
     async demoteUser(req, res) {
@@ -1058,7 +1058,7 @@ class controllerUsers {
         await target.save();
         await modelApiKey.deleteOne({ userId: target._id.toString() });
 
-        new OK({ message: '�� g? quy?n admin', metadata: target }).send(res);
+        new OK({ message: 'Hủy quyền admin thành công', metadata: target }).send(res);
     }
     async getUsers(req, res) {
         const { q, status, role } = req.query;
