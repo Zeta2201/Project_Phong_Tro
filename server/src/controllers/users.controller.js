@@ -17,6 +17,7 @@ const modelContact = require('../models/contact.model');
 
 const sendMailForgotPassword = require('../utils/SendMail/sendMailForgotPassword');
 const sendMailChangeEmail = require('../utils/SendMail/sendMailChangeEmail');
+const sendMailChangePhone = require('../utils/SendMail/sendMailChangePhone');
 const sendMailRegisterOtp = require('../utils/SendMail/sendMailRegisterOtp');
 const { BadRequestError, BadUser2RequestError } = require('../core/error.response');
 const { createApiKey, createToken, createRefreshToken, verifyToken } = require('../services/tokenSevices');
@@ -36,6 +37,7 @@ const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
 const googleOAuthClient = new google.auth.OAuth2();
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_CHANGE_OTP_EXPIRES_MS = 10 * 60 * 1000;
 const REGISTER_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const ADMIN_ROLES = ['admin', 'super_admin'];
@@ -202,6 +204,12 @@ Nếu không thấy trường nào thì để chuỗi rỗng.
         data,
         note: '',
     };
+};
+
+const hasRequiredCccdInfo = (userOrData = {}) => {
+    const fullName = String(userOrData.fullName || userOrData.cccdFullName || '').trim();
+    const cccdNumber = String(userOrData.cccdNumber || '').trim();
+    return Boolean(fullName && cccdNumber);
 };
 
 class controllerUsers {
@@ -660,9 +668,109 @@ class controllerUsers {
 
     async updateUser(req, res) {
         const { id } = req.user;
-        const { fullName, phone, address, avatar } = req.body;
-        const user = await modelUser.findByIdAndUpdate(id, { fullName, phone, address, avatar }, { new: true });
+        const { fullName, address, avatar } = req.body;
+        const user = await modelUser.findByIdAndUpdate(id, { fullName, address, avatar }, { new: true });
         new OK({ message: 'Cập nhật thông tin thành công', metadata: user }).send(res);
+    }
+
+    async requestChangePhone(req, res) {
+        const { id } = req.user;
+        const newPhone = String(req.body.phone || '').trim();
+
+        if (!newPhone) {
+            throw new BadRequestError('Vui lòng nhập số điện thoại mới');
+        }
+
+        if (!phonePattern.test(newPhone)) {
+            throw new BadRequestError('Số điện thoại mới không hợp lệ');
+        }
+
+        const user = await modelUser.findById(id);
+        if (!user) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        if (newPhone === String(user.phone || '').trim()) {
+            throw new BadRequestError('Số điện thoại mới phải khác số hiện tại');
+        }
+
+        const existingUser = await modelUser.findOne({ phone: newPhone, _id: { $ne: user._id } });
+        if (existingUser) {
+            throw new BadRequestError('Số điện thoại này đã tồn tại trong hệ thống');
+        }
+
+        if (!user.email) {
+            throw new BadRequestError('Tài khoản chưa có email để nhận OTP');
+        }
+
+        const otp = await otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false,
+        });
+        const hash = await bcrypt.hash(otp, 10);
+
+        user.pendingPhone = newPhone;
+        user.phoneChangeOtp = hash;
+        user.phoneChangeOtpExpires = new Date(Date.now() + EMAIL_CHANGE_OTP_EXPIRES_MS);
+        await user.save();
+
+        try {
+            await sendMailChangePhone(user.email, otp, newPhone);
+        } catch (error) {
+            user.pendingPhone = '';
+            user.phoneChangeOtp = '';
+            user.phoneChangeOtpExpires = null;
+            await user.save();
+            throw error;
+        }
+
+        new OK({ message: 'Đã gửi mã OTP đến email tài khoản. Vui lòng kiểm tra hộp thư.' }).send(res);
+    }
+
+    async verifyChangePhone(req, res) {
+        const { id } = req.user;
+        const otp = String(req.body.otp || '').trim();
+
+        if (!otp) {
+            throw new BadRequestError('Vui lòng nhập mã OTP');
+        }
+
+        const user = await modelUser.findById(id);
+        if (!user) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        if (!user.pendingPhone || !user.phoneChangeOtp || !user.phoneChangeOtpExpires) {
+            throw new BadRequestError('Vui lòng yêu cầu đổi số điện thoại trước');
+        }
+
+        if (user.phoneChangeOtpExpires.getTime() < Date.now()) {
+            user.pendingPhone = '';
+            user.phoneChangeOtp = '';
+            user.phoneChangeOtpExpires = null;
+            await user.save();
+            throw new BadRequestError('Mã OTP đã hết hạn, vui lòng yêu cầu mã mới');
+        }
+
+        const isMatch = await bcrypt.compare(otp, user.phoneChangeOtp);
+        if (!isMatch) {
+            throw new BadRequestError('Mã OTP không chính xác');
+        }
+
+        const existingUser = await modelUser.findOne({ phone: user.pendingPhone, _id: { $ne: user._id } });
+        if (existingUser) {
+            throw new BadRequestError('Số điện thoại này đã tồn tại trong hệ thống');
+        }
+
+        user.phone = user.pendingPhone;
+        user.pendingPhone = '';
+        user.phoneChangeOtp = '';
+        user.phoneChangeOtpExpires = null;
+        await user.save();
+
+        new OK({ message: 'Đổi số điện thoại thành công', metadata: user }).send(res);
     }
 
     async requestChangeEmail(req, res) {
@@ -797,14 +905,31 @@ class controllerUsers {
         }
 
         const extracted = ocrResult.data || {};
+        const submitted = {
+            fullName: req.body.cccdFullName || req.body.fullName || '',
+            cccdNumber: req.body.cccdNumber || '',
+            dob: req.body.cccdDob || req.body.dob || '',
+            address: req.body.cccdAddress || req.body.address || '',
+        };
+        const cccdData = {
+            fullName: extracted.fullName || submitted.fullName,
+            cccdNumber: extracted.cccdNumber || submitted.cccdNumber,
+            dob: extracted.dob || submitted.dob,
+            address: extracted.address || submitted.address,
+        };
+
+        if (!hasRequiredCccdInfo(cccdData)) {
+            throw new BadRequestError('Vui long nhap ho ten va so CCCD de gui xac thuc.');
+        }
+
         const updatedUser = await modelUser.findByIdAndUpdate(
             id,
             {
                 cccdImageUrl: imageUrl,
-                cccdFullName: extracted.fullName || '',
-                cccdNumber: extracted.cccdNumber || '',
-                cccdDob: extracted.dob || '',
-                cccdAddress: extracted.address || '',
+                cccdFullName: cccdData.fullName,
+                cccdNumber: cccdData.cccdNumber,
+                cccdDob: cccdData.dob,
+                cccdAddress: cccdData.address,
                 cccdOcrRawText: ocrResult.rawText || ocrResult.note || '',
                 verificationStatus: 'pending',
                 verificationRejectReason: '',
@@ -825,6 +950,15 @@ class controllerUsers {
             throw new BadRequestError('Trạng thái xác thực không hợp lệ');
         }
 
+        const targetUser = await modelUser.findById(id);
+        if (!targetUser) {
+            throw new BadRequestError('Không tìm thấy người dùng');
+        }
+
+        if (status === 'verified' && !hasRequiredCccdInfo(targetUser)) {
+            throw new BadRequestError('Khong the duyet vi thong tin OCR CCCD dang trong. Vui long yeu cau nguoi dung tai lai anh CCCD ro hon.');
+        }
+
         const updatedUser = await modelUser.findByIdAndUpdate(
             id,
             {
@@ -840,10 +974,6 @@ class controllerUsers {
             updatedUser.role = getEffectiveRole(updatedUser);
             updatedUser.isAdmin = true;
             await updatedUser.save();
-        }
-
-        if (!updatedUser) {
-            throw new BadRequestError('Không tìm thấy người dùng');
         }
 
         new OK({

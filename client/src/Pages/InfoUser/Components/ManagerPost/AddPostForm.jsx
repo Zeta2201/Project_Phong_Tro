@@ -17,6 +17,9 @@ import {
     Statistic,
 } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
@@ -53,6 +56,69 @@ const optionLabels = [
     'Có hầm để xe',
 ];
 
+const defaultMapCenter = { lat: 10.0452, lng: 105.7469 };
+const defaultMarkerIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+});
+
+function MapCenterSync({ center }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (center?.lat && center?.lng) {
+            map.setView([center.lat, center.lng], Math.max(map.getZoom(), 15));
+        }
+    }, [center, map]);
+
+    return null;
+}
+
+function LocationClickHandler({ onPick }) {
+    useMapEvents({
+        click(event) {
+            onPick({ lat: event.latlng.lat, lng: event.latlng.lng });
+        },
+    });
+
+    return null;
+}
+
+function LocationPickerMap({ coordinates, onPick }) {
+    const center = coordinates?.lat && coordinates?.lng ? coordinates : defaultMapCenter;
+
+    return (
+        <div style={{ height: 420, borderRadius: 8, overflow: 'hidden', border: '1px solid #d9d9d9' }}>
+            <MapContainer center={[center.lat, center.lng]} zoom={15} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapCenterSync center={center} />
+                <LocationClickHandler onPick={onPick} />
+                {coordinates?.lat && coordinates?.lng && (
+                    <Marker
+                        position={[coordinates.lat, coordinates.lng]}
+                        icon={defaultMarkerIcon}
+                        draggable
+                        eventHandlers={{
+                            dragend: (event) => {
+                                const nextPosition = event.target.getLatLng();
+                                onPick({ lat: nextPosition.lat, lng: nextPosition.lng });
+                            },
+                        }}
+                    />
+                )}
+            </MapContainer>
+        </div>
+    );
+}
+
 // Example suggestions for AutoComplete
 
 function AddPostForm({ onFinish, onCancel, initialValues }) {
@@ -64,7 +130,6 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [dataSearch, setDataSearch] = useState([]);
     const [selectedCoordinates, setSelectedCoordinates] = useState(initialValues?.coordinates || null);
     const debouncedSearch = useDebounce(valueSearch, 500);
-    const [mapQuery, setMapQuery] = useState(initialValues?.address || 'Lăng Chủ tịch Hồ Chí Minh');
     // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
     const [postingPlans, setPostingPlans] = useState([]);
@@ -112,10 +177,8 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             image.src = objectUrl;
         });
 
-    const resolveCoordinatesByAddress = async (address) => {
-        if (selectedCoordinates?.lat && selectedCoordinates?.lng) return selectedCoordinates;
+    const geocodeAddress = async (address) => {
         if (!address?.trim()) return null;
-
         try {
             const res = await axios.get('https://rsapi.goong.io/Geocode', {
                 params: {
@@ -132,6 +195,44 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         }
 
         return null;
+    };
+
+    const resolveCoordinatesByAddress = async (address) => {
+        if (selectedCoordinates?.lat && selectedCoordinates?.lng) return selectedCoordinates;
+        return geocodeAddress(address);
+    };
+
+    const reverseGeocodeCoordinates = async ({ lat, lng }) => {
+        try {
+            const res = await axios.get('https://rsapi.goong.io/Geocode', {
+                params: {
+                    latlng: `${lat},${lng}`,
+                    api_key: import.meta.env.VITE_API_KEY,
+                },
+            });
+            return res.data?.results?.[0]?.formatted_address || '';
+        } catch {
+            return '';
+        }
+    };
+
+    const handlePickMapLocation = async (coordinates) => {
+        const nextCoordinates = {
+            lat: Number(coordinates.lat.toFixed(7)),
+            lng: Number(coordinates.lng.toFixed(7)),
+        };
+        setSelectedCoordinates(nextCoordinates);
+
+        const fallbackAddress = `${nextCoordinates.lat}, ${nextCoordinates.lng}`;
+        form.setFieldsValue({ location: fallbackAddress });
+
+        const address = await reverseGeocodeCoordinates(nextCoordinates);
+        if (address) {
+            form.setFieldsValue({ location: address });
+            message.success('Đã ghim vị trí và cập nhật địa chỉ');
+        } else {
+            message.info('Đã ghim vị trí. Bạn có thể chỉnh lại địa chỉ nếu cần.');
+        }
     };
 
     const typeNewsOptions = useMemo(() => {
@@ -229,14 +330,14 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         if (initialValues) {
             const initialData = {
                 ...initialValues,
-                location: initialValues.address,
+                location: initialValues.location || initialValues.address,
                 options: Array.isArray(initialValues.options) ? initialValues.options : [],
             };
             form.setFieldsValue(initialData);
             if (initialValues.description) {
                 setDescription(initialValues.description);
             }
-            setMapQuery(initialValues.address || 'Lăng Chủ tịch Hồ Chí Minh');
+            setSelectedCoordinates(initialValues.coordinates || null);
 
             if (initialValues.images && Array.isArray(initialValues.images)) {
                 setFileList(
@@ -264,7 +365,6 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             form.resetFields();
             setFileList([]);
             setDescription('');
-            setMapQuery('Lăng Chủ tịch Hồ Chí Minh');
             setEstimatedCost(0);
             setSelectedCoordinates(null);
         }
@@ -281,6 +381,12 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 return;
             }
 
+            const resolvedCoordinates = await resolveCoordinatesByAddress(values.location);
+            if (!resolvedCoordinates) {
+                message.error('Không lấy được tọa độ địa chỉ. Vui lòng bấm "Định vị theo địa chỉ" hoặc click chọn vị trí trên bản đồ.');
+                return;
+            }
+
             const formData = new FormData();
             const compressedFiles = await Promise.all(newImageFiles.map((file) => compressImageFile(file)));
             compressedFiles.forEach((file) => {
@@ -290,10 +396,6 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             const today = dayjs();
             const endDate = values.duration ? today.add(values.duration, 'day').utc().toISOString() : null;
             const resImages = compressedFiles.length > 0 ? await requestUploadImages(formData) : { images: [] };
-            const resolvedCoordinates = await resolveCoordinatesByAddress(values.location);
-            if (!resolvedCoordinates) {
-                message.warning('Không lấy được tọa độ địa chỉ, bài đăng vẫn được tạo nhưng có thể không hiển thị trên bản đồ');
-            }
 
             const data = {
                 title: values.title,
@@ -314,7 +416,11 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             };
 
             await requestCreatePost(data);
-            message.success(initialValues ? 'Cập nhật bài viết thành công' : 'Tạo bài viết thành công');
+            message.success(
+                initialValues
+                    ? 'Cập nhật bài viết thành công'
+                    : 'Tạo bài viết thành công. Bài sẽ hiển thị trên bản đồ sau khi admin duyệt.',
+            );
             form.resetFields();
             setFileList([]);
             setDescription('');
@@ -362,10 +468,14 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         setValueSearch(searchText);
     };
 
+    const handleLocationChange = (value) => {
+        setValueSearch(value);
+        setSelectedCoordinates(null);
+    };
+
     // Handler for selecting an item from AutoComplete
     const handleLocationSelect = async (selectedValue, option) => {
         form.setFieldsValue({ location: selectedValue });
-        setMapQuery(selectedValue);
         setSelectedCoordinates(null);
 
         if (!option?.placeId) return;
@@ -383,6 +493,22 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             }
         } catch {
             message.warning('Không thể lấy tọa độ địa chỉ, bài đăng sẽ không hiển thị trên bản đồ');
+        }
+    };
+
+    const handleLocateTypedAddress = async () => {
+        const address = form.getFieldValue('location');
+        if (!address?.trim()) {
+            message.warning('Vui lòng nhập địa chỉ trước khi định vị');
+            return;
+        }
+
+        const coordinates = await geocodeAddress(address);
+        if (coordinates?.lat && coordinates?.lng) {
+            setSelectedCoordinates(coordinates);
+            message.success('Đã định vị địa chỉ trên bản đồ');
+        } else {
+            message.warning('Không tìm thấy tọa độ cho địa chỉ này');
         }
     };
 
@@ -518,6 +644,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 <AutoComplete
                     options={dataSearch?.map((item) => ({ value: item.description, placeId: item.place_id }))}
                     onSearch={handleLocationSearch}
+                    onChange={handleLocationChange}
                     onSelect={handleLocationSelect}
                     placeholder="Nhập địa chỉ hoặc chọn từ gợi ý..."
                 >
@@ -526,17 +653,23 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             </Form.Item>
 
             <div>
-                <h4 style={{ marginBottom: 16 }}>Vị trí & bản đồ</h4>
-                <iframe
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
-                    width="100%"
-                    height="450"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Property Location"
-                />
+                <Row align="middle" justify="space-between" style={{ marginBottom: 12, gap: 12 }}>
+                    <Col>
+                        <h4 style={{ margin: 0 }}>Vị trí & bản đồ</h4>
+                        <Typography.Text type="secondary">
+                            Click vào bản đồ hoặc kéo marker để ghim vị trí chính xác. Hệ thống sẽ tự cập nhật địa chỉ nếu tìm được.
+                        </Typography.Text>
+                    </Col>
+                    <Col>
+                        <Button onClick={handleLocateTypedAddress}>Định vị theo địa chỉ</Button>
+                    </Col>
+                </Row>
+                <LocationPickerMap coordinates={selectedCoordinates} onPick={handlePickMapLocation} />
+                {selectedCoordinates?.lat && selectedCoordinates?.lng && (
+                    <Typography.Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                        Tọa độ đã ghim: {selectedCoordinates.lat}, {selectedCoordinates.lng}
+                    </Typography.Text>
+                )}
             </div>
 
             <Divider />

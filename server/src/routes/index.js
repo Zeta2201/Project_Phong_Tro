@@ -33,6 +33,8 @@ function routes(app) {
     app.get('/api/refresh-token', userRoutes);
     app.get('/api/recharge-user', userRoutes);
     app.post('/api/update-user', userRoutes);
+    app.post('/api/users/request-change-phone', userRoutes);
+    app.post('/api/users/verify-change-phone', userRoutes);
     app.post('/api/users/request-change-email', userRoutes);
     app.post('/api/users/verify-change-email', userRoutes);
     app.post('/api/submit-cccd-verification', userRoutes);

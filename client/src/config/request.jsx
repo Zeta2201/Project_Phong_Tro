@@ -93,6 +93,16 @@ export const requestUpdateUser = async (data) => {
     return res.data;
 };
 
+export const requestChangePhoneOtp = async (data) => {
+    const res = await request.post('/api/users/request-change-phone', data);
+    return res.data;
+};
+
+export const requestVerifyChangePhone = async (data) => {
+    const res = await request.post('/api/users/verify-change-phone', data);
+    return res.data;
+};
+
 export const requestChangeEmailOtp = async (data) => {
     const res = await request.post('/api/users/request-change-email', data);
     return res.data;

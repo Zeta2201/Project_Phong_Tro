@@ -62,10 +62,10 @@ function ManagerContracts() {
     const handleSendEmail = async (contract) => {
         try {
             await requestSendContractEmail({ contractId: contract._id });
-            message.success('Da gui lai email hop dong');
+            message.success('Đã gửi lại email hợp đồng');
             fetchContracts();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gui email hop dong that bai');
+            message.error(error.response?.data?.message || 'Gửi email hợp đồng thất bại');
         }
     };
 
@@ -97,7 +97,7 @@ function ManagerContracts() {
                     )}
                     {record.status === 'active' && (
                         <Button onClick={() => handleSendEmail(record)}>
-                            Gui lai email
+                            Gửi lại email
                         </Button>
                     )}
                     {!['canceled', 'expired'].includes(record.status) && (

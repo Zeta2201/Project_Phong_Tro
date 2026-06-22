@@ -41,6 +41,8 @@ const getEffectiveRole = (user = {}) => {
     return 'user';
 };
 
+const hasRequiredCccdInfo = (user = {}) => Boolean(String(user.cccdFullName || '').trim() && String(user.cccdNumber || '').trim());
+
 function ManagerUser() {
     const navigate = useNavigate();
     const { dataUser, fetchAuth } = useStore();
@@ -308,6 +310,7 @@ function ManagerUser() {
                 const policy = getActionPolicy(record.user);
                 const targetRole = getEffectiveRole(record.user);
                 const isAdminTarget = adminRoles.includes(targetRole);
+                const canApproveCccd = hasRequiredCccdInfo(record.user);
                 const lockButton = (
                     <Button type="default" disabled={!policy.canToggleActive} onClick={() => handleToggleActive(record)}>
                         {record.user.isActive ? 'Khóa' : 'Mở khóa'}
@@ -337,9 +340,13 @@ function ManagerUser() {
                         )}
                         {record.user.verificationStatus === 'pending' && (
                             <>
-                                <Button type="primary" onClick={() => handleVerificationAction(record, 'verified')}>
-                                    Duyệt CCCD
-                                </Button>
+                                <Tooltip title={!canApproveCccd ? 'OCR chưa đọc được họ tên và số CCCD' : ''}>
+                                    <span>
+                                        <Button type="primary" disabled={!canApproveCccd} onClick={() => handleVerificationAction(record, 'verified')}>
+                                            Duyệt CCCD
+                                        </Button>
+                                    </span>
+                                </Tooltip>
                                 <Popconfirm
                                     title="Từ chối xác thực CCCD?"
                                     onConfirm={() => handleVerificationAction(record, 'rejected')}

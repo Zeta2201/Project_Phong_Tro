@@ -534,7 +534,7 @@ function MapSearch() {
                         ))}
                         {!loading && posts.length === 0 && (
                             <div className={cx('empty')}>
-                                Chưa có bài đăng có tọa độ trong vùng này. Các bài cũ cần được cập nhật tọa độ để hiển thị trên bản đồ.
+                                Chưa có bài đăng đã duyệt và có tọa độ trong vùng này. Hãy kéo bản đồ tới đúng khu vực hoặc kiểm tra bài đã được admin duyệt chưa.
                             </div>
                         )}
                     </div>

@@ -383,9 +383,9 @@ class controllerPosts {
         const socket = global.usersMap.get(findUser._id.toString());
 
         if (socket) {
-            statusUser = 'Äang hoáº¡t Ä‘á»™ng';
+            statusUser = 'Đang hoạt động';
         } else {
-            statusUser = 'Äang offline';
+            statusUser = 'Đang offline';
         }
         const dataUser = {
             _id: findUser._id,

@@ -17,11 +17,13 @@ import { useState, useEffect } from 'react';
 import {
     requestGetFavourite,
     requestChangeEmailOtp,
+    requestChangePhoneOtp,
     requestSubmitCccdVerification,
     requestUpdateUser,
     requestUploadImage,
     requestUploadImages,
     requestVerifyChangeEmail,
+    requestVerifyChangePhone,
 } from '../../../../config/request';
 import axios from 'axios';
 import useDebounce from '../../../../hooks/useDebounce';
@@ -38,11 +40,16 @@ function PersonalInfo() {
     const [favourite, setFavourite] = useState([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
+    const [isPhoneOtpModalVisible, setIsPhoneOtpModalVisible] = useState(false);
     const [emailChangeStep, setEmailChangeStep] = useState('email');
     const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+    const [phoneChangeLoading, setPhoneChangeLoading] = useState(false);
+    const [pendingProfileValues, setPendingProfileValues] = useState(null);
     const [form] = Form.useForm();
     const [emailForm] = Form.useForm();
     const [otpForm] = Form.useForm();
+    const [phoneOtpForm] = Form.useForm();
+    const [cccdForm] = Form.useForm();
     const [avatarUrl, setAvatarUrl] = useState(dataUser?.avatar || '');
     const [cccdUploading, setCccdUploading] = useState(false);
     const [valueSearch, setValueSearch] = useState('');
@@ -50,6 +57,7 @@ function PersonalInfo() {
 
     const debouncedSearch = useDebounce(valueSearch, 500);
     const isGoogleAccount = dataUser.provider === 'google' || dataUser.typeLogin === 'google';
+    const hasRequiredCccdInfo = Boolean(String(dataUser.cccdFullName || '').trim() && String(dataUser.cccdNumber || '').trim());
 
     useEffect(() => {
         const fetchData = async () => {
@@ -67,6 +75,15 @@ function PersonalInfo() {
         };
         fetchData();
     }, [debouncedSearch]);
+
+    useEffect(() => {
+        cccdForm.setFieldsValue({
+            cccdFullName: dataUser.cccdFullName || dataUser.fullName || '',
+            cccdNumber: dataUser.cccdNumber || '',
+            cccdDob: dataUser.cccdDob || '',
+            cccdAddress: dataUser.cccdAddress || dataUser.address || '',
+        });
+    }, [cccdForm, dataUser]);
 
     useEffect(() => {
         const fetchFavourite = async () => {
@@ -90,17 +107,32 @@ function PersonalInfo() {
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
-            const { email, ...editableValues } = values;
+            const { email, phone, ...editableValues } = values;
+            const nextPhone = String(phone || '').trim();
+            const currentPhone = String(dataUser.phone || '').trim();
             const data = {
                 ...editableValues,
                 avatar: avatarUrl,
             };
+
+            if (nextPhone !== currentPhone) {
+                setPhoneChangeLoading(true);
+                const res = await requestChangePhoneOtp({ phone: nextPhone });
+                message.success(res.message);
+                setPendingProfileValues(data);
+                setIsPhoneOtpModalVisible(true);
+                return;
+            }
+
             const res = await requestUpdateUser(data);
             message.success(res.message);
             setIsModalVisible(false);
             fetchAuth();
         } catch (error) {
-            message.error(error.response.data.message);
+            if (error?.errorFields) return;
+            message.error(error?.response?.data?.message || 'Cập nhật thông tin thất bại');
+        } finally {
+            setPhoneChangeLoading(false);
         }
     };
 
@@ -108,6 +140,36 @@ function PersonalInfo() {
         setIsModalVisible(false);
         form.resetFields();
         setAvatarUrl(dataUser?.avatar || '');
+        setPendingProfileValues(null);
+        setIsPhoneOtpModalVisible(false);
+        phoneOtpForm.resetFields();
+    };
+
+    const closePhoneOtpModal = () => {
+        setIsPhoneOtpModalVisible(false);
+        phoneOtpForm.resetFields();
+    };
+
+    const handleVerifyChangePhone = async () => {
+        try {
+            const values = await phoneOtpForm.validateFields();
+            setPhoneChangeLoading(true);
+            const phoneRes = await requestVerifyChangePhone({ otp: values.otp });
+            if (pendingProfileValues) {
+                await requestUpdateUser(pendingProfileValues);
+            }
+            message.success(phoneRes.message);
+            closePhoneOtpModal();
+            setIsModalVisible(false);
+            setPendingProfileValues(null);
+            form.resetFields();
+            await fetchAuth();
+        } catch (error) {
+            if (error?.errorFields) return;
+            message.error(error?.response?.data?.message || 'Xác thực OTP đổi số điện thoại thất bại');
+        } finally {
+            setPhoneChangeLoading(false);
+        }
     };
 
     const openEmailModal = () => {
@@ -191,17 +253,27 @@ function PersonalInfo() {
         })[status || 'none'] || { color: 'default', text: status };
 
     const handleSubmitCccd = async ({ file, onSuccess, onError }) => {
-        const formData = new FormData();
-        formData.append('cccd', file);
         setCccdUploading(true);
 
         try {
+            const values = await cccdForm.validateFields();
+            const formData = new FormData();
+            formData.append('cccd', file);
+            formData.append('cccdFullName', values.cccdFullName || '');
+            formData.append('cccdNumber', values.cccdNumber || '');
+            formData.append('cccdDob', values.cccdDob || '');
+            formData.append('cccdAddress', values.cccdAddress || '');
+
             const res = await requestSubmitCccdVerification(formData);
             message.success(res.message);
             await fetchAuth();
             onSuccess?.(res);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Gửi xác thực CCCD thất bại');
+            if (error?.errorFields) {
+                message.error('Vui lòng nhập họ tên và số CCCD trước khi tải ảnh');
+            } else {
+                message.error(error.response?.data?.message || 'Gửi xác thực CCCD thất bại');
+            }
             onError?.(error);
         } finally {
             setCccdUploading(false);
@@ -345,7 +417,16 @@ function PersonalInfo() {
                         )}
                     </Descriptions>
 
-                    {dataUser.cccdImageUrl && (
+                    {dataUser.verificationStatus === 'verified' && !hasRequiredCccdInfo && (
+                        <Alert
+                            type="warning"
+                            showIcon
+                            style={{ marginTop: 14 }}
+                            message="Tài khoản đã được duyệt nhưng thông tin OCR CCCD đang trống. Vui lòng tải lại ảnh CCCD rõ hơn để cập nhật dữ liệu."
+                        />
+                    )}
+
+                    {dataUser.cccdImageUrl && dataUser.verificationStatus !== 'verified' && (
                         <div style={{ marginTop: 14 }}>
                             <img
                                 src={dataUser.cccdImageUrl}
@@ -354,6 +435,39 @@ function PersonalInfo() {
                             />
                         </div>
                     )}
+
+                    <Form form={cccdForm} layout="vertical" style={{ marginTop: 14 }}>
+                        <Row gutter={12}>
+                            <Col xs={24} md={12}>
+                                <Form.Item
+                                    name="cccdFullName"
+                                    label="Họ tên trên CCCD"
+                                    rules={[{ required: true, message: 'Vui lòng nhập họ tên trên CCCD' }]}
+                                >
+                                    <Input placeholder="Nhập họ tên trên CCCD" />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Form.Item
+                                    name="cccdNumber"
+                                    label="Số CCCD"
+                                    rules={[{ required: true, message: 'Vui lòng nhập số CCCD' }]}
+                                >
+                                    <Input placeholder="Nhập số CCCD" />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Form.Item name="cccdDob" label="Ngày sinh">
+                                    <Input placeholder="VD: 01/01/2000" />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <Form.Item name="cccdAddress" label="Địa chỉ trên CCCD">
+                                    <Input placeholder="Nhập địa chỉ trên CCCD" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </Form>
 
                     <Upload
                         accept="image/png,image/jpeg,image/webp"
@@ -369,7 +483,7 @@ function PersonalInfo() {
                         }}
                     >
                         <Button type="primary" icon={<UploadOutlined />} loading={cccdUploading} style={{ marginTop: 14 }}>
-                            Tải ảnh CCCD và đọc OCR
+                            Tải ảnh CCCD và gửi xác thực
                         </Button>
                     </Upload>
                 </Card>
@@ -391,6 +505,7 @@ function PersonalInfo() {
                 onOk={handleOk}
                 onCancel={handleCancel}
                 okText="Lưu"
+                okButtonProps={{ loading: phoneChangeLoading }}
                 cancelText="Hủy"
                 width={600}
             >
@@ -428,7 +543,10 @@ function PersonalInfo() {
                     <Form.Item
                         name="phone"
                         label="Số điện thoại"
-                        rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập số điện thoại' },
+                            { pattern: /^(0|\+84)[0-9]{9,10}$/, message: 'Số điện thoại không hợp lệ' },
+                        ]}
                     >
                         <Input prefix={<PhoneOutlined />} />
                     </Form.Item>
@@ -469,6 +587,39 @@ function PersonalInfo() {
                         >
                             <Input prefix={<EnvironmentOutlined />} placeholder="Nhập địa chỉ của bạn" />
                         </AutoComplete>
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            <Modal
+                title="Xác thực đổi số điện thoại"
+                open={isPhoneOtpModalVisible}
+                onCancel={closePhoneOtpModal}
+                footer={[
+                    <Button key="cancel" onClick={closePhoneOtpModal}>
+                        Hủy
+                    </Button>,
+                    <Button key="verify" type="primary" loading={phoneChangeLoading} onClick={handleVerifyChangePhone}>
+                        Xác thực
+                    </Button>,
+                ]}
+            >
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Mã OTP đã được gửi đến email tài khoản của bạn. Nhập mã để hoàn tất đổi số điện thoại."
+                />
+                <Form form={phoneOtpForm} layout="vertical">
+                    <Form.Item
+                        name="otp"
+                        label="Mã OTP"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập mã OTP' },
+                            { len: 6, message: 'OTP gồm 6 chữ số' },
+                        ]}
+                    >
+                        <Input maxLength={6} placeholder="Nhập 6 chữ số" />
                     </Form.Item>
                 </Form>
             </Modal>

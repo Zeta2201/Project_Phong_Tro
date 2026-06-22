@@ -19,6 +19,8 @@ router.get('/api/logout', asyncHandler(controllerUsers.logout));
 router.get('/api/refresh-token', asyncHandler(controllerUsers.refreshToken));
 router.get('/api/recharge-user', authUser, asyncHandler(controllerUsers.getRechargeUser));
 router.post('/api/update-user', authUser, asyncHandler(controllerUsers.updateUser));
+router.post('/api/users/request-change-phone', authUser, asyncHandler(controllerUsers.requestChangePhone));
+router.post('/api/users/verify-change-phone', authUser, asyncHandler(controllerUsers.verifyChangePhone));
 router.post('/api/users/request-change-email', authUser, asyncHandler(controllerUsers.requestChangeEmail));
 router.post('/api/users/verify-change-email', authUser, asyncHandler(controllerUsers.verifyChangeEmail));
 router.post('/api/submit-cccd-verification', authUser, upload.single('cccd'), asyncHandler(controllerUsers.submitCccdVerification));

@@ -24,6 +24,9 @@ const modelUser = new Schema(
         pendingEmail: { type: String, default: '', trim: true, lowercase: true },
         emailChangeOtp: { type: String, default: '' },
         emailChangeOtpExpires: { type: Date, default: null },
+        pendingPhone: { type: String, default: '', trim: true },
+        phoneChangeOtp: { type: String, default: '' },
+        phoneChangeOtpExpires: { type: Date, default: null },
         verificationStatus: {
             type: String,
             enum: ['none', 'pending', 'verified', 'rejected'],
