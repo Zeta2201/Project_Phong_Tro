@@ -1,0 +1,23 @@
+@startuml
+title Sơ đồ tuần tự - Tìm kiếm và lọc phòng trọ
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "PostController" as PostController
+participant "FilterOptionController" as FilterOptionController
+database "Post" as PostDB
+database "KeywordSearch" as KeywordDB
+
+User -> Client: Nhập từ khóa/chọn bộ lọc
+Client -> FilterOptionController: GET /api/filter-options
+FilterOptionController --> Client: Danh sách bộ lọc
+Client -> PostController: GET /api/get-posts?filter
+PostController -> PostDB: Tìm bài đăng theo điều kiện
+PostDB --> PostController: Danh sách phòng phù hợp
+opt Có từ khóa tìm kiếm
+    PostController -> KeywordDB: Lưu/cập nhật lượt tìm kiếm
+end
+PostController --> Client: Trả danh sách phòng
+Client --> User: Hiển thị kết quả
+
+@enduml

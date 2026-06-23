@@ -1,0 +1,38 @@
+@startuml
+title Sơ đồ tuần tự - Đặt cọc phòng
+
+actor "Người thuê" as Tenant
+participant "Client" as Client
+participant "DepositController" as DepositController
+participant "Payment Gateway" as PaymentGateway
+database "Post" as PostDB
+database "Deposit" as DepositDB
+database "User" as UserDB
+
+Tenant -> Client: Chọn đặt cọc phòng
+Client -> DepositController: POST /api/deposits
+DepositController -> PostDB: Kiểm tra phòng hợp lệ
+DepositController -> DepositDB: Kiểm tra giao dịch cọc đang hoạt động
+alt Có thể tạo cọc
+    DepositController -> DepositDB: Tạo DEPOSIT status = pending
+    DepositController --> Client: Trả thông tin giao dịch
+    Tenant -> Client: Chọn thanh toán
+    Client -> DepositController: POST /api/deposits/pay
+    alt Thanh toán bằng ví nội bộ
+        DepositController -> UserDB: Kiểm tra và trừ balance
+        DepositController -> DepositDB: paymentStatus = paid, balanceHeld = true
+        DepositController --> Client: Thanh toán thành công
+    else Thanh toán MoMo/VNPAY
+        DepositController -> PaymentGateway: Tạo URL thanh toán
+        PaymentGateway --> DepositController: URL thanh toán
+        DepositController --> Client: Trả URL
+        Client -> PaymentGateway: Chuyển người dùng thanh toán
+        PaymentGateway -> DepositController: Redirect kết quả
+        DepositController -> DepositDB: Cập nhật paid/failed
+    end
+else Không thể tạo cọc
+    DepositController --> Client: Báo lỗi
+end
+Client --> Tenant: Hiển thị kết quả
+
+@enduml

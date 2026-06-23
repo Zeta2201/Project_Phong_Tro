@@ -1,0 +1,28 @@
+@startuml
+title So do hoat dong - Lien he / gop y
+
+|Khach/User|
+start
+:Nhap ho ten, email, so dien thoai;
+:Nhap noi dung lien he;
+:Gui lien he;
+
+|He thong|
+:Kiem tra email va noi dung;
+if (Thong tin hop le?) then (Co)
+  :Tao contact status = pending;
+  :Thong bao gui lien he thanh cong;
+else (Khong)
+  :Thong bao du lieu khong hop le;
+endif
+
+|Admin|
+:Xem danh sach lien he;
+:Xu ly lien he;
+
+|He thong|
+:Cap nhat status/adminNote/handledAt;
+:Thong bao cap nhat thanh cong;
+
+stop
+@enduml

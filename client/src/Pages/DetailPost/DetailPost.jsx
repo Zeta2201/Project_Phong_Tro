@@ -47,16 +47,16 @@ const emptyReviewForm = {
 
 const reviewReportOptions = [
     { value: 'spam', label: 'Spam' },
-    { value: 'inappropriate', label: 'Noi dung khong phu hop' },
-    { value: 'false-info', label: 'Thong tin sai su that' },
-    { value: 'offensive', label: 'Ngon tu xuc pham' },
+    { value: 'inappropriate', label: 'Nội dung không phù hợp' },
+    { value: 'false-info', label: 'Thông tin sai sự thật' },
+    { value: 'offensive', label: 'Ngôn từ xúc phạm' },
 ];
 
 const postReportOptions = [
-    { value: 'spam', label: 'Noi dung spam' },
-    { value: 'wrong-info', label: 'Thong tin sai su that' },
+    { value: 'spam', label: 'Nội dung spam' },
+    { value: 'wrong-info', label: 'Thông tin sai sự thật' },
     { value: 'scam', label: 'Nghi gian lan / lua dao' },
-    { value: 'other', label: 'Khac' },
+    { value: 'other', label: 'Khác' },
 ];
 
 function DetailPost() {

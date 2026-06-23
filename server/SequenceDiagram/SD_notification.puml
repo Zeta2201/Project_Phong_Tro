@@ -1,0 +1,24 @@
+@startuml
+title Sơ đồ tuần tự - Gửi thông báo hệ thống
+
+actor "Admin/Hệ thống" as Admin
+actor "Người nhận" as Receiver
+participant "NotificationController" as NotificationController
+participant "NotificationService" as NotificationService
+database "User" as UserDB
+database "Notification" as NotificationDB
+participant "Socket" as Socket
+
+Admin -> NotificationController: Tạo thông báo/broadcast
+NotificationController -> NotificationService: createBroadcastNotification()
+NotificationService -> UserDB: Lấy danh sách người nhận theo targetRole
+UserDB --> NotificationService: Danh sách userId
+loop Với mỗi user
+    NotificationService -> NotificationDB: Tạo NOTIFICATION
+    NotificationService -> Socket: Emit notification:new
+    Socket --> Receiver: Nhận thông báo realtime
+end
+NotificationService --> NotificationController: Hoàn tất
+NotificationController --> Admin: Trả kết quả
+
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+title Sơ đồ tuần tự - Đánh giá phòng
+
+actor "Người thuê" as Tenant
+participant "Client" as Client
+participant "ReviewController" as ReviewController
+database "Reservation/Deposit/Contract" as RentalDB
+database "Review" as ReviewDB
+database "Post" as PostDB
+
+Tenant -> Client: Nhập nội dung và điểm đánh giá
+Client -> ReviewController: POST /api/create-review
+ReviewController -> RentalDB: Kiểm tra giao dịch thuê hợp lệ
+alt Đủ điều kiện đánh giá
+    ReviewController -> ReviewDB: Kiểm tra user đã đánh giá rental chưa
+    alt Chưa đánh giá
+        ReviewController -> ReviewDB: Tạo REVIEW
+        ReviewController -> PostDB: Cập nhật ratingAverage/ratingCount
+        ReviewController --> Client: Tạo đánh giá thành công
+    else Đã đánh giá
+        ReviewController --> Client: Báo lỗi đánh giá trùng
+    end
+else Không đủ điều kiện
+    ReviewController --> Client: Báo lỗi
+end
+Client --> Tenant: Hiển thị kết quả
+
+@enduml

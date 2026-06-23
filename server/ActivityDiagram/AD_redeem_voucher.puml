@@ -1,0 +1,27 @@
+@startuml
+title So do hoat dong - Doi voucher bang diem thuong
+
+|Nguoi dung|
+start
+:Mo danh sach voucher doi diem;
+:Chon voucher muon doi;
+:Gui yeu cau doi voucher;
+
+|He thong|
+:Kiem tra voucher ton tai va con hieu luc;
+if (Voucher hop le?) then (Co)
+  :Kiem tra diem thuong nguoi dung;
+  if (Du diem?) then (Co)
+    :Tru diem nguoi dung;
+    :Tao giao dich diem;
+    :Gan voucher cho nguoi dung;
+    :Thong bao doi voucher thanh cong;
+  else (Khong)
+    :Thong bao khong du diem;
+  endif
+else (Khong)
+  :Thong bao voucher khong hop le;
+endif
+
+stop
+@enduml

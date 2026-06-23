@@ -1,0 +1,33 @@
+@startuml
+title So do hoat dong - Dang ky tai khoan
+
+|Nguoi dung|
+start
+:Nhap thong tin dang ky;
+:Gui yeu cau nhan OTP;
+
+|He thong|
+:Kiem tra email;
+if (Email hop le va chua ton tai?) then (Co)
+  :Tao ma OTP;
+  :Gui OTP qua email;
+
+  |Nguoi dung|
+  :Nhap OTP xac thuc;
+  :Gui thong tin dang ky;
+
+  |He thong|
+  :Kiem tra OTP;
+  if (OTP hop le?) then (Co)
+    :Ma hoa mat khau;
+    :Tao tai khoan user;
+    :Thong bao dang ky thanh cong;
+  else (Khong)
+    :Thong bao OTP khong hop le;
+  endif
+else (Khong)
+  :Thong bao email khong hop le hoac da ton tai;
+endif
+
+stop
+@enduml

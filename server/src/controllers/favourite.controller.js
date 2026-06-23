@@ -14,7 +14,7 @@ class controllerFavourite {
         const findFavourite = await modelFavourite.findOne({ userId: id, postId });
 
         if (!findPost || findPost.isDeleted || findPost.status === 'deleted') {
-            throw new BadRequestError('Bai viet khong ton tai hoac da bi xoa');
+            throw new BadRequestError('Bài viết không tồn tại hoặc đã bị xóa');
         }
 
         if (findFavourite) {

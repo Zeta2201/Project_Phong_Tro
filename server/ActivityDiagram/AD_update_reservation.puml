@@ -1,0 +1,29 @@
+@startuml
+title So do hoat dong - Xu ly yeu cau giu cho
+
+|Chu tro|
+start
+:Mo danh sach yeu cau giu cho;
+:Chon yeu cau;
+:Chap nhan hoac tu choi;
+
+|He thong|
+:Kiem tra yeu cau ton tai;
+if (Yeu cau dang pending?) then (Co)
+  if (Chap nhan?) then (Co)
+    :Cap nhat status = accepted;
+    :Dat thoi han giu cho;
+    :Tu choi cac yeu cau pending khac cua phong;
+    :Gui thong bao cho nguoi thue;
+  else (Tu choi)
+    :Cap nhat status = rejected;
+    :Luu ghi chu chu tro;
+    :Gui thong bao cho nguoi thue;
+  endif
+  :Thong bao xu ly thanh cong;
+else (Khong)
+  :Thong bao yeu cau khong the xu ly;
+endif
+
+stop
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+title Sơ đồ tuần tự - Đặt lịch xem phòng / giữ chỗ
+
+actor "Người thuê" as Tenant
+participant "Client" as Client
+participant "ReservationController" as ReservationController
+participant "NotificationService" as NotificationService
+database "Post" as PostDB
+database "Reservation" as ReservationDB
+
+Tenant -> Client: Gửi yêu cầu xem/giữ phòng
+Client -> ReservationController: POST /api/create-reservation
+ReservationController -> PostDB: Kiểm tra phòng còn công khai
+alt Phòng hợp lệ
+    ReservationController -> ReservationDB: Kiểm tra yêu cầu trùng
+    alt Chưa có yêu cầu active
+        ReservationController -> ReservationDB: Tạo RESERVATION status = pending
+        ReservationController -> NotificationService: Thông báo cho chủ trọ
+        NotificationService --> ReservationController: Đã gửi thông báo
+        ReservationController --> Client: Tạo yêu cầu thành công
+    else Đã có yêu cầu
+        ReservationController --> Client: Báo lỗi yêu cầu trùng
+    end
+else Phòng không hợp lệ
+    ReservationController --> Client: Báo lỗi
+end
+Client --> Tenant: Hiển thị kết quả
+
+@enduml

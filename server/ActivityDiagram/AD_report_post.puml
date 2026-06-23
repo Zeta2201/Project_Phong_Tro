@@ -1,0 +1,20 @@
+@startuml
+title So do hoat dong - Bao cao bai dang
+
+|Nguoi dung|
+start
+:Chon bai dang can bao cao;
+:Nhap ly do va chi tiet;
+:Gui bao cao;
+
+|He thong|
+:Kiem tra nguoi dung va bai dang;
+if (Thong tin hop le?) then (Co)
+  :Tao report status = pending;
+  :Thong bao gui bao cao thanh cong;
+else (Khong)
+  :Thong bao khong the gui bao cao;
+endif
+
+stop
+@enduml

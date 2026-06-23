@@ -1,0 +1,51 @@
+@startuml
+title Sơ đồ hoạt động - Nạp tiền vào ví
+
+|Người dùng|
+start
+:Nhập số tiền cần nạp;
+:Chọn phương thức thanh toán;
+:Gửi yêu cầu nạp tiền;
+
+|Hệ thống|
+:Kiểm tra số tiền và phương thức;
+
+if (Hợp lệ?) then (Có)
+  if (MOMO?) then (Có)
+    :Tạo giao dịch MoMo;
+    :Trả URL/thông tin thanh toán;
+  else (VNPAY)
+    :Tạo URL thanh toán VNPAY;
+    :Trả URL thanh toán;
+  endif
+
+  |Người dùng|
+  :Thanh toán trên cổng thanh toán;
+
+  |Cổng thanh toán|
+  :Trả kết quả thanh toán;
+
+  |Hệ thống|
+  :Kiểm tra kết quả giao dịch;
+
+  if (Thanh toán thành công?) then (Có)
+    :Kiểm tra mã giao dịch đã tồn tại;
+    if (Chưa tồn tại?) then (Có)
+      :Lưu lịch sử nạp tiền;
+      :Cộng tiền vào ví người dùng;
+      :Gửi thông báo socket;
+    else (Không)
+      :Bỏ qua để tránh cộng tiền trùng;
+    endif
+    :Chuyển về trang cá nhân;
+  else (Không)
+    :Không cộng tiền;
+    :Chuyển về trang cá nhân;
+  endif
+
+else (Không)
+  :Hiển thị lỗi thông tin nạp tiền;
+endif
+
+stop
+@enduml

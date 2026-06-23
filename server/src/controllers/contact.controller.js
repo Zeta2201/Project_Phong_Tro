@@ -15,13 +15,13 @@ class controllerContact {
         const message = normalizeText(req.body.message);
 
         if (!name || !email || !message) {
-            throw new BadRequestError('Vui long nhap ho ten, email va noi dung lien he');
+            throw new BadRequestError('Vui lòng nhập họ tên, email va nội dung liên hệ');
         }
         if (!emailPattern.test(email)) {
-            throw new BadRequestError('Email khong hop le');
+            throw new BadRequestError('Email không hợp lệ');
         }
         if (name.length > 120 || email.length > 160 || phone.length > 30 || message.length > 3000) {
-            throw new BadRequestError('Thong tin lien he vuot qua gioi han cho phep');
+            throw new BadRequestError('Thông tin liên hệ vượt quá giới hạn cho phép');
         }
 
         const contact = await modelContact.create({ name, email, phone, message });
@@ -32,7 +32,7 @@ class controllerContact {
             '/admin?type=contacts',
             { contactId: contact._id, email },
         );
-        new Created({ message: 'Da gui yeu cau lien he', metadata: contact }).send(res);
+        new Created({ message: 'Đã gửi yêu cầu liên hệ', metadata: contact }).send(res);
     }
 
     async getContacts(req, res) {
@@ -41,7 +41,7 @@ class controllerContact {
 
         if (status) {
             if (!CONTACT_STATUSES.includes(status)) {
-                throw new BadRequestError('Trang thai lien he khong hop le');
+                throw new BadRequestError('Trạng thái liên hệ không hợp lệ');
             }
             filter.status = status;
         }
@@ -60,7 +60,7 @@ class controllerContact {
             .sort({ createdAt: -1 })
             .populate('handledBy', 'fullName email');
 
-        new OK({ message: 'Lay danh sach lien he thanh cong', metadata: contacts }).send(res);
+        new OK({ message: 'Lấy danh sách liên hệ thành công', metadata: contacts }).send(res);
     }
 
     async updateContact(req, res) {
@@ -68,10 +68,10 @@ class controllerContact {
         const adminNote = normalizeText(req.body.adminNote);
 
         if (!id || !CONTACT_STATUSES.includes(status)) {
-            throw new BadRequestError('Id va trang thai lien he hop le la bat buoc');
+            throw new BadRequestError('Id và trạng thái liên hệ hợp lệ là bắt buộc');
         }
         if (adminNote.length > 2000) {
-            throw new BadRequestError('Ghi chu khong duoc vuot qua 2000 ky tu');
+            throw new BadRequestError('Ghi chú không được vượt quá 2000 ký tự');
         }
 
         const contact = await modelContact.findByIdAndUpdate(
@@ -86,10 +86,10 @@ class controllerContact {
         );
 
         if (!contact) {
-            throw new BadRequestError('Yeu cau lien he khong ton tai');
+            throw new BadRequestError('Yêu cầu liên hệ không tồn tại');
         }
 
-        new OK({ message: 'Cap nhat lien he thanh cong', metadata: contact }).send(res);
+        new OK({ message: 'Cập nhật liên hệ thành công', metadata: contact }).send(res);
     }
 }
 

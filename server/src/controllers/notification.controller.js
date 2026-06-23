@@ -40,7 +40,7 @@ class controllerNotification {
         ]);
 
         new OK({
-            message: 'Lay danh sach thong bao thanh cong',
+            message: 'Lấy danh sách thông báo thành công',
             metadata: {
                 notifications,
                 pagination: {
@@ -56,19 +56,19 @@ class controllerNotification {
 
     async getUnreadCount(req, res) {
         const count = await getUnreadCount(req.user.id);
-        new OK({ message: 'Lay so thong bao chua doc thanh cong', metadata: { count } }).send(res);
+        new OK({ message: 'Lấy số thông báo chưa đọc thành công', metadata: { count } }).send(res);
     }
 
     async markAsRead(req, res) {
         const { id: userId } = req.user;
         const { id } = req.params;
-        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Thong bao khong hop le');
+        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Thông báo không hợp lệ');
 
         const notification = await markNotificationAsRead(id, userId);
-        if (!notification) throw new BadRequestError('Thong bao khong ton tai');
+        if (!notification) throw new BadRequestError('Thông báo không tồn tại');
 
         new OK({
-            message: 'Da danh dau thong bao da doc',
+            message: 'Đã đánh dấu thông báo đã đọc',
             metadata: { notification, unreadCount: await getUnreadCount(userId) },
         }).send(res);
     }
@@ -76,23 +76,23 @@ class controllerNotification {
     async markAllAsRead(req, res) {
         const { id: userId } = req.user;
         await markAllNotificationsAsRead(userId);
-        new OK({ message: 'Da danh dau tat ca thong bao da doc', metadata: { unreadCount: 0 } }).send(res);
+        new OK({ message: 'Đã đánh dấu tất cả thông báo đã đọc', metadata: { unreadCount: 0 } }).send(res);
     }
 
     async deleteNotification(req, res) {
         const { id: userId } = req.user;
         const { id } = req.params;
-        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Thong bao khong hop le');
+        if (!mongoose.isValidObjectId(id)) throw new BadRequestError('Thông báo không hợp lệ');
 
         const notification = await modelNotification.findOneAndUpdate(
             { _id: id, userId, isDeleted: false },
             { isDeleted: true },
             { new: true },
         );
-        if (!notification) throw new BadRequestError('Thong bao khong ton tai');
+        if (!notification) throw new BadRequestError('Thông báo không tồn tại');
 
         new OK({
-            message: 'Da xoa thong bao',
+            message: 'Đã xóa thông báo',
             metadata: { notification, unreadCount: await getUnreadCount(userId) },
         }).send(res);
     }
@@ -115,7 +115,7 @@ class controllerNotification {
         ]);
 
         new OK({
-            message: 'Lay danh sach thong bao he thong thanh cong',
+            message: 'Lấy danh sách thông báo hệ thống thành công',
             metadata: {
                 notifications,
                 pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
@@ -141,7 +141,7 @@ class controllerNotification {
         ]);
 
         new OK({
-            message: 'Lay lich su thong bao hang loat thanh cong',
+            message: 'Lấy lịch sử thông báo hàng loạt thành công',
             metadata: {
                 notifications,
                 pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
@@ -156,9 +156,9 @@ class controllerNotification {
         const message = String(req.body.message || '').trim();
         const link = String(req.body.link || '').trim();
 
-        if (!title || !message) throw new BadRequestError('Tieu de va noi dung thong bao la bat buoc');
-        if (!TARGET_ROLES.includes(targetRole)) throw new BadRequestError('Doi tuong nhan thong bao khong hop le');
-        if (!NOTIFICATION_TYPES.includes(type)) throw new BadRequestError('Loai thong bao khong hop le');
+        if (!title || !message) throw new BadRequestError('Tiêu đề và nội dung thông báo là bắt buộc');
+        if (!TARGET_ROLES.includes(targetRole)) throw new BadRequestError('Đối tượng nhận thông báo không hợp lệ');
+        if (!NOTIFICATION_TYPES.includes(type)) throw new BadRequestError('Loại thông báo không hợp lệ');
 
         const notifications = await createBroadcastNotification(
             targetRole,
@@ -171,7 +171,7 @@ class controllerNotification {
         );
 
         new OK({
-            message: 'Da gui thong bao hang loat',
+            message: 'Đã gửi thông báo hàng loạt',
             metadata: { sentCount: notifications.filter(Boolean).length },
         }).send(res);
     }

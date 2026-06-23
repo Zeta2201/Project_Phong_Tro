@@ -1,0 +1,25 @@
+@startuml
+title So do hoat dong - Tim kiem va loc phong tro
+
+|Nguoi dung|
+start
+:Nhap tu khoa hoac chon bo loc;
+:Gui yeu cau tim kiem;
+
+|He thong|
+:Lay dieu kien loc;
+:Kiem tra tu khoa va bo loc;
+:Truy van danh sach bai dang cong khai;
+if (Co ket qua?) then (Co)
+  :Luu/cap nhat tu khoa tim kiem neu co;
+  :Tra danh sach phong phu hop;
+  |Nguoi dung|
+  :Xem danh sach phong;
+else (Khong)
+  :Tra danh sach rong;
+  |Nguoi dung|
+  :Xem thong bao khong co ket qua;
+endif
+
+stop
+@enduml

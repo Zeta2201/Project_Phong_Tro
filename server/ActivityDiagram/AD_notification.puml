@@ -1,0 +1,27 @@
+@startuml
+title So do hoat dong - Gui thong bao he thong
+
+|Admin/He thong|
+start
+:Nhap tieu de va noi dung thong bao;
+:Chon doi tuong nhan;
+:Gui thong bao;
+
+|He thong|
+:Kiem tra thong tin thong bao;
+if (Thong tin hop le?) then (Co)
+  :Lay danh sach nguoi nhan theo targetRole;
+  if (Co nguoi nhan?) then (Co)
+    :Tao notification cho tung nguoi nhan;
+    :Gui notification realtime qua socket;
+    :Cap nhat so luong chua doc;
+    :Thong bao gui thanh cong;
+  else (Khong)
+    :Thong bao khong co nguoi nhan phu hop;
+  endif
+else (Khong)
+  :Thong bao du lieu khong hop le;
+endif
+
+stop
+@enduml

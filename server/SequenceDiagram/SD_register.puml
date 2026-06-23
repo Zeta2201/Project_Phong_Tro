@@ -1,0 +1,34 @@
+@startuml
+title Sơ đồ tuần tự - Đăng ký tài khoản
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "UserController" as UserController
+participant "OTP/Email Service" as EmailService
+database "Database" as DB
+
+User -> Client: Nhập thông tin đăng ký
+Client -> UserController: POST /api/register/request-otp
+UserController -> DB: Kiểm tra email đã tồn tại
+alt Email chưa tồn tại
+    UserController -> DB: Tạo/Lưu OTP
+    UserController -> EmailService: Gửi OTP xác thực
+    EmailService --> UserController: Gửi thành công
+    UserController --> Client: Thông báo nhập OTP
+    User -> Client: Nhập OTP
+    Client -> UserController: POST /api/register
+    UserController -> DB: Kiểm tra OTP
+    alt OTP hợp lệ
+        UserController -> DB: Tạo USER
+        UserController --> Client: Đăng ký thành công
+        Client --> User: Hiển thị kết quả
+    else OTP sai/hết hạn
+        UserController --> Client: Báo lỗi OTP
+        Client --> User: Hiển thị lỗi
+    end
+else Email đã tồn tại
+    UserController --> Client: Báo lỗi email
+    Client --> User: Hiển thị lỗi
+end
+
+@enduml

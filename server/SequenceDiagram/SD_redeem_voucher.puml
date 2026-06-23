@@ -1,0 +1,25 @@
+@startuml
+title Sơ đồ tuần tự - Đổi voucher / tích điểm
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "RewardController" as RewardController
+database "RewardUser" as RewardUserDB
+database "RewardVoucher" as VoucherDB
+database "PointTransaction" as PointTransactionDB
+
+User -> Client: Chọn voucher muốn đổi
+Client -> RewardController: POST /api/rewards/redeem/:voucherId
+RewardController -> VoucherDB: Tìm voucher
+RewardController -> RewardUserDB: Kiểm tra điểm người dùng
+alt Đủ điểm và voucher còn hiệu lực
+    RewardController -> RewardUserDB: Trừ điểm
+    RewardController -> PointTransactionDB: Lưu giao dịch điểm
+    RewardController -> VoucherDB: Gán voucher cho người dùng
+    RewardController --> Client: Đổi voucher thành công
+else Không đủ điều kiện
+    RewardController --> Client: Báo lỗi
+end
+Client --> User: Hiển thị kết quả
+
+@enduml

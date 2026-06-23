@@ -1,0 +1,26 @@
+@startuml
+title So do hoat dong - Dat lich xem phong / giu cho
+
+|Nguoi thue|
+start
+:Chon phong muon xem/giu cho;
+:Nhap thong tin lien he va ghi chu;
+:Gui yeu cau;
+
+|He thong|
+:Kiem tra phong ton tai va con cong khai;
+if (Phong hop le?) then (Co)
+  :Kiem tra yeu cau trung;
+  if (Chua co yeu cau dang xu ly?) then (Co)
+    :Tao reservation status = pending;
+    :Gui thong bao cho chu tro;
+    :Thong bao gui yeu cau thanh cong;
+  else (Khong)
+    :Thong bao da co yeu cau dang xu ly;
+  endif
+else (Khong)
+  :Thong bao phong khong hop le;
+endif
+
+stop
+@enduml

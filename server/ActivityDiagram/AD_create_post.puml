@@ -1,0 +1,29 @@
+@startuml
+title So do hoat dong - Dang bai phong tro
+
+|Chu tro|
+start
+:Nhap thong tin phong tro;
+:Chon goi dang tin;
+:Gui yeu cau dang bai;
+
+|He thong|
+:Kiem tra thong tin bai dang;
+:Kiem tra goi dang tin;
+if (Thong tin va goi hop le?) then (Co)
+  :Tinh phi dang tin;
+  :Kiem tra so du vi chu tro;
+  if (So du du?) then (Co)
+    :Tru phi dang tin;
+    :Luu bai dang;
+    :Cap nhat diem thuong neu co;
+    :Thong bao tao bai thanh cong;
+  else (Khong)
+    :Thong bao so du khong du;
+  endif
+else (Khong)
+  :Thong bao du lieu khong hop le;
+endif
+
+stop
+@enduml

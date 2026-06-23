@@ -210,7 +210,7 @@ function Header() {
                 <Link to="/" className={cx('brand')} onClick={() => setIsMobileMenuOpen(false)}>
                     <img src={logo} alt="Logo PhongTro" />
                     <div>
-                        <strong>PhongTro</strong>
+                        <strong>PHÒNG TRỌ</strong>
                         <span>Kênh thuê trọ tin cậy</span>
                     </div>
                 </Link>

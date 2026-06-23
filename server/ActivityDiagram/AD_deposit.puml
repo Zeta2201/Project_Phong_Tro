@@ -1,0 +1,47 @@
+@startuml
+title So do hoat dong - Dat coc phong
+
+|Nguoi thue|
+start
+:Chon phong muon dat coc;
+:Chon phuong thuc thanh toan;
+:Gui yeu cau dat coc;
+
+|He thong|
+:Kiem tra phong hop le;
+:Kiem tra giao dich coc dang hoat dong;
+if (Co the dat coc?) then (Co)
+  :Tao deposit status = pending;
+
+  if (Thanh toan bang vi noi bo?) then (Co)
+    :Kiem tra so du nguoi thue;
+    if (So du du?) then (Co)
+      :Tru tien trong vi;
+      :Cap nhat paymentStatus = paid;
+      :Giu tien trung gian;
+      :Thong bao thanh toan thanh cong;
+    else (Khong)
+      :Thong bao so du khong du;
+    endif
+  else (MOMO/VNPAY)
+    :Tao URL thanh toan;
+    |Nguoi thue|
+    :Thanh toan tren cong thanh toan;
+    |Cong thanh toan|
+    :Tra ket qua thanh toan;
+    |He thong|
+    if (Thanh toan thanh cong?) then (Co)
+      :Cap nhat paymentStatus = paid;
+      :Giu tien trung gian;
+      :Thong bao thanh toan thanh cong;
+    else (Khong)
+      :Cap nhat paymentStatus = failed;
+      :Thong bao thanh toan that bai;
+    endif
+  endif
+else (Khong)
+  :Thong bao khong the dat coc;
+endif
+
+stop
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+title So do hoat dong - Tai hop dong PDF
+
+|Nguoi dung|
+start
+:Chon hop dong can tai;
+:Bam tai PDF;
+
+|He thong|
+:Kiem tra contractId;
+:Tim hop dong;
+if (Hop dong ton tai?) then (Co)
+  :Kiem tra quyen xem hop dong;
+  if (Co quyen xem?) then (Co)
+    :Kiem tra chu ky hai ben;
+    if (Da du chu ky?) then (Co)
+      :Sinh file PDF;
+      :Tra file PDF cho nguoi dung;
+      |Nguoi dung|
+      :Tai file hop dong;
+    else (Khong)
+      :Thong bao hop dong chua du chu ky;
+    endif
+  else (Khong)
+    :Thong bao khong co quyen xem;
+  endif
+else (Khong)
+  :Thong bao hop dong khong ton tai;
+endif
+
+stop
+@enduml

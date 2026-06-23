@@ -11,17 +11,17 @@ class controllerReport {
         const { postId, reason, details } = req.body;
 
         if (!postId || !reason) {
-            throw new BadRequestError('Post ID va ly do bao cao bat buoc');
+            throw new BadRequestError('Post ID va lý do báo cáo là bắt buộc');
         }
 
         const post = await modelPost.findById(postId);
         if (!post) {
-            throw new BadRequestError('Bai viet khong ton tai');
+            throw new BadRequestError('Bài viết không tồn tại');
         }
 
         const user = await modelUser.findById(id);
         if (!user) {
-            throw new BadRequestError('Nguoi dung khong hop le');
+            throw new BadRequestError('Người dùng không hợp lệ');
         }
 
         const report = await modelReport.create({
@@ -40,7 +40,7 @@ class controllerReport {
             { reportId: report._id, postId },
         );
 
-        new Created({ message: 'Bao cao bai viet thanh cong', metadata: report }).send(res);
+        new Created({ message: 'Báo cáo bài viết thành công', metadata: report }).send(res);
     }
 
     async getReports(req, res) {
@@ -72,26 +72,26 @@ class controllerReport {
             post: report.postId,
         }));
 
-        new OK({ message: 'Lay danh sach bao cao thanh cong', metadata }).send(res);
+        new OK({ message: 'Lấy danh sách báo cáo thành công', metadata }).send(res);
     }
 
     async updateReport(req, res) {
         const { id, status, note, postAction = 'none' } = req.body;
         if (!id || !status) {
-            throw new BadRequestError('Id bao cao va trang thai bat buoc');
+            throw new BadRequestError('Id báo cáo và trạng thái là bắt buộc');
         }
 
         if (!['pending', 'resolved', 'rejected'].includes(status)) {
-            throw new BadRequestError('Trang thai khong hop le');
+            throw new BadRequestError('Trạng thái không hợp lệ');
         }
 
         if (!['none', 'hide_post', 'takedown_post'].includes(postAction)) {
-            throw new BadRequestError('Hanh dong xu ly bai viet khong hop le');
+            throw new BadRequestError('Hành động xử lý bài viết không hợp lệ');
         }
 
         const report = await modelReport.findById(id);
         if (!report) {
-            throw new BadRequestError('Bao cao khong ton tai');
+            throw new BadRequestError('Báo cáo không tồn tại');
         }
 
         let postStatusBefore = report.postStatusBefore || '';
@@ -100,7 +100,7 @@ class controllerReport {
         if (status === 'resolved' && postAction !== 'none') {
             const post = await modelPost.findById(report.postId);
             if (!post) {
-                throw new BadRequestError('Bai viet duoc bao cao khong ton tai');
+                throw new BadRequestError('Bài viết được báo cáo không tồn tại');
             }
 
             postStatusBefore = post.status;
@@ -123,7 +123,7 @@ class controllerReport {
             { new: true },
         );
 
-        new OK({ message: 'Cap nhat bao cao thanh cong', metadata: updated }).send(res);
+        new OK({ message: 'Cập nhật báo cáo thành công', metadata: updated }).send(res);
     }
 }
 

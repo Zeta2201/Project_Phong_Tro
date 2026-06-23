@@ -1,0 +1,40 @@
+@startuml
+title Sơ đồ tuần tự - Nạp tiền vào ví
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "PaymentsController" as PaymentsController
+participant "MoMo/VNPAY" as PaymentGateway
+database "RechargeUser" as RechargeDB
+database "User" as UserDB
+participant "Socket" as Socket
+
+User -> Client: Nhập số tiền và chọn phương thức
+Client -> PaymentsController: POST /api/payments
+PaymentsController -> PaymentsController: Kiểm tra amount >= 10000 và typePayment
+alt Thông tin hợp lệ
+    PaymentsController -> PaymentGateway: Tạo giao dịch thanh toán
+    PaymentGateway --> PaymentsController: URL/thông tin thanh toán
+    PaymentsController --> Client: Trả thông tin thanh toán
+    Client -> PaymentGateway: Chuyển người dùng sang cổng thanh toán
+    PaymentGateway -> PaymentsController: GET /api/check-payment-*
+    PaymentsController -> PaymentsController: Xác thực kết quả thanh toán
+    alt Thanh toán thành công
+        PaymentsController -> RechargeDB: Kiểm tra paymentOrderId
+        alt Chưa tồn tại
+            PaymentsController -> RechargeDB: Tạo RECHARGE_USER status = success
+            PaymentsController -> UserDB: Cộng balance
+            PaymentsController -> Socket: Emit new-payment
+        else Đã tồn tại
+            PaymentsController -> RechargeDB: Không tạo trùng
+        end
+    else Thanh toán thất bại
+        PaymentsController -> UserDB: Không cộng tiền
+    end
+    PaymentsController --> Client: Redirect về trang cá nhân
+else Thông tin không hợp lệ
+    PaymentsController --> Client: Báo lỗi
+end
+Client --> User: Hiển thị kết quả
+
+@enduml

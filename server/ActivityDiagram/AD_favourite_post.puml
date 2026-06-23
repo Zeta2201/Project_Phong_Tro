@@ -1,0 +1,29 @@
+@startuml
+title So do hoat dong - Luu bai dang yeu thich
+
+|Nguoi dung|
+start
+:Chon bai dang;
+:Bam luu yeu thich;
+
+|He thong|
+:Kiem tra dang nhap;
+if (Da dang nhap?) then (Co)
+  :Kiem tra bai dang ton tai;
+  if (Bai dang hop le?) then (Co)
+    :Kiem tra da luu truoc do chua;
+    if (Chua luu?) then (Co)
+      :Tao ban ghi favourite;
+      :Thong bao luu thanh cong;
+    else (Khong)
+      :Thong bao bai dang da duoc luu;
+    endif
+  else (Khong)
+    :Thong bao bai dang khong hop le;
+  endif
+else (Khong)
+  :Yeu cau dang nhap;
+endif
+
+stop
+@enduml

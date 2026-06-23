@@ -1,0 +1,22 @@
+@startuml
+title Sơ đồ tuần tự - Liên hệ / góp ý
+
+actor "Khách/User" as User
+actor "Admin" as Admin
+participant "Client" as Client
+participant "ContactController" as ContactController
+database "Contact" as ContactDB
+
+User -> Client: Nhập thông tin liên hệ
+Client -> ContactController: POST /api/create-contact
+ContactController -> ContactDB: Tạo CONTACT status = pending
+ContactController --> Client: Gửi liên hệ thành công
+Client --> User: Hiển thị kết quả
+
+Admin -> Client: Xem và xử lý liên hệ
+Client -> ContactController: POST /api/update-contact
+ContactController -> ContactDB: Cập nhật status/adminNote
+ContactController --> Client: Cập nhật thành công
+Client --> Admin: Hiển thị kết quả
+
+@enduml

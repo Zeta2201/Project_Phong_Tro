@@ -1,0 +1,29 @@
+@startuml
+title Sơ đồ tuần tự - Đăng bài phòng trọ
+
+actor "Chủ trọ" as Landlord
+participant "Client" as Client
+participant "PostController" as PostController
+participant "PostingPlan" as PostingPlan
+database "User" as UserDB
+database "Post" as PostDB
+database "Database" as DB
+
+Landlord -> Client: Nhập thông tin bài đăng
+Client -> PostController: POST /api/create-post
+PostController -> PostingPlan: Kiểm tra gói đăng tin
+PostingPlan -> DB: Tìm gói theo typeNews/durationDays
+DB --> PostingPlan: Thông tin gói
+PostController -> UserDB: Kiểm tra số dư chủ trọ
+alt Số dư đủ
+    PostController -> UserDB: Trừ phí đăng tin
+    PostController -> PostDB: Tạo POST trạng thái pending/active
+    PostDB --> PostController: Bài đăng đã tạo
+    PostController --> Client: Tạo bài đăng thành công
+    Client --> Landlord: Hiển thị bài đăng
+else Số dư không đủ
+    PostController --> Client: Báo lỗi số dư
+    Client --> Landlord: Yêu cầu nạp tiền
+end
+
+@enduml

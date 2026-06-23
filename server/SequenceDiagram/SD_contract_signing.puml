@@ -1,0 +1,47 @@
+@startuml
+title Sơ đồ tuần tự - Ký hợp đồng điện tử
+
+actor "Người thuê" as Tenant
+actor "Chủ trọ" as Landlord
+participant "Client" as Client
+participant "ContractController" as ContractController
+participant "Cloudinary" as Cloudinary
+participant "PDFService" as PDFService
+participant "EmailService" as EmailService
+participant "NotificationService" as NotificationService
+database "Contract" as ContractDB
+
+Tenant -> Client: Ký hợp đồng
+Client -> ContractController: POST /api/contracts/sign-tenant
+ContractController -> ContractDB: Tìm hợp đồng
+alt waiting_tenant_signature
+    ContractController -> Cloudinary: Upload chữ ký người thuê
+    Cloudinary --> ContractController: tenantSignatureUrl
+    ContractController -> ContractDB: Lưu chữ ký, status = waiting_landlord_signature
+    ContractController -> EmailService: Báo chủ trọ cần ký
+    ContractController -> NotificationService: Thông báo cho chủ trọ
+    ContractController --> Client: Người thuê ký thành công
+else Không được phép ký
+    ContractController --> Client: Báo lỗi
+end
+
+Landlord -> Client: Ký hợp đồng
+Client -> ContractController: POST /api/contracts/sign-landlord
+ContractController -> ContractDB: Tìm hợp đồng
+alt waiting_landlord_signature
+    ContractController -> Cloudinary: Upload chữ ký chủ trọ
+    Cloudinary --> ContractController: landlordSignatureUrl
+    ContractController -> ContractDB: Lưu chữ ký chủ trọ
+    ContractController -> PDFService: Sinh PDF hợp đồng
+    PDFService --> ContractController: PDF buffer
+    ContractController -> Cloudinary: Upload PDF
+    Cloudinary --> ContractController: pdfUrl
+    ContractController -> ContractDB: status = active, lưu pdfUrl
+    ContractController -> EmailService: Gửi PDF cho hai bên
+    ContractController -> NotificationService: Thông báo hợp đồng hoàn tất
+    ContractController --> Client: Hợp đồng có hiệu lực
+else Không được phép ký
+    ContractController --> Client: Báo lỗi
+end
+
+@enduml

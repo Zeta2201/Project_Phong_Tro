@@ -1,0 +1,31 @@
+@startuml
+title So do hoat dong - Dang nhap
+
+|Nguoi dung|
+start
+:Nhap email va mat khau;
+:Gui yeu cau dang nhap;
+
+|He thong|
+:Tim tai khoan theo email;
+if (Tai khoan ton tai?) then (Co)
+  :Kiem tra trang thai tai khoan;
+  if (Tai khoan hoat dong?) then (Co)
+    :Kiem tra mat khau;
+    if (Mat khau dung?) then (Co)
+      :Tao access token va refresh token;
+      :Tra thong tin dang nhap;
+      |Nguoi dung|
+      :Truy cap he thong;
+    else (Khong)
+      :Thong bao sai thong tin dang nhap;
+    endif
+  else (Khong)
+    :Thong bao tai khoan bi khoa;
+  endif
+else (Khong)
+  :Thong bao tai khoan khong ton tai;
+endif
+
+stop
+@enduml

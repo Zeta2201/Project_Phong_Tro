@@ -49,27 +49,27 @@ class controllerReservation {
         const { postId, note, visitDate } = req.body;
 
         if (!postId) {
-            throw new BadRequestError('Vui long chon bai viet can giu cho');
+            throw new BadRequestError('Vui lòng chọn bài viết cần giữ chỗ');
         }
 
         await expireReservations(postId);
 
         const post = await modelPost.findById(postId);
         if (!post || !['active', 'approved'].includes(post.status) || post.isDeleted) {
-            throw new BadRequestError('Bai viet khong ton tai hoac chua duoc hien thi');
+            throw new BadRequestError('Bài viết không tồn tại hoặc chưa được hiển thị');
         }
 
         if ((post.availabilityStatus || 'available') !== 'available') {
-            throw new BadRequestError('Phong nay hien da het phong hoac da co nguoi giu cho');
+            throw new BadRequestError('Phòng này hiện đã hết phòng hoặc đã có người giữ chỗ');
         }
 
         if (post.userId.toString() === tenantId) {
-            throw new BadRequestError('Ban khong the giu cho bai viet cua chinh minh');
+            throw new BadRequestError('Bạn không thể giữ chỗ bài viết của chính mình');
         }
 
         const tenant = await modelUser.findById(tenantId);
         if (!tenant) {
-            throw new BadRequestError('Nguoi dung khong hop le');
+            throw new BadRequestError('Người dùng không hợp lệ');
         }
 
         const existing = await modelReservation.findOne({
@@ -79,7 +79,7 @@ class controllerReservation {
         });
 
         if (existing) {
-            throw new BadRequestError('Ban da gui yeu cau giu cho cho bai viet nay');
+            throw new BadRequestError('Bạn đã gửi yêu cầu giữ chỗ cho bài viết này');
         }
 
         const reservation = await modelReservation.create({
@@ -100,7 +100,7 @@ class controllerReservation {
             { reservationId: reservation._id, postId },
         );
 
-        new Created({ message: 'Da gui yeu cau giu cho', metadata: reservation }).send(res);
+        new Created({ message: 'Đã gửi yêu cầu giữ chỗ', metadata: reservation }).send(res);
     }
 
     async getReservations(req, res) {
@@ -128,7 +128,7 @@ class controllerReservation {
             owner: item.ownerId,
         }));
 
-        new OK({ message: 'Lay danh sach giu cho thanh cong', metadata }).send(res);
+        new OK({ message: 'Lấy danh sách giữ chỗ thành công', metadata }).send(res);
     }
 
     async updateReservation(req, res) {
@@ -136,12 +136,12 @@ class controllerReservation {
         const { id, status, ownerNote } = req.body;
 
         if (!id || !['accepted', 'rejected', 'cancelled'].includes(status)) {
-            throw new BadRequestError('Trang thai giu cho khong hop le');
+            throw new BadRequestError('Trạng thái giữ chỗ không hợp lệ');
         }
 
         const reservation = await modelReservation.findById(id);
         if (!reservation) {
-            throw new BadRequestError('Yeu cau giu cho khong ton tai');
+            throw new BadRequestError('Yêu cầu giữ chỗ không tồn tại');
         }
 
         await expireReservations(reservation.postId);
@@ -152,14 +152,14 @@ class controllerReservation {
 
         if (status === 'cancelled') {
             if (!isTenant && !isOwner) {
-                throw new BadRequestError('Ban khong co quyen huy yeu cau nay');
+                throw new BadRequestError('Bạn không có quyền hủy yêu cầu này');
             }
         } else if (!isOwner) {
-            throw new BadRequestError('Chi chu bai viet moi co quyen xu ly yeu cau giu cho');
+            throw new BadRequestError('Chỉ chủ bài viết mới có quyền xử lý yêu cầu giữ chỗ');
         }
 
         if (reservation.status !== 'pending') {
-            throw new BadRequestError('Yeu cau nay da duoc xu ly');
+            throw new BadRequestError('Yêu cầu này đã được xử lý');
         }
 
         reservation.status = status;
@@ -172,7 +172,7 @@ class controllerReservation {
             await modelPost.findByIdAndUpdate(reservation.postId, { availabilityStatus: 'unavailable' });
             await modelReservation.updateMany(
                 { postId: reservation.postId, _id: { $ne: reservation._id }, status: 'pending' },
-                { status: 'rejected', ownerNote: 'Phong da duoc giu cho boi nguoi khac', handledAt: new Date() },
+                { status: 'rejected', ownerNote: 'Phòng đã được giữ chỗ bởi người khác', handledAt: new Date() },
             );
         }
         const statusText = status === 'accepted' ? 'được xác nhận' : status === 'rejected' ? 'bị từ chối' : 'đã bị hủy';
@@ -186,7 +186,7 @@ class controllerReservation {
             { reservationId: reservation._id, postId: reservation.postId, status },
         );
 
-        new OK({ message: 'Cap nhat yeu cau giu cho thanh cong', metadata: reservation }).send(res);
+        new OK({ message: 'Cập nhật yêu cầu giữ chỗ thành công', metadata: reservation }).send(res);
     }
 }
 

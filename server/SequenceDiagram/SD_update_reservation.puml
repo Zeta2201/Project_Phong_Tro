@@ -1,0 +1,26 @@
+@startuml
+title Sơ đồ tuần tự - Chủ trọ xử lý yêu cầu giữ chỗ
+
+actor "Chủ trọ" as Landlord
+participant "Client" as Client
+participant "ReservationController" as ReservationController
+participant "NotificationService" as NotificationService
+database "Reservation" as ReservationDB
+
+Landlord -> Client: Chấp nhận/Từ chối yêu cầu
+Client -> ReservationController: POST /api/update-reservation
+ReservationController -> ReservationDB: Tìm RESERVATION
+alt Yêu cầu tồn tại và đang pending
+    ReservationController -> ReservationDB: Cập nhật status
+    opt Nếu chấp nhận
+        ReservationController -> ReservationDB: Từ chối các yêu cầu pending khác của phòng
+    end
+    ReservationController -> NotificationService: Thông báo kết quả cho người thuê
+    NotificationService --> ReservationController: Đã gửi thông báo
+    ReservationController --> Client: Cập nhật thành công
+else Không thể xử lý
+    ReservationController --> Client: Báo lỗi
+end
+Client --> Landlord: Hiển thị kết quả
+
+@enduml

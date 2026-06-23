@@ -1,0 +1,26 @@
+@startuml
+title So do hoat dong - Danh gia phong
+
+|Nguoi thue|
+start
+:Chon phong/giao dich da hoan tat;
+:Nhap diem va noi dung danh gia;
+:Gui danh gia;
+
+|He thong|
+:Kiem tra dieu kien danh gia;
+if (Du dieu kien?) then (Co)
+  :Kiem tra da danh gia giao dich nay chua;
+  if (Chua danh gia?) then (Co)
+    :Luu review;
+    :Cap nhat diem trung binh cua phong;
+    :Thong bao danh gia thanh cong;
+  else (Khong)
+    :Thong bao da danh gia truoc do;
+  endif
+else (Khong)
+  :Thong bao khong du dieu kien danh gia;
+endif
+
+stop
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+title Sơ đồ tuần tự - Báo cáo bài đăng
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "ReportController" as ReportController
+database "Post" as PostDB
+database "Report" as ReportDB
+
+User -> Client: Nhập lý do báo cáo
+Client -> ReportController: POST /api/report-post
+ReportController -> PostDB: Kiểm tra bài đăng tồn tại
+alt Bài đăng hợp lệ
+    ReportController -> ReportDB: Tạo REPORT status = pending
+    ReportController --> Client: Gửi báo cáo thành công
+else Bài đăng không hợp lệ
+    ReportController --> Client: Báo lỗi
+end
+Client --> User: Hiển thị kết quả
+
+@enduml

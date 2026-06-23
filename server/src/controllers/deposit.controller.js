@@ -300,8 +300,8 @@ class controllerDeposit {
 
     async tenantConfirm(req, res) {
         const deposit = await modelDeposit.findById(req.body.depositId);
-        if (!deposit || deposit.tenantId.toString() !== req.user.id) throw new BadRequestError('Ban khong co quyen xac nhan giao dich nay');
-        if (deposit.status !== 'holding') throw new BadRequestError('Giao dich khong o trang thai giu coc');
+        if (!deposit || deposit.tenantId.toString() !== req.user.id) throw new BadRequestError('Bạn không có quyền xác nhận giao dịch này');
+        if (deposit.status !== 'holding') throw new BadRequestError('Giao dịch không ở trạng thái giữ cọc');
         deposit.tenantConfirm = true;
         await deposit.save();
         await completeIfConfirmed(deposit);
@@ -310,8 +310,8 @@ class controllerDeposit {
 
     async landlordConfirm(req, res) {
         const deposit = await modelDeposit.findById(req.body.depositId);
-        if (!deposit || deposit.landlordId.toString() !== req.user.id) throw new BadRequestError('Ban khong co quyen xac nhan giao dich nay');
-        if (deposit.status !== 'holding') throw new BadRequestError('Giao dich khong o trang thai giu coc');
+        if (!deposit || deposit.landlordId.toString() !== req.user.id) throw new BadRequestError('Bạn không có quyền xác nhận giao dịch này');
+        if (deposit.status !== 'holding') throw new BadRequestError('Giao dịch không ở trạng thái giữ cọc');
         deposit.landlordConfirm = true;
         await deposit.save();
         await completeIfConfirmed(deposit);
@@ -328,8 +328,8 @@ class controllerDeposit {
 
     async cancelDeposit(req, res) {
         const deposit = await modelDeposit.findById(req.body.depositId);
-        if (!deposit || deposit.tenantId.toString() !== req.user.id) throw new BadRequestError('Ban khong co quyen huy giao dich nay');
-        if (deposit.status !== 'pending') throw new BadRequestError('Chi co the huy yeu cau chua thanh toan');
+        if (!deposit || deposit.tenantId.toString() !== req.user.id) throw new BadRequestError('ạn không có quyền hủy giao dịch này');
+        if (deposit.status !== 'pending') throw new BadRequestError('Chỉ có thể hủy yêu cầu chưa thanh toán');
         deposit.status = 'cancelled';
         await deposit.save();
         await releaseHeldBalance(deposit, deposit.tenantId);

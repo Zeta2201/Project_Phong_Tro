@@ -1,0 +1,30 @@
+@startuml
+title So do hoat dong - Admin xu ly bao cao
+
+|Admin|
+start
+:Mo danh sach bao cao;
+:Chon bao cao can xu ly;
+:Chon ket qua xu ly va hanh dong voi bai dang;
+
+|He thong|
+:Kiem tra report ton tai;
+if (Report hop le?) then (Co)
+  if (Bao cao duoc chap nhan?) then (Co)
+    if (Can an/go bai dang?) then (Co)
+      :Cap nhat trang thai bai dang;
+    else (Khong)
+      :Giu nguyen bai dang;
+    endif
+    :Cap nhat report status = resolved;
+  else (Tu choi)
+    :Cap nhat report status = rejected;
+  endif
+  :Luu ghi chu xu ly;
+  :Thong bao xu ly thanh cong;
+else (Khong)
+  :Thong bao report khong ton tai;
+endif
+
+stop
+@enduml

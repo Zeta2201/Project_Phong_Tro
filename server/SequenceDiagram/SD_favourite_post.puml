@@ -1,0 +1,26 @@
+@startuml
+title Sơ đồ tuần tự - Lưu bài đăng yêu thích
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "FavouriteController" as FavouriteController
+database "Post" as PostDB
+database "Favourite" as FavouriteDB
+
+User -> Client: Bấm lưu tin
+Client -> FavouriteController: POST /api/create-favourite
+FavouriteController -> PostDB: Kiểm tra bài đăng tồn tại
+alt Bài đăng hợp lệ
+    FavouriteController -> FavouriteDB: Kiểm tra đã lưu chưa
+    alt Chưa lưu
+        FavouriteController -> FavouriteDB: Tạo FAVOURITE
+        FavouriteController --> Client: Lưu tin thành công
+    else Đã lưu
+        FavouriteController --> Client: Báo tin đã được lưu
+    end
+else Bài đăng không hợp lệ
+    FavouriteController --> Client: Báo lỗi
+end
+Client --> User: Cập nhật trạng thái yêu thích
+
+@enduml

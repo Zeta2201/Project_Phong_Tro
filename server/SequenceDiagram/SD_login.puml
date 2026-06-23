@@ -1,0 +1,29 @@
+@startuml
+title Sơ đồ tuần tự - Đăng nhập
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "UserController" as UserController
+participant "TokenService" as TokenService
+database "Database" as DB
+
+User -> Client: Nhập email và mật khẩu
+Client -> UserController: POST /api/login
+UserController -> DB: Tìm USER theo email
+alt Tài khoản tồn tại và đang hoạt động
+    UserController -> UserController: So khớp mật khẩu
+    alt Mật khẩu đúng
+        UserController -> TokenService: Tạo access token và refresh token
+        TokenService --> UserController: Trả token
+        UserController --> Client: Đăng nhập thành công
+        Client --> User: Chuyển vào hệ thống
+    else Mật khẩu sai
+        UserController --> Client: Báo lỗi đăng nhập
+        Client --> User: Hiển thị lỗi
+    end
+else Không tồn tại/bị khóa
+    UserController --> Client: Báo lỗi tài khoản
+    Client --> User: Hiển thị lỗi
+end
+
+@enduml

@@ -22,7 +22,7 @@ class controllerComment {
             .sort({ createdAt: -1 })
             .populate('userId', 'fullName avatar');
 
-        new OK({ message: 'Lay binh luan thanh cong', metadata: comments }).send(res);
+        new OK({ message: 'Lấy bình luận thành công', metadata: comments }).send(res);
     }
 
     async createComment(req, res) {
@@ -34,16 +34,16 @@ class controllerComment {
             throw new BadRequestError('Bai viet khong ton tai');
         }
         if (!content) {
-            throw new BadRequestError('Vui long nhap noi dung binh luan');
+            throw new BadRequestError('Vui lòng nhập nội dung bình luận');
         }
         if (content.length > 1000) {
-            throw new BadRequestError('Binh luan khong duoc vuot qua 1000 ky tu');
+            throw new BadRequestError('Bình luận không được vượt quá 1000 ký tự');
         }
 
         const comment = await modelComment.create({ postId, userId, content });
         await comment.populate('userId', 'fullName avatar');
 
-        new Created({ message: 'Da gui binh luan', metadata: comment }).send(res);
+        new Created({ message: 'Đã gửi bình luận', metadata: comment }).send(res);
     }
 
     async deleteComment(req, res) {
@@ -51,20 +51,20 @@ class controllerComment {
         const { commentId } = req.body;
 
         if (!mongoose.isValidObjectId(commentId)) {
-            throw new BadRequestError('Binh luan khong hop le');
+            throw new BadRequestError('Bình luận không hợp lệ');
         }
 
         const comment = await modelComment.findById(commentId);
         if (!comment) {
-            throw new BadRequestError('Binh luan khong ton tai');
+            throw new BadRequestError('Bình luận không tồn tại');
         }
         if (comment.userId.toString() !== userId) {
-            throw new BadRequestError('Ban khong co quyen xoa binh luan nay');
+            throw new BadRequestError('Bạn không có quyền xóa bình luận này');
         }
 
         comment.status = 'deleted';
         await comment.save();
-        new OK({ message: 'Da xoa binh luan' }).send(res);
+        new OK({ message: 'Đã xóa bình luận' }).send(res);
     }
 
     async getAllComments(req, res) {
@@ -73,7 +73,7 @@ class controllerComment {
 
         if (status) {
             if (!COMMENT_STATUSES.includes(status)) {
-                throw new BadRequestError('Trang thai binh luan khong hop le');
+                throw new BadRequestError('Trạng thái bình luận không hợp lệ');
             }
             filter.status = status;
             if (status === 'visible') {
@@ -93,7 +93,7 @@ class controllerComment {
             .populate('postId', 'title status')
             .populate('moderatedBy', 'fullName email');
 
-        new OK({ message: 'Lay danh sach binh luan thanh cong', metadata: comments }).send(res);
+        new OK({ message: 'Lấy danh sách bình luận thành công', metadata: comments }).send(res);
     }
 
     async updateCommentStatus(req, res) {
@@ -101,13 +101,13 @@ class controllerComment {
         const moderationNote = normalizeContent(req.body.moderationNote);
 
         if (!mongoose.isValidObjectId(commentId)) {
-            throw new BadRequestError('Binh luan khong hop le');
+            throw new BadRequestError('Bình luận không hợp lệ');
         }
         if (!COMMENT_STATUSES.includes(status)) {
-            throw new BadRequestError('Trang thai binh luan khong hop le');
+            throw new BadRequestError('Trạng thái bình luận không hợp lệ');
         }
         if (moderationNote.length > 1000) {
-            throw new BadRequestError('Ghi chu khong duoc vuot qua 1000 ky tu');
+            throw new BadRequestError('Ghi chú không được vượt quá 1000 ký tự');
         }
 
         const comment = await modelComment.findByIdAndUpdate(
@@ -122,10 +122,10 @@ class controllerComment {
         );
 
         if (!comment) {
-            throw new BadRequestError('Binh luan khong ton tai');
+            throw new BadRequestError('Bình luận không tồn tại');
         }
 
-        new OK({ message: 'Cap nhat binh luan thanh cong', metadata: comment }).send(res);
+        new OK({ message: 'Cập nhật bình luận thành công', metadata: comment }).send(res);
     }
 }
 

@@ -1,0 +1,26 @@
+@startuml
+title Sơ đồ tuần tự - Admin duyệt bài đăng
+
+actor "Admin" as Admin
+participant "Client" as Client
+participant "PostController" as PostController
+participant "NotificationService" as NotificationService
+database "Post" as PostDB
+database "Notification" as NotificationDB
+
+Admin -> Client: Chọn duyệt bài đăng
+Client -> PostController: POST /api/approve-post
+PostController -> PostDB: Tìm bài đăng
+alt Bài đăng hợp lệ và đang chờ duyệt
+    PostController -> PostDB: Cập nhật status = approved
+    PostController -> NotificationService: Tạo thông báo cho chủ trọ
+    NotificationService -> NotificationDB: Lưu thông báo
+    NotificationService --> PostController: Thông báo đã tạo
+    PostController --> Client: Duyệt bài thành công
+    Client --> Admin: Hiển thị kết quả
+else Bài không hợp lệ
+    PostController --> Client: Báo lỗi
+    Client --> Admin: Hiển thị lỗi
+end
+
+@enduml

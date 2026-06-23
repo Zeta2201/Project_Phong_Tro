@@ -1,0 +1,37 @@
+@startuml
+title Sơ đồ hoạt động - Hủy hợp đồng
+
+|Admin|
+start
+:Chọn hợp đồng cần hủy;
+:Nhập lý do hủy;
+:Gửi yêu cầu hủy;
+
+|Hệ thống|
+:Kiểm tra contractId hợp lệ;
+:Tìm hợp đồng;
+
+if (Hợp đồng tồn tại?) then (Có)
+  :Kiểm tra quyền admin;
+
+  if (Là admin?) then (Có)
+    if (Hợp đồng chưa expired/canceled?) then (Có)
+      :Cập nhật trạng thái canceled;
+      :Lưu lý do hủy;
+      :Lưu thời gian hủy;
+      :Trả về hợp đồng đã hủy;
+      stop
+    else (Không)
+      :Báo lỗi hợp đồng không thể hủy;
+      stop
+    endif
+  else (Không)
+    :Báo lỗi chỉ admin có quyền hủy;
+    stop
+  endif
+else (Không)
+  :Báo lỗi hợp đồng không tồn tại;
+  stop
+endif
+
+@enduml

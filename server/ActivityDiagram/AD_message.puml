@@ -1,0 +1,22 @@
+@startuml
+title So do hoat dong - Gui tin nhan
+
+|Nguoi gui|
+start
+:Nhap noi dung tin nhan;
+:Gui tin nhan;
+
+|He thong|
+:Kiem tra nguoi gui va nguoi nhan;
+if (Thong tin hop le?) then (Co)
+  :Luu tin nhan vao database;
+  :Gui tin nhan realtime qua socket;
+  :Cap nhat trang thai chua doc;
+  |Nguoi nhan|
+  :Nhan tin nhan;
+else (Khong)
+  :Thong bao khong the gui tin nhan;
+endif
+
+stop
+@enduml

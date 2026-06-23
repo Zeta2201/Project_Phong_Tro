@@ -1,0 +1,20 @@
+@startuml
+title Sơ đồ tuần tự - Gửi tin nhắn
+
+actor "Người gửi" as Sender
+actor "Người nhận" as Receiver
+participant "Client" as Client
+participant "MessengerController" as MessengerController
+database "Message" as MessageDB
+participant "Socket" as Socket
+
+Sender -> Client: Nhập và gửi tin nhắn
+Client -> MessengerController: POST /api/create-message
+MessengerController -> MessageDB: Lưu MESSAGER
+MessageDB --> MessengerController: Tin nhắn đã lưu
+MessengerController -> Socket: Emit tin nhắn đến người nhận
+Socket --> Receiver: Nhận tin nhắn realtime
+MessengerController --> Client: Gửi tin nhắn thành công
+Client --> Sender: Hiển thị tin nhắn
+
+@enduml

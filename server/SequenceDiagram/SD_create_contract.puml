@@ -1,0 +1,30 @@
+@startuml
+title Sơ đồ tuần tự - Tạo hợp đồng thuê phòng
+
+actor "Chủ trọ" as Landlord
+participant "Client" as Client
+participant "ContractController" as ContractController
+participant "NotificationService" as NotificationService
+participant "EmailService" as EmailService
+database "Deposit" as DepositDB
+database "Contract" as ContractDB
+
+Landlord -> Client: Nhập thông tin hợp đồng
+Client -> ContractController: POST /api/contracts
+ContractController -> DepositDB: Tìm giao dịch đặt cọc
+alt Deposit completed và thuộc chủ trọ
+    ContractController -> ContractDB: Kiểm tra hợp đồng đã tồn tại
+    alt Chưa tồn tại
+        ContractController -> ContractDB: Tạo CONTRACT waiting_tenant_signature
+        ContractController -> EmailService: Gửi email yêu cầu người thuê ký
+        ContractController -> NotificationService: Tạo thông báo cho người thuê
+        ContractController --> Client: Tạo hợp đồng thành công
+    else Đã có hợp đồng
+        ContractController --> Client: Báo lỗi
+    end
+else Không hợp lệ
+    ContractController --> Client: Báo lỗi
+end
+Client --> Landlord: Hiển thị kết quả
+
+@enduml

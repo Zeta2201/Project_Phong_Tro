@@ -1,0 +1,26 @@
+@startuml
+title Sơ đồ tuần tự - Admin xử lý báo cáo
+
+actor "Admin" as Admin
+participant "Client" as Client
+participant "ReportController" as ReportController
+participant "NotificationService" as NotificationService
+database "Report" as ReportDB
+database "Post" as PostDB
+
+Admin -> Client: Chọn báo cáo cần xử lý
+Client -> ReportController: POST /api/update-report
+ReportController -> ReportDB: Tìm REPORT
+alt Báo cáo tồn tại
+    opt Có hành động với bài đăng
+        ReportController -> PostDB: Ẩn/Gỡ bài đăng
+    end
+    ReportController -> ReportDB: Cập nhật status, note, actionTaken
+    ReportController -> NotificationService: Thông báo kết quả nếu cần
+    ReportController --> Client: Xử lý báo cáo thành công
+else Báo cáo không tồn tại
+    ReportController --> Client: Báo lỗi
+end
+Client --> Admin: Hiển thị kết quả
+
+@enduml

@@ -1,0 +1,85 @@
+@startuml
+title Sơ đồ hoạt động - Quản lý hợp đồng thuê phòng
+
+|Chủ trọ|
+start
+:Chọn giao dịch đặt cọc đã hoàn tất;
+:Nhập ngày bắt đầu, ngày kết thúc, điều khoản;
+:Gửi yêu cầu tạo hợp đồng;
+
+|Hệ thống|
+:Kiểm tra depositId hợp lệ;
+:Kiểm tra ngày bắt đầu < ngày kết thúc;
+:Tìm giao dịch đặt cọc;
+
+if (Giao dịch tồn tại?) then (Có)
+  if (Chủ trọ có quyền tạo?) then (Có)
+    if (Giao dịch đã completed?) then (Có)
+      if (Chưa có hợp đồng cho giao dịch?) then (Có)
+        :Tạo mã hợp đồng;
+        :Tạo hợp đồng trạng thái\nwaiting_tenant_signature;
+        :Gửi thông báo/email cho người thuê;
+
+        |Người thuê|
+        :Xem hợp đồng;
+        :Tải lên hoặc vẽ chữ ký;
+        :Gửi yêu cầu ký hợp đồng;
+
+        |Hệ thống|
+        :Kiểm tra người thuê đúng hợp đồng;
+        :Kiểm tra trạng thái\nwaiting_tenant_signature;
+        :Upload chữ ký người thuê;
+        :Lưu tenantSignatureUrl;
+        :Cập nhật trạng thái\nwaiting_landlord_signature;
+        :Gửi thông báo/email cho chủ trọ;
+
+        |Chủ trọ|
+        :Xem hợp đồng đã có chữ ký người thuê;
+        :Tải lên hoặc vẽ chữ ký;
+        :Gửi yêu cầu ký hợp đồng;
+
+        |Hệ thống|
+        :Kiểm tra chủ trọ đúng hợp đồng;
+        :Kiểm tra trạng thái\nwaiting_landlord_signature;
+        :Upload chữ ký chủ trọ;
+        :Lưu landlordSignatureUrl;
+
+        if (Đủ chữ ký hai bên?) then (Có)
+          :Sinh file PDF hợp đồng;
+          :Upload PDF lên Cloudinary;
+          :Cập nhật trạng thái active;
+          :Gửi email hợp đồng PDF cho hai bên;
+          :Gửi thông báo hoàn tất;
+
+          |Người thuê|
+          :Nhận email/thông báo;
+          :Tải hợp đồng PDF;
+
+          |Chủ trọ|
+          :Nhận email/thông báo;
+          :Tải hợp đồng PDF;
+
+          stop
+        else (Không)
+          :Báo lỗi chưa đủ chữ ký;
+          stop
+        endif
+
+      else (Không)
+        :Báo lỗi giao dịch đã có hợp đồng;
+        stop
+      endif
+    else (Không)
+      :Báo lỗi chỉ tạo hợp đồng từ giao dịch completed;
+      stop
+    endif
+  else (Không)
+    :Báo lỗi không có quyền tạo hợp đồng;
+    stop
+  endif
+else (Không)
+  :Báo lỗi giao dịch không tồn tại;
+  stop
+endif
+
+@enduml

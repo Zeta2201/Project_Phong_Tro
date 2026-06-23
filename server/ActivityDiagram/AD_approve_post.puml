@@ -1,0 +1,29 @@
+@startuml
+title So do hoat dong - Admin duyet bai dang
+
+|Admin|
+start
+:Mo danh sach bai dang;
+:Chon bai can duyet;
+:Chon chap nhan hoac tu choi;
+
+|He thong|
+:Kiem tra bai dang ton tai;
+if (Bai dang hop le?) then (Co)
+  if (Chap nhan?) then (Co)
+    :Cap nhat status = approved;
+    :Gui thong bao cho chu tro;
+    :Thong bao duyet thanh cong;
+  else (Tu choi)
+    :Nhap ly do tu choi;
+    :Cap nhat status = rejected;
+    :Hoan phi neu can;
+    :Gui thong bao/email tu choi;
+    :Thong bao tu choi thanh cong;
+  endif
+else (Khong)
+  :Thong bao bai dang khong hop le;
+endif
+
+stop
+@enduml

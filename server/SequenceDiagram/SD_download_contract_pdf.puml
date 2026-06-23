@@ -1,0 +1,23 @@
+@startuml
+title Sơ đồ tuần tự - Tải hợp đồng PDF
+
+actor "Người dùng" as User
+participant "Client" as Client
+participant "ContractController" as ContractController
+participant "PDFService" as PDFService
+database "Contract" as ContractDB
+
+User -> Client: Bấm tải hợp đồng PDF
+Client -> ContractController: GET /api/contracts/download
+ContractController -> ContractDB: Tìm hợp đồng
+alt Có quyền xem và đủ chữ ký
+    ContractController -> PDFService: Sinh PDF từ dữ liệu hợp đồng
+    PDFService --> ContractController: PDF buffer
+    ContractController --> Client: Trả file PDF
+    Client --> User: Tải file
+else Không hợp lệ
+    ContractController --> Client: Báo lỗi
+    Client --> User: Hiển thị lỗi
+end
+
+@enduml
