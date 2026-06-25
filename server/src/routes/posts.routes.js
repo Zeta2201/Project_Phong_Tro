@@ -9,6 +9,7 @@ router.post('/api/create-post', authUser, asyncHandler(controllerPosts.createPos
 router.get('/api/get-posts', asyncHandler(controllerPosts.getPosts));
 router.get('/api/posts/map', asyncHandler(controllerPosts.getMapPosts));
 router.get('/api/get-post-by-id', asyncHandler(controllerPosts.getPostById));
+router.post('/api/posts/match-score', asyncHandler(controllerPosts.getMatchScore));
 router.get('/api/get-post-by-user-id', authUser, asyncHandler(controllerPosts.getPostByUserId));
 router.get('/api/owner/analytics', authUser, asyncHandler(controllerPosts.getOwnerAnalytics));
 router.get('/api/get-new-post', asyncHandler(controllerPosts.getNewPost));

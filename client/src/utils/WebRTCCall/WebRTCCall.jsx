@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, message } from 'antd';
 import { AudioOutlined, AudioMutedOutlined, CloseOutlined, PhoneOutlined, VideoCameraOutlined } from '@ant-design/icons';
@@ -150,12 +151,12 @@ function WebRTCCall() {
                     offer,
                     caller: {
                         id: dataUser?._id,
-                        username: dataUser?.fullName || dataUser?.username || 'Nguoi dung',
+                        username: dataUser?.fullName || dataUser?.username || 'Người dùng',
                         avatar: dataUser?.avatar,
                     },
                 });
             } catch (error) {
-                message.error('Khong the bat dau cuoc goi. Hay kiem tra quyen camera/micro.');
+                message.error('Không thể bắt đầu cuộc gọi. Hay kiểm tra quyền camera/micro.');
                 cleanupCall();
             }
         },
@@ -181,7 +182,7 @@ function WebRTCCall() {
 
             setCall((current) => ({ ...current, status: 'active' }));
         } catch (error) {
-            message.error('Khong the nhan cuoc goi. Hay kiem tra quyen camera/micro.');
+            message.error('Không thể nhận cuộc gọi. Hay kiểm tra quyền camera/micro.');
             socketRef.current?.emit('webrtc:reject', { targetUserId: call.fromUserId });
             cleanupCall();
         }
@@ -268,17 +269,17 @@ function WebRTCCall() {
         };
 
         const handleReject = () => {
-            message.info('Cuoc goi da bi tu choi hoac nguoi dung dang ban.');
+            message.info('Cuộc gọi đã bị từ chối hoặc người dùng đang bận.');
             cleanupCall();
         };
 
         const handleEnd = () => {
-            message.info('Cuoc goi da ket thuc.');
+            message.info('Cuộc gọi đã kết thúc.');
             cleanupCall();
         };
 
         const handleUnavailable = (payload) => {
-            message.warning(payload.message || 'Nguoi dung hien khong truc tuyen');
+            message.warning(payload.message || 'Người dùng hiện không trực tuyến');
             cleanupCall();
         };
 
@@ -311,10 +312,10 @@ function WebRTCCall() {
             <div className={cx('callBox')}>
                 <div className={cx('header')}>
                     <div>
-                        <span>{isIncoming ? 'Cuoc goi den' : call.status === 'calling' ? 'Dang goi' : 'Dang ket noi'}</span>
-                        <h3>{call.peerUser?.username || 'Nguoi dung'}</h3>
+                        <span>{isIncoming ? 'Cuộc gọi đến' : call.status === 'calling' ? 'Đang gọi' : 'Đang kết nối'}</span>
+                        <h3>{call.peerUser?.username || 'Người dùng'}</h3>
                     </div>
-                    <button type="button" onClick={isIncoming ? rejectCall : endCall} aria-label="Dong cuoc goi">
+                    <button type="button" onClick={isIncoming ? rejectCall : endCall} aria-label="Đóng cuộc gọi">
                         <CloseOutlined />
                     </button>
                 </div>
@@ -328,7 +329,7 @@ function WebRTCCall() {
                     ) : (
                         <div className={cx('audioOnlyState')}>
                             <PhoneOutlined />
-                            <p>{call.status === 'active' ? 'Dang goi audio' : 'San sang ket noi audio'}</p>
+                            <p>{call.status === 'active' ? 'Đang gọi audio' : 'Sẵn sàng kết nối audio'}</p>
                         </div>
                     )}
                 </div>
@@ -337,24 +338,24 @@ function WebRTCCall() {
                     {isIncoming ? (
                         <>
                             <Button danger onClick={rejectCall}>
-                                Tu choi
+                                Từ chối
                             </Button>
                             <Button type="primary" icon={isVideoCall ? <VideoCameraOutlined /> : <PhoneOutlined />} onClick={acceptCall}>
-                                Nhan cuoc goi
+                                Nhận cuộc gọi
                             </Button>
                         </>
                     ) : (
                         <>
                             <Button icon={isMicEnabled ? <AudioOutlined /> : <AudioMutedOutlined />} onClick={toggleMic}>
-                                {isMicEnabled ? 'Tat mic' : 'Bat mic'}
+                                {isMicEnabled ? 'Tắt mic' : 'Bật mic'}
                             </Button>
                             {isVideoCall && (
                                 <Button icon={<VideoCameraOutlined />} onClick={toggleCamera}>
-                                    {isCameraEnabled ? 'Tat camera' : 'Bat camera'}
+                                    {isCameraEnabled ? 'Tắt camera' : 'Bật camera'}
                                 </Button>
                             )}
                             <Button danger onClick={endCall}>
-                                Ket thuc
+                                Kết thúc
                             </Button>
                         </>
                     )}

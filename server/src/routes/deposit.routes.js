@@ -13,7 +13,10 @@ router.post('/api/deposits/tenant-confirm', authUser, asyncHandler(controllerDep
 router.post('/api/deposits/landlord-confirm', authUser, asyncHandler(controllerDeposit.landlordConfirm));
 router.post('/api/deposits/cancel', authUser, asyncHandler(controllerDeposit.cancelDeposit));
 router.post('/api/deposits/dispute', authUser, asyncHandler(controllerDeposit.disputeDeposit));
+router.post('/api/deposits/dispute/evidence', authUser, asyncHandler(controllerDeposit.addDisputeEvidence));
+router.post('/api/deposits/dispute/message', authUser, asyncHandler(controllerDeposit.addDisputeMessage));
 router.get('/api/admin/deposits', authAdmin, asyncHandler(controllerDeposit.getAllDeposits));
 router.post('/api/admin/deposits/action', authAdmin, asyncHandler(controllerDeposit.adminAction));
+router.post('/api/admin/deposits/dispute/message', authAdmin, asyncHandler(controllerDeposit.addDisputeMessage));
 
 module.exports = router;

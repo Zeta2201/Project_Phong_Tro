@@ -36,7 +36,7 @@ class SocketServices {
                         if (!receiverSocket) {
                             socket.emit('webrtc:user-unavailable', {
                                 targetUserId,
-                                message: 'Nguoi dung hien khong truc tuyen',
+                                message: 'Người dùng hiện không trực tuyến',
                             });
                             return;
                         }

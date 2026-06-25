@@ -225,6 +225,26 @@ export const requestBroadcastNotification = async (data) => {
     return res.data;
 };
 
+export const requestCreateSavedSearch = async (data) => {
+    const res = await request.post('/api/saved-searches', data);
+    return res.data;
+};
+
+export const requestGetSavedSearches = async () => {
+    const res = await request.get('/api/saved-searches');
+    return res.data;
+};
+
+export const requestUpdateSavedSearch = async (id, data) => {
+    const res = await request.patch(`/api/saved-searches/${id}`, data);
+    return res.data;
+};
+
+export const requestDeleteSavedSearch = async (id) => {
+    const res = await request.delete(`/api/saved-searches/${id}`);
+    return res.data;
+};
+
 //// posts
 
 export const requestUploadImages = async (data) => {
@@ -491,6 +511,11 @@ export const requestGetPostById = async (id) => {
     return res.data;
 };
 
+export const requestGetPostMatchScore = async (data) => {
+    const res = await request.post('/api/posts/match-score', data);
+    return res.data;
+};
+
 export const requestPayments = async (data) => {
     const res = await request.post('/api/payments', data);
     return res.data;
@@ -570,6 +595,16 @@ export const requestDisputeDeposit = async (data) => {
     return res.data;
 };
 
+export const requestAddDepositDisputeEvidence = async (data) => {
+    const res = await request.post('/api/deposits/dispute/evidence', data);
+    return res.data;
+};
+
+export const requestAddDepositDisputeMessage = async (data) => {
+    const res = await request.post('/api/deposits/dispute/message', data);
+    return res.data;
+};
+
 export const requestGetAdminDeposits = async (params = {}) => {
     const res = await request.get('/api/admin/deposits', { params });
     return res.data;
@@ -577,6 +612,11 @@ export const requestGetAdminDeposits = async (params = {}) => {
 
 export const requestAdminDepositAction = async (data) => {
     const res = await request.post('/api/admin/deposits/action', data);
+    return res.data;
+};
+
+export const requestAdminAddDepositDisputeMessage = async (data) => {
+    const res = await request.post('/api/admin/deposits/dispute/message', data);
     return res.data;
 };
 

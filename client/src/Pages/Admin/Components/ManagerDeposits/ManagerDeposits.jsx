@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react';
-import { Button, Card, Input, message, Modal, Select, Space, Table, Tag } from 'antd';
+import { Button, Card, Input, InputNumber, message, Modal, Select, Space, Table, Tag, Timeline } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { requestAdminDepositAction, requestGetAdminDeposits } from '../../../../config/request';
+import { requestAdminAddDepositDisputeMessage, requestAdminDepositAction, requestGetAdminDeposits } from '../../../../config/request';
 import { exportRowsToExcel, formatCurrency } from '../../../../utils/exportReport';
 
 const statuses = ['pending', 'holding', 'completed', 'refunded', 'cancelled', 'disputed'];
@@ -14,6 +14,8 @@ function ManagerDeposits() {
     const [loading, setLoading] = useState(false);
     const [selected, setSelected] = useState(null);
     const [adminNote, setAdminNote] = useState('');
+    const [refundAmount, setRefundAmount] = useState(0);
+    const [adminMessage, setAdminMessage] = useState('');
 
     const fetchDeposits = async () => {
         setLoading(true);
@@ -33,13 +35,29 @@ function ManagerDeposits() {
 
     const runAction = async (action) => {
         try {
-            await requestAdminDepositAction({ depositId: selected._id, action, adminNote });
+            await requestAdminDepositAction({ depositId: selected._id, action, adminNote, refundAmount });
             message.success('Đã cập nhật giao dịch cọc');
             setSelected(null);
             setAdminNote('');
+            setRefundAmount(0);
             fetchDeposits();
         } catch (error) {
             message.error(error.response?.data?.message || 'Không thể xử lý giao dịch');
+        }
+    };
+
+    const handleSendAdminMessage = async () => {
+        if (!adminMessage.trim()) {
+            message.warning('Vui lòng nhập tin nhắn');
+            return;
+        }
+        try {
+            await requestAdminAddDepositDisputeMessage({ depositId: selected._id, message: adminMessage });
+            message.success('Đã gửi tin nhắn tranh chấp');
+            setAdminMessage('');
+            fetchDeposits();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể gửi tin nhắn');
         }
     };
 
@@ -121,12 +139,80 @@ function ManagerDeposits() {
                 </Button>
             </Space>
             <Table columns={columns} dataSource={deposits} rowKey="_id" loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: 1600 }} />
-            <Modal title="Xử lý giao dịch cọc" open={Boolean(selected)} onCancel={() => setSelected(null)} footer={null}>
-                <Input.TextArea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} rows={4} placeholder="Ghi chú admin" />
-                <Space wrap style={{ marginTop: 16 }}>
-                    <Button type="primary" onClick={() => runAction('release')}>Giải ngân</Button>
-                    <Button onClick={() => runAction('refund')}>Hoàn cọc</Button>
-                    <Button danger onClick={() => runAction('dispute')}>Chuyển tranh chấp</Button>
+            <Modal title="Xử lý giao dịch cọc" open={Boolean(selected)} onCancel={() => setSelected(null)} footer={null} width={900}>
+                <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                    <Input.TextArea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} rows={4} placeholder="Ghi chú admin" />
+                    {selected?.status === 'disputed' && (
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Card size="small" title="Bằng chứng tranh chấp">
+                                <Space direction="vertical" style={{ width: '100%' }}>
+                                    {(selected?.dispute?.evidences || []).map((evidence) => (
+                                        <div key={evidence._id} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 10 }}>
+                                            <Tag>{evidence.role}</Tag>
+                                            <span>{dayjs(evidence.createdAt).format('DD/MM/YYYY HH:mm')}</span>
+                                            {evidence.note && <p style={{ margin: '8px 0' }}>{evidence.note}</p>}
+                                            <Space wrap>
+                                                {(evidence.files || []).map((file) => (
+                                                    <a key={file} href={file} target="_blank" rel="noreferrer">
+                                                        Xem ảnh
+                                                    </a>
+                                                ))}
+                                            </Space>
+                                        </div>
+                                    ))}
+                                    {!selected?.dispute?.evidences?.length && <span>Chưa có bằng chứng.</span>}
+                                </Space>
+                            </Card>
+                            <Card size="small" title="Chat tranh chấp 3 bên">
+                                <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 12 }}>
+                                    {(selected?.dispute?.messages || []).map((item) => (
+                                        <div key={item._id} style={{ marginBottom: 10 }}>
+                                            <Tag color={item.role === 'admin' ? 'purple' : item.role === 'tenant' ? 'blue' : 'green'}>{item.role}</Tag>
+                                            <span>{dayjs(item.createdAt).format('DD/MM/YYYY HH:mm')}</span>
+                                            <p style={{ margin: '4px 0 0' }}>{item.message}</p>
+                                        </div>
+                                    ))}
+                                    {!selected?.dispute?.messages?.length && <span>Chưa có tin nhắn.</span>}
+                                </div>
+                                <Input.TextArea rows={3} value={adminMessage} onChange={(event) => setAdminMessage(event.target.value)} placeholder="Nhắn cho người thuê và chủ trọ" />
+                                <Button style={{ marginTop: 8 }} onClick={handleSendAdminMessage}>Gửi tin nhắn</Button>
+                            </Card>
+                            <Card size="small" title="Timeline">
+                                <Timeline
+                                    items={(selected?.dispute?.timeline || []).map((item) => ({
+                                        children: (
+                                            <div>
+                                                <Tag>{item.role}</Tag>
+                                                <strong>{item.action}</strong>
+                                                <div>{dayjs(item.createdAt).format('DD/MM/YYYY HH:mm')}</div>
+                                                {item.note && <p>{item.note}</p>}
+                                            </div>
+                                        ),
+                                    }))}
+                                />
+                            </Card>
+                            <Card size="small" title="Quyết định chia tiền">
+                                <Space wrap>
+                                    <span>Hoàn cho người thuê</span>
+                                    <InputNumber
+                                        min={0}
+                                        max={selected?.amount || 0}
+                                        value={refundAmount}
+                                        onChange={(value) => setRefundAmount(value || 0)}
+                                        formatter={(value) => `${value || 0}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                        parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                                    />
+                                    <span>Chuyển chủ trọ: {Number((selected?.amount || 0) - refundAmount).toLocaleString('vi-VN')} VND</span>
+                                    <Button type="primary" onClick={() => runAction('split')}>Chia tiền</Button>
+                                </Space>
+                            </Card>
+                        </Space>
+                    )}
+                    <Space wrap>
+                        <Button type="primary" onClick={() => runAction('release')}>Giải ngân</Button>
+                        <Button onClick={() => runAction('refund')}>Hoàn cọc</Button>
+                        <Button danger onClick={() => runAction('dispute')}>Chuyển tranh chấp</Button>
+                    </Space>
                 </Space>
             </Modal>
         </Card>

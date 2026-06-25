@@ -119,7 +119,7 @@ const findValidRental = async ({ roomId, userId, rentalId }) => {
     const filter = {
         postId: roomId,
         tenantId: userId,
-        status: 'accepted',
+        status: { $in: ['accepted', 'viewed'] },
     };
 
     if (rentalId) {

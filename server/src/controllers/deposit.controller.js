@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const modelDeposit = require('../models/deposit.model');
 const modelPost = require('../models/post.model');
 const modelUser = require('../models/users.model');
+const modelReservation = require('../models/reservation.model');
 const { Created, OK } = require('../core/success.response');
 const { BadRequestError } = require('../core/error.response');
 const { createNotification, notifyAdmins } = require('../services/notification.service');
@@ -26,6 +27,7 @@ const getExpiredAt = () => new Date(Date.now() + 24 * 60 * 60 * 1000);
 const getHoldingExpiredAt = () => new Date(Date.now() + 72 * 60 * 60 * 1000);
 const normalizeNote = (value) => (typeof value === 'string' ? value.trim() : '');
 const calculateDepositAmount = (roomPrice) => Math.ceil(Number(roomPrice) * DEPOSIT_RATE);
+const clampAmount = (value, max) => Math.min(Math.max(Number(value) || 0, 0), max);
 const createVnpayClient = () =>
     new VNPay({
         tmnCode: VNPAY_TMN_CODE,
@@ -51,6 +53,27 @@ const formatDeposit = (deposit) => ({
 
 const depositLink = (tab) => `/trang-ca-nhan?tab=${tab}`;
 
+const getDepositRole = (deposit, userId, isAdmin = false) => {
+    if (isAdmin) return 'admin';
+    if (deposit.tenantId?.toString() === userId) return 'tenant';
+    if (deposit.landlordId?.toString() === userId) return 'landlord';
+    return '';
+};
+
+const pushTimeline = (deposit, { actorId = null, role = 'system', action, note = '' }) => {
+    deposit.dispute = deposit.dispute || {};
+    deposit.dispute.timeline = deposit.dispute.timeline || [];
+    deposit.dispute.timeline.push({
+        actorId,
+        role,
+        action,
+        note: normalizeNote(note),
+        createdAt: new Date(),
+    });
+};
+
+const normalizeFiles = (files) => (Array.isArray(files) ? files.filter(Boolean).map((file) => String(file).trim()).filter(Boolean).slice(0, 10) : []);
+
 const releaseRoom = async (roomId) => {
     await modelPost.findOneAndUpdate(
         { _id: roomId, availabilityStatus: 'reserved' },
@@ -70,6 +93,25 @@ const releaseHeldBalance = async (deposit, recipientId) => {
     }
 };
 
+const releasePartialHeldBalance = async (deposit, tenantAmount, landlordAmount) => {
+    if (!deposit.balanceHeld) return;
+    const total = Number(tenantAmount || 0) + Number(landlordAmount || 0);
+    if (total !== deposit.amount) {
+        throw new BadRequestError('Tong so tien xu ly tranh chap khong khop tien coc');
+    }
+
+    const updated = await modelDeposit.findOneAndUpdate(
+        { _id: deposit._id, balanceHeld: true },
+        { balanceHeld: false },
+        { new: true },
+    );
+    if (!updated) return;
+
+    deposit.balanceHeld = false;
+    if (tenantAmount > 0) await modelUser.findByIdAndUpdate(deposit.tenantId, { $inc: { balance: tenantAmount } });
+    if (landlordAmount > 0) await modelUser.findByIdAndUpdate(deposit.landlordId, { $inc: { balance: landlordAmount } });
+};
+
 const expirePendingDeposits = async () => {
     const expiredDeposits = await modelDeposit.find({
         status: 'pending',
@@ -79,17 +121,17 @@ const expirePendingDeposits = async () => {
     for (const deposit of expiredDeposits) {
         await releaseHeldBalance(deposit, deposit.tenantId);
         deposit.status = 'cancelled';
-        deposit.adminNote = 'Yeu cau coc het han thanh toan';
+        deposit.adminNote = 'Yêu cầu cọc hết hạn thanh toán';
         await deposit.save();
     }
 };
 
 const markDepositPaid = async (depositId, expectedAmount = null) => {
     const deposit = await modelDeposit.findById(depositId);
-    if (!deposit) throw new BadRequestError('Giao dich coc khong ton tai');
+    if (!deposit) throw new BadRequestError('Giao dịch cọc không tồn tại');
     if (deposit.status !== 'pending') return deposit;
     if (expectedAmount !== null && Number(expectedAmount) !== deposit.amount) {
-        throw new BadRequestError('So tien thanh toan coc khong khop');
+        throw new BadRequestError('Số tiền thanh toán cọc không khớp');
     }
 
     const room = await modelPost.findOneAndUpdate(
@@ -103,10 +145,10 @@ const markDepositPaid = async (depositId, expectedAmount = null) => {
         }
         deposit.paymentStatus = 'failed';
         deposit.status = 'cancelled';
-        deposit.adminNote = 'Phong khong con trong khi xac nhan thanh toan';
+        deposit.adminNote = 'Phòng không còn trong khi xác nhận thanh toán';
         await deposit.save();
         await releaseHeldBalance(deposit, deposit.tenantId);
-        throw new BadRequestError('Phong khong con trong');
+        throw new BadRequestError('Phòng không còn trong');
     }
 
     deposit.paymentStatus = 'paid';
@@ -159,21 +201,28 @@ class controllerDeposit {
         const { id: tenantId } = req.user;
         const { roomId, paymentMethod = 'SIMULATED' } = req.body;
 
-        if (!mongoose.isValidObjectId(roomId)) throw new BadRequestError('Phong khong hop le');
-        if (!PAYMENT_METHODS.includes(paymentMethod)) throw new BadRequestError('Phuong thuc thanh toan khong hop le');
+        if (!mongoose.isValidObjectId(roomId)) throw new BadRequestError('Phòng không hợp lệ');
+        if (!PAYMENT_METHODS.includes(paymentMethod)) throw new BadRequestError('Phương thức thanh toán không hợp lệ');
 
         const room = await modelPost.findById(roomId);
         if (!room || !['active', 'approved'].includes(room.status) || room.isDeleted) {
-            throw new BadRequestError('Phong khong ton tai hoac chua duoc hien thi');
+            throw new BadRequestError('Phòng không tồn tại hoặc chưa được hiển thị');
         }
-        if ((room.availabilityStatus || 'available') !== 'available') throw new BadRequestError('Phong hien khong con trong');
-        if (room.userId.toString() === tenantId) throw new BadRequestError('Ban khong the dat coc phong cua chinh minh');
+        if ((room.availabilityStatus || 'available') !== 'available') throw new BadRequestError('Phòng hiện không còn trống');
+        if (room.userId.toString() === tenantId) throw new BadRequestError('Bạn không thể đặt cọc phòng của chính mình');
+
+        const viewedReservation = await modelReservation.findOne({
+            postId: roomId,
+            tenantId,
+            status: 'viewed',
+        });
+        if (!viewedReservation) throw new BadRequestError('Bạn cần hoàn tất lịch xem phòng trước khi đặt cọc');
 
         const depositAmount = calculateDepositAmount(room.price);
-        if (!Number.isFinite(depositAmount) || depositAmount <= 0) throw new BadRequestError('Gia phong khong hop le de tinh tien coc');
+        if (!Number.isFinite(depositAmount) || depositAmount <= 0) throw new BadRequestError('Giá phòng không hợp lệ để tính tiền cọc');
 
         const activeDeposit = await modelDeposit.findOne({ roomId, status: { $in: ACTIVE_STATUSES } });
-        if (activeDeposit) throw new BadRequestError('Phong da co giao dich coc dang xu ly');
+        if (activeDeposit) throw new BadRequestError('Phòng đã có giao dịch cọc đang xử lý');
 
         let walletCharged = false;
         if (paymentMethod === 'SIMULATED') {
@@ -182,7 +231,7 @@ class controllerDeposit {
                 { $inc: { balance: -depositAmount } },
                 { new: true },
             );
-            if (!tenant) throw new BadRequestError('So du khong du de dat coc');
+            if (!tenant) throw new BadRequestError('Số dư không đủ để đặt cọc');
             walletCharged = true;
         }
 
@@ -339,10 +388,26 @@ class controllerDeposit {
     async disputeDeposit(req, res) {
         const deposit = await modelDeposit.findById(req.body.depositId);
         if (!deposit) throw new BadRequestError('Giao dich coc khong ton tai');
-        const canDispute = [deposit.tenantId, deposit.landlordId].some((id) => id.toString() === req.user.id);
-        if (!canDispute || deposit.status !== 'holding') throw new BadRequestError('Khong the mo tranh chap giao dich nay');
+        const role = getDepositRole(deposit, req.user.id);
+        if (!role || deposit.status !== 'holding') throw new BadRequestError('Khong the mo tranh chap giao dich nay');
+        const note = normalizeNote(req.body.note);
+        const files = normalizeFiles(req.body.files);
         deposit.status = 'disputed';
-        deposit.adminNote = normalizeNote(req.body.note);
+        deposit.adminNote = note;
+        deposit.dispute = {
+            ...(deposit.dispute || {}),
+            openedBy: req.user.id,
+            openedByRole: role,
+            reason: note,
+            openedAt: new Date(),
+            evidences: [
+                ...((deposit.dispute && deposit.dispute.evidences) || []),
+                ...(note || files.length ? [{ submittedBy: req.user.id, role, note, files, createdAt: new Date() }] : []),
+            ],
+            messages: (deposit.dispute && deposit.dispute.messages) || [],
+            timeline: (deposit.dispute && deposit.dispute.timeline) || [],
+        };
+        pushTimeline(deposit, { actorId: req.user.id, role, action: 'open_dispute', note });
         await deposit.save();
         await notifyAdmins(
             'Có tranh chấp đặt cọc',
@@ -352,6 +417,63 @@ class controllerDeposit {
             { depositId: deposit._id, roomId: deposit.roomId },
         );
         new OK({ message: 'Đã chuyển giao dịch sang tranh chấp', metadata: deposit }).send(res);
+    }
+
+    async addDisputeEvidence(req, res) {
+        const deposit = await modelDeposit.findById(req.body.depositId);
+        if (!deposit) throw new BadRequestError('Giao dich coc khong ton tai');
+        const role = getDepositRole(deposit, req.user.id);
+        if (!role || deposit.status !== 'disputed') throw new BadRequestError('Khong the gui bang chung cho giao dich nay');
+
+        const note = normalizeNote(req.body.note);
+        const files = normalizeFiles(req.body.files);
+        if (!note && !files.length) throw new BadRequestError('Vui long nhap ghi chu hoac tai len bang chung');
+
+        deposit.dispute = deposit.dispute || {};
+        deposit.dispute.evidences = deposit.dispute.evidences || [];
+        deposit.dispute.evidences.push({ submittedBy: req.user.id, role, note, files, createdAt: new Date() });
+        pushTimeline(deposit, { actorId: req.user.id, role, action: 'add_evidence', note });
+        await deposit.save();
+        await notifyAdmins(
+            'Co bang chung tranh chap moi',
+            'Mot ben vua bo sung bang chung cho giao dich dat coc dang tranh chap',
+            'deposit',
+            '/admin?type=deposits',
+            { depositId: deposit._id, roomId: deposit.roomId },
+        );
+        new OK({ message: 'Da gui bang chung tranh chap', metadata: deposit }).send(res);
+    }
+
+    async addDisputeMessage(req, res) {
+        const deposit = await modelDeposit.findById(req.body.depositId);
+        if (!deposit) throw new BadRequestError('Giao dich coc khong ton tai');
+        const role = getDepositRole(deposit, req.user.id, ['admin', 'super_admin'].includes(req.user.role));
+        if (!role || deposit.status !== 'disputed') throw new BadRequestError('Khong the nhan tin trong tranh chap nay');
+
+        const chatMessage = normalizeNote(req.body.message);
+        if (!chatMessage) throw new BadRequestError('Vui long nhap noi dung tin nhan');
+
+        deposit.dispute = deposit.dispute || {};
+        deposit.dispute.messages = deposit.dispute.messages || [];
+        deposit.dispute.messages.push({ senderId: req.user.id, role, message: chatMessage, createdAt: new Date() });
+        pushTimeline(deposit, { actorId: req.user.id, role, action: 'send_message', note: chatMessage });
+        await deposit.save();
+
+        const notifyUserIds = [deposit.tenantId, deposit.landlordId].filter((userId) => userId.toString() !== req.user.id);
+        await Promise.all(
+            notifyUserIds.map((userId) =>
+                createNotification(
+                    userId,
+                    'Co tin nhan tranh chap dat coc',
+                    'Giao dich dat coc dang tranh chap vua co tin nhan moi',
+                    'deposit',
+                    depositLink(userId.toString() === deposit.tenantId.toString() ? 'tenant-deposits' : 'landlord-deposits'),
+                    { depositId: deposit._id, roomId: deposit.roomId },
+                ),
+            ),
+        );
+
+        new OK({ message: 'Da gui tin nhan tranh chap', metadata: deposit }).send(res);
     }
 
     async getAllDeposits(req, res) {
@@ -374,6 +496,16 @@ class controllerDeposit {
             if (!['holding', 'disputed'].includes(deposit.status)) throw new BadRequestError('Không thể hoàn cọc giao dịch này');
             if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dịch chưa thanh toán');
             deposit.status = 'refunded';
+            deposit.dispute = deposit.dispute || {};
+            deposit.dispute.resolution = {
+                decidedBy: req.user.id,
+                action: 'refund',
+                refundAmount: deposit.amount,
+                releaseAmount: 0,
+                note: deposit.adminNote,
+                decidedAt: new Date(),
+            };
+            pushTimeline(deposit, { actorId: req.user.id, role: 'admin', action: 'resolve_refund', note: deposit.adminNote });
             await releaseRoom(deposit.roomId);
             await releaseHeldBalance(deposit, deposit.tenantId);
         } else if (action === 'release') {
@@ -382,15 +514,80 @@ class controllerDeposit {
             deposit.status = 'completed';
             deposit.tenantConfirm = true;
             deposit.landlordConfirm = true;
+            deposit.dispute = deposit.dispute || {};
+            deposit.dispute.resolution = {
+                decidedBy: req.user.id,
+                action: 'release',
+                refundAmount: 0,
+                releaseAmount: deposit.amount,
+                note: deposit.adminNote,
+                decidedAt: new Date(),
+            };
+            pushTimeline(deposit, { actorId: req.user.id, role: 'admin', action: 'resolve_release', note: deposit.adminNote });
             await releaseHeldBalance(deposit, deposit.landlordId);
             await modelPost.findByIdAndUpdate(deposit.roomId, { availabilityStatus: 'rented' });
+        } else if (action === 'split') {
+            if (deposit.status !== 'disputed') throw new BadRequestError('Chi co the chia tien voi giao dich dang tranh chap');
+            if (deposit.paymentStatus !== 'paid') throw new BadRequestError('Giao dịch chưa thanh toán');
+            const refundAmount = clampAmount(req.body.refundAmount, deposit.amount);
+            const releaseAmount = deposit.amount - refundAmount;
+            deposit.status = releaseAmount > 0 ? 'completed' : 'refunded';
+            deposit.tenantConfirm = releaseAmount > 0;
+            deposit.landlordConfirm = releaseAmount > 0;
+            deposit.dispute = deposit.dispute || {};
+            deposit.dispute.resolution = {
+                decidedBy: req.user.id,
+                action: 'split',
+                refundAmount,
+                releaseAmount,
+                note: deposit.adminNote,
+                decidedAt: new Date(),
+            };
+            pushTimeline(deposit, {
+                actorId: req.user.id,
+                role: 'admin',
+                action: 'resolve_split',
+                note: `Hoan nguoi thue ${refundAmount}, chuyen chu tro ${releaseAmount}. ${deposit.adminNote}`,
+            });
+            await releasePartialHeldBalance(deposit, refundAmount, releaseAmount);
+            if (releaseAmount > 0) {
+                await modelPost.findByIdAndUpdate(deposit.roomId, { availabilityStatus: 'rented' });
+            } else {
+                await releaseRoom(deposit.roomId);
+            }
         } else if (action === 'dispute') {
             if (!['pending', 'holding'].includes(deposit.status)) throw new BadRequestError('Không thể chuyển tranh chấp giao dịch này');
             deposit.status = 'disputed';
+            deposit.dispute = {
+                ...(deposit.dispute || {}),
+                openedBy: req.user.id,
+                openedByRole: 'admin',
+                reason: deposit.adminNote,
+                openedAt: new Date(),
+            };
+            pushTimeline(deposit, { actorId: req.user.id, role: 'admin', action: 'admin_open_dispute', note: deposit.adminNote });
         } else {
             throw new BadRequestError('Hành động admin không hợp lệ');
         }
         await deposit.save();
+        await Promise.all([
+            createNotification(
+                deposit.tenantId,
+                'Cap nhat tranh chap dat coc',
+                'Admin vua cap nhat ket qua xu ly giao dich dat coc',
+                'deposit',
+                depositLink('tenant-deposits'),
+                { depositId: deposit._id, roomId: deposit.roomId },
+            ),
+            createNotification(
+                deposit.landlordId,
+                'Cap nhat tranh chap dat coc',
+                'Admin vua cap nhat ket qua xu ly giao dich dat coc',
+                'deposit',
+                depositLink('landlord-deposits'),
+                { depositId: deposit._id, roomId: deposit.roomId },
+            ),
+        ]);
         new OK({ message: 'Đã cập nhật giao dịch cọc', metadata: deposit }).send(res);
     }
 }

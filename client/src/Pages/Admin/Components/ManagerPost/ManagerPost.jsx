@@ -9,6 +9,7 @@ import {
     EnvironmentOutlined,
     ClockCircleOutlined,
     UndoOutlined,
+    WarningOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
 import styles from './ManagerPost.module.scss';
@@ -40,6 +41,12 @@ const availabilityMap = {
     unavailable: { color: 'red', text: 'Hết phòng' },
     reserved: { color: 'orange', text: 'Đã giữ chỗ' },
     rented: { color: 'blue', text: 'Đã cho thuê' },
+};
+
+const riskMap = {
+    low: { color: 'green', text: 'Rủi ro thấp' },
+    medium: { color: 'gold', text: 'Cần xác minh' },
+    high: { color: 'red', text: 'Rủi ro cao' },
 };
 
 function ManagerPost() {
@@ -130,6 +137,7 @@ function ManagerPost() {
 
     const getStatusConfig = (status) => statusMap[status] || { color: 'default', text: status };
     const getAvailabilityConfig = (status) => availabilityMap[status || 'available'] || { color: 'default', text: status };
+    const getRiskConfig = (level) => riskMap[level || 'low'] || riskMap.low;
     const isPendingPost = (post) => ['inactive', 'pending'].includes(post?.status) && !post?.isDeleted;
     const isDeletedPost = (post) => post?.isDeleted || post?.status === 'deleted';
 
@@ -182,15 +190,32 @@ function ManagerPost() {
             },
         },
         {
+            title: 'Rủi ro',
+            dataIndex: 'riskAssessment',
+            key: 'riskAssessment',
+            width: 180,
+            className: cx('riskColumn'),
+            render: (risk) => {
+                const config = getRiskConfig(risk?.level);
+                return (
+                    <Tag className={cx('riskTag')} color={config.color} icon={<WarningOutlined />}>
+                        {config.text} {risk?.score ? `(${risk.score})` : ''}
+                    </Tag>
+                );
+            },
+        },
+        {
             title: 'Ngày đăng',
             dataIndex: 'createdAt',
             key: 'createdAt',
+            width: 130,
             render: (date) => (date ? new Date(date).toLocaleDateString('vi-VN') : '-'),
         },
         {
             title: 'Thời gian xóa',
             dataIndex: 'deletedAt',
             key: 'deletedAt',
+            width: 150,
             render: (date) => (date ? new Date(date).toLocaleString('vi-VN') : '-'),
         },
         {
@@ -374,6 +399,33 @@ function ManagerPost() {
                                 {selectedPost.deletedBy?.fullName || selectedPost.deletedBy?.email || '-'}
                             </Descriptions.Item>
                         </Descriptions>
+
+                        <Divider orientation="left">Cảnh báo rủi ro</Divider>
+                        {selectedPost.riskAssessment ? (
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                {(() => {
+                                    const config = getRiskConfig(selectedPost.riskAssessment.level);
+                                    return (
+                                        <Tag color={config.color} icon={<WarningOutlined />} style={{ width: 'fit-content' }}>
+                                            {config.text} - {selectedPost.riskAssessment.score}/100
+                                        </Tag>
+                                    );
+                                })()}
+                                {selectedPost.riskAssessment.warnings?.length ? (
+                                    selectedPost.riskAssessment.warnings.map((warning) => (
+                                        <Card size="small" key={warning.type}>
+                                            <Tag color={warning.severity === 'high' ? 'red' : 'gold'}>{warning.severity}</Tag>
+                                            <strong>{warning.title}</strong>
+                                            <p style={{ margin: '8px 0 0' }}>{warning.description}</p>
+                                        </Card>
+                                    ))
+                                ) : (
+                                    <p>Chưa phát hiện dấu hiệu rủi ro lớn.</p>
+                                )}
+                            </Space>
+                        ) : (
+                            <p>Chưa có dữ liệu đánh giá rủi ro.</p>
+                        )}
 
                         <Divider orientation="left">Mô tả chi tiết</Divider>
                         <div style={{ marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: selectedPost.description }} />

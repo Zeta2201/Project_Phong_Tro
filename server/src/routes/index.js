@@ -16,6 +16,7 @@ const voucherRoutes = require('./voucher.routes');
 const bannerRoutes = require('./banner.routes');
 const rewardRoutes = require('./reward.routes');
 const notificationRoutes = require('./notification.routes');
+const savedSearchRoutes = require('./savedSearch.routes');
 
 const multer = require('multer');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
@@ -58,6 +59,10 @@ function routes(app) {
     app.patch('/api/notifications/read-all', notificationRoutes);
     app.patch('/api/notifications/:id/read', notificationRoutes);
     app.delete('/api/notifications/:id', notificationRoutes);
+    app.post('/api/saved-searches', savedSearchRoutes);
+    app.get('/api/saved-searches', savedSearchRoutes);
+    app.patch('/api/saved-searches/:id', savedSearchRoutes);
+    app.delete('/api/saved-searches/:id', savedSearchRoutes);
 
     app.get('/api/get-hot-search', userRoutes);
     app.get('/api/search', userRoutes);
@@ -110,8 +115,11 @@ function routes(app) {
     app.post('/api/deposits/landlord-confirm', depositRoutes);
     app.post('/api/deposits/cancel', depositRoutes);
     app.post('/api/deposits/dispute', depositRoutes);
+    app.post('/api/deposits/dispute/evidence', depositRoutes);
+    app.post('/api/deposits/dispute/message', depositRoutes);
     app.get('/api/admin/deposits', depositRoutes);
     app.post('/api/admin/deposits/action', depositRoutes);
+    app.post('/api/admin/deposits/dispute/message', depositRoutes);
 
     /// contracts
     app.post('/api/contracts', contractRoutes);
@@ -173,6 +181,7 @@ function routes(app) {
     app.get('/api/get-posts', postRoutes);
     app.get('/api/posts/map', postRoutes);
     app.get('/api/get-post-by-id', postRoutes);
+    app.post('/api/posts/match-score', postRoutes);
     app.get('/api/get-post-by-user-id', postRoutes);
     app.get('/api/owner/analytics', postRoutes);
     app.get('/api/get-new-post', postRoutes);

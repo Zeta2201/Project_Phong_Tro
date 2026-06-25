@@ -11,6 +11,7 @@ import {
     AuditOutlined,
     BarChartOutlined,
     GiftOutlined,
+    BellOutlined,
 } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
@@ -20,11 +21,12 @@ import ManagerPost from './Components/ManagerPost/ManagerPost';
 import { useStore } from '../../hooks/useStore';
 import RechargeUser from './Components/RechargeUser/RechargeUser';
 import ChangePassword from './Components/ChangePassword/ChangePassword';
-import ManagerReservation from './Components/ManagerReservation/ManagerReservation';
+import ManagerReservation from './Components/ManagerReservation/ManagerViewingSchedule';
 import ManagerDeposit from './Components/ManagerDeposit/ManagerDeposit';
 import ManagerContract from './Components/ManagerContract/ManagerContract';
 import OwnerAnalytics from './Components/OwnerAnalytics/OwnerAnalytics';
 import Rewards from './Components/Rewards/Rewards';
+import SavedSearches from './Components/SavedSearches/SavedSearches';
 import styles from './InfoUser.module.scss';
 
 import userNotFound from '../../assets/images/img_default.png';
@@ -62,9 +64,10 @@ function InfoUser() {
         { key: 'change-password', icon: <LockOutlined />, label: 'Đổi mật khẩu' },
         { key: 'posts', icon: <FileTextOutlined />, label: 'Quản lý bài viết' },
         { key: 'analytics', icon: <BarChartOutlined />, label: 'Phân tích chủ trọ' },
-        { key: 'reservations', icon: <ScheduleOutlined />, label: 'Quản lý giữ chỗ' },
+        { key: 'reservations', icon: <ScheduleOutlined />, label: 'Lịch xem phòng' },
         { key: 'recharge', icon: <DollarCircleOutlined />, label: 'Nạp tiền' },
         { key: 'rewards', icon: <GiftOutlined />, label: 'Điểm thưởng' },
+        { key: 'saved-searches', icon: <BellOutlined />, label: 'Tìm kiếm đã lưu' },
         { key: 'tenant-deposits', icon: <SafetyCertificateOutlined />, label: 'Lịch sử đặt cọc' },
         { key: 'landlord-deposits', icon: <SafetyCertificateOutlined />, label: 'Quản lý cọc chủ trọ' },
         { key: 'tenant-contracts', icon: <AuditOutlined />, label: 'Hợp đồng của tôi' },
@@ -75,9 +78,10 @@ function InfoUser() {
         personal: 'Thông tin cá nhân',
         posts: 'Quản lý bài viết',
         analytics: 'Phân tích chủ trọ',
-        reservations: 'Quản lý giữ chỗ',
+        reservations: 'Lịch xem phòng',
         recharge: 'Nạp tiền',
         rewards: 'Điểm thưởng',
+        'saved-searches': 'Tìm kiếm đã lưu',
         'change-password': 'Đổi mật khẩu',
         'tenant-deposits': 'Lịch sử đặt cọc',
         'landlord-deposits': 'Quản lý cọc chủ trọ',
@@ -169,6 +173,7 @@ function InfoUser() {
                         {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
                         {selectedMenu === 'rewards' && <Rewards />}
+                        {selectedMenu === 'saved-searches' && <SavedSearches />}
                         {selectedMenu === 'change-password' && <ChangePassword />}
                         {selectedMenu === 'tenant-deposits' && <ManagerDeposit role="tenant" />}
                         {selectedMenu === 'landlord-deposits' && <ManagerDeposit role="landlord" />}

@@ -3,6 +3,12 @@ const modelUser = require('../models/users.model');
 
 const getUserRoom = (userId) => `user:${userId}`;
 
+const normalizeUserId = (userId) => {
+    if (!userId) return null;
+    if (userId._id) return userId._id;
+    return userId;
+};
+
 const getUnreadCount = async (userId) =>
     modelNotification.countDocuments({
         userId,
@@ -22,10 +28,11 @@ const emitNotification = async (notification) => {
 };
 
 const createNotification = async (userId, title, message, type = 'system', link = '', metadata = {}) => {
-    if (!userId || !title || !message) return null;
+    const normalizedUserId = normalizeUserId(userId);
+    if (!normalizedUserId || !title || !message) return null;
 
     const notification = await modelNotification.create({
-        userId,
+        userId: normalizedUserId,
         title,
         message,
         type,

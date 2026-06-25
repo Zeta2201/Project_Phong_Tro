@@ -6,8 +6,8 @@ import { faPhoneAlt, faShareAlt, faFlag, faMapMarkerAlt } from '@fortawesome/fre
 import { faHeart } from '@fortawesome/free-regular-svg-icons';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Button, DatePicker, Input, message, Modal, Rate, Select, Upload } from 'antd';
-import { BarChartOutlined, CheckOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, DatePicker, Input, InputNumber, message, Modal, Progress, Rate, Select, Upload } from 'antd';
+import { BarChartOutlined, BulbOutlined, CheckOutlined, ExclamationCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import userDefault from '../../assets/images/user-default.svg';
@@ -21,6 +21,7 @@ import {
     requestDeleteFavourite,
     requestDeleteReview,
     requestGetCommentsByPost,
+    requestGetPostMatchScore,
     requestGetPostById,
     requestGetReviewsByRoom,
     requestPayDeposit,
@@ -59,6 +60,24 @@ const postReportOptions = [
     { value: 'other', label: 'Khác' },
 ];
 
+const roomCategoryOptions = [
+    { value: 'phong-tro', label: 'Phòng trọ' },
+    { value: 'nha-nguyen-can', label: 'Nhà nguyên căn' },
+    { value: 'can-ho-chung-cu', label: 'Căn hộ chung cư' },
+    { value: 'can-ho-mini', label: 'Căn hộ mini' },
+];
+
+const reservationTimeOptions = [
+    '07:00 - 08:00',
+    '08:00 - 09:00',
+    '09:00 - 10:00',
+    '10:00 - 11:00',
+    '14:00 - 15:00',
+    '15:00 - 16:00',
+    '16:00 - 17:00',
+    '18:00 - 19:00',
+].map((value) => ({ value, label: value }));
+
 function DetailPost() {
     const { id } = useParams();
     const { dataUser } = useStore();
@@ -66,10 +85,21 @@ function DetailPost() {
     const [selectedImg, setSelectedImg] = useState('');
     const [user, setUser] = useState({});
     const [post, setPost] = useState({});
+    const [riskAssessment, setRiskAssessment] = useState(null);
     const [userHeart, setUserHeart] = useState([]);
     const [comments, setComments] = useState([]);
     const [commentContent, setCommentContent] = useState('');
     const [commentSubmitting, setCommentSubmitting] = useState(false);
+    const [matchPreferences, setMatchPreferences] = useState({
+        budgetMax: null,
+        location: '',
+        areaMin: null,
+        category: '',
+        requiredOptions: '',
+        note: '',
+    });
+    const [matchScore, setMatchScore] = useState(null);
+    const [matchLoading, setMatchLoading] = useState(false);
 
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [reportReason, setReportReason] = useState('');
@@ -78,6 +108,7 @@ function DetailPost() {
     const [reservationModalOpen, setReservationModalOpen] = useState(false);
     const [reservationNote, setReservationNote] = useState('');
     const [reservationVisitDate, setReservationVisitDate] = useState(null);
+    const [reservationVisitTime, setReservationVisitTime] = useState('');
     const [depositModalOpen, setDepositModalOpen] = useState(false);
     const [depositPaymentMethod, setDepositPaymentMethod] = useState('SIMULATED');
     const [depositSubmitting, setDepositSubmitting] = useState(false);
@@ -129,6 +160,7 @@ function DetailPost() {
         setSelectedImg(postData?.images?.[0] || '');
         setUser(res.metadata.dataUser || {});
         setUserHeart(res.metadata.userFavourite || []);
+        setRiskAssessment(res.metadata.riskAssessment || null);
         document.title = `${postData.title} - NestFinder`;
     };
 
@@ -141,6 +173,38 @@ function DetailPost() {
     const fetchComments = async () => {
         const res = await requestGetCommentsByPost(id);
         setComments(res.metadata || []);
+    };
+
+    const updateMatchPreference = (field, value) => {
+        setMatchPreferences((current) => ({ ...current, [field]: value }));
+    };
+
+    const handleGetMatchScore = async () => {
+        if (!post?._id) return;
+
+        const hasPreferences = Object.values(matchPreferences).some((value) => {
+            if (value === null || value === undefined) return false;
+            return String(value).trim() !== '';
+        });
+
+        if (!hasPreferences) {
+            message.warning('Hãy nhập ít nhất một nhu cầu để AI chấm điểm chính xác hơn');
+            return;
+        }
+
+        try {
+            setMatchLoading(true);
+            const res = await requestGetPostMatchScore({
+                postId: post._id,
+                preferences: matchPreferences,
+            });
+            setMatchScore(res.metadata || null);
+            message.success('AI đã chấm điểm phù hợp cho phòng này');
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể chấm điểm phù hợp lúc này');
+        } finally {
+            setMatchLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -200,8 +264,8 @@ function DetailPost() {
     const handleSharePost = async () => {
         const shareUrl = `${window.location.origin}/chi-tiet-tin-dang/${post?._id || id}`;
         const shareData = {
-            title: post?.title || 'Phong tro tren NestFinder',
-            text: post?.title ? `Xem phong tro: ${post.title}` : 'Xem phong tro tren NestFinder',
+            title: post?.title || 'Phòng trọ trên NestFinder',
+            text: post?.title ? `Xem phòng trọ: ${post.title}` : 'Xem phòng trọ trên NestFinder',
             url: shareUrl,
         };
 
@@ -212,15 +276,15 @@ function DetailPost() {
             }
 
             await copyShareLink(shareUrl);
-            message.success('Da sao chep lien ket chia se');
+            message.success('Đã sao chép liên kết chia sẻ');
         } catch (error) {
             if (error.name === 'AbortError') return;
 
             try {
                 await copyShareLink(shareUrl);
-                message.success('Da sao chep lien ket chia se');
+                message.success('Đã sao chép liên kết chia sẻ');
             } catch {
-                message.error('Khong the chia se bai viet luc nay');
+                message.error('Không thể chia sẻ bài viết lúc này');
             }
         }
     };
@@ -316,16 +380,22 @@ function DetailPost() {
             message.warning('Phòng này hiện không còn trong');
             return;
         }
+        if (!reservationVisitDate || !reservationVisitTime) {
+            message.warning('Vui lòng chọn ngày và khung giờ xem phòng');
+            return;
+        }
         try {
             await requestCreateReservation({
                 postId: post._id,
                 note: reservationNote,
                 visitDate: reservationVisitDate ? reservationVisitDate.toISOString() : null,
+                visitTime: reservationVisitTime,
             });
             message.success('Đã gửi yêu cầu giữ chỗ cho chủ bài viết');
             setReservationModalOpen(false);
             setReservationNote('');
             setReservationVisitDate(null);
+            setReservationVisitTime('');
         } catch (error) {
             message.error(error.response?.data?.message || 'Gửi yêu cầu giữ chỗ thất bại');
         }
@@ -549,6 +619,164 @@ function DetailPost() {
                                 <p dangerouslySetInnerHTML={{ __html: post?.description }} />
                             </div>
 
+                            {riskAssessment && (
+                                <div className={cx('risk-card', riskAssessment.level)}>
+                                    <div className={cx('risk-header')}>
+                                        <div>
+                                            <span>
+                                                <ExclamationCircleOutlined />
+                                                Cảnh báo an toàn
+                                            </span>
+                                            <h2>{riskAssessment.label}</h2>
+                                        </div>
+                                        <strong>{riskAssessment.score}/100</strong>
+                                    </div>
+                                    {riskAssessment.warnings?.length ? (
+                                        <div className={cx('risk-list')}>
+                                            {riskAssessment.warnings.map((warning) => (
+                                                <article className={cx('risk-item', warning.severity)} key={warning.type}>
+                                                    <strong>{warning.title}</strong>
+                                                    <p>{warning.description}</p>
+                                                </article>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className={cx('risk-safe-note')}>
+                                            Chưa phát hiện dấu hiệu rủi ro lớn. Bạn vẫn nên xem phòng trực tiếp và không chuyển tiền ngoài hệ thống.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className={cx('ai-match-card')}>
+                                <div className={cx('ai-match-header')}>
+                                    <div>
+                                        <span>
+                                            <BulbOutlined />
+                                            AI chấm điểm phù hợp
+                                        </span>
+                                        <h2>Phòng này hợp với nhu cầu của bạn đến đâu?</h2>
+                                    </div>
+                                    {matchScore && (
+                                        <div className={cx('ai-match-score')}>
+                                            <Progress
+                                                type="circle"
+                                                size={82}
+                                                percent={Math.round(matchScore.score || 0)}
+                                                strokeColor={(matchScore.score || 0) >= 70 ? '#0f766e' : '#f59e0b'}
+                                            />
+                                            <strong>{matchScore.label}</strong>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className={cx('ai-match-form')}>
+                                    <label>
+                                        <span>Ngân sách tối đa</span>
+                                        <InputNumber
+                                            value={matchPreferences.budgetMax}
+                                            onChange={(value) => updateMatchPreference('budgetMax', value)}
+                                            min={0}
+                                            placeholder="Ví dụ: 3000000"
+                                            formatter={(value) => `${value || ''}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Khu vực ưu tiên</span>
+                                        <Input
+                                            value={matchPreferences.location}
+                                            onChange={(event) => updateMatchPreference('location', event.target.value)}
+                                            placeholder="Ví dụ: Ninh Kiều, Cần Thơ"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Diện tích tối thiểu</span>
+                                        <InputNumber
+                                            value={matchPreferences.areaMin}
+                                            onChange={(value) => updateMatchPreference('areaMin', value)}
+                                            min={0}
+                                            placeholder="Ví dụ: 20"
+                                            addonAfter="m2"
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Loại phòng</span>
+                                        <Select
+                                            value={matchPreferences.category || undefined}
+                                            onChange={(value) => updateMatchPreference('category', value)}
+                                            allowClear
+                                            placeholder="Chọn loại phòng"
+                                            options={roomCategoryOptions}
+                                        />
+                                    </label>
+                                    <label className={cx('ai-match-wide')}>
+                                        <span>Tiện ích cần có</span>
+                                        <Input
+                                            value={matchPreferences.requiredOptions}
+                                            onChange={(event) => updateMatchPreference('requiredOptions', event.target.value)}
+                                            placeholder="Ví dụ: máy lạnh, gác, không chung chủ"
+                                        />
+                                    </label>
+                                    <label className={cx('ai-match-wide')}>
+                                        <span>Ghi chú thêm</span>
+                                        <Input.TextArea
+                                            value={matchPreferences.note}
+                                            onChange={(event) => updateMatchPreference('note', event.target.value)}
+                                            rows={3}
+                                            placeholder="Ví dụ: ưu tiên gần trường, an ninh tốt, có chỗ để xe"
+                                        />
+                                    </label>
+                                </div>
+
+                                <Button type="primary" loading={matchLoading} onClick={handleGetMatchScore}>
+                                    Chấm điểm phù hợp
+                                </Button>
+
+                                {matchScore && (
+                                    <div className={cx('ai-match-result')}>
+                                        <p>{matchScore.summary}</p>
+                                        <div className={cx('ai-match-lists')}>
+                                            <div>
+                                                <strong>Điểm phù hợp</strong>
+                                                {(matchScore.matched || []).length ? (
+                                                    <ul>
+                                                        {matchScore.matched.map((item, index) => (
+                                                            <li key={index}>{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <span>Chưa có điểm khớp nổi bật.</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <strong>Cần cân nhắc</strong>
+                                                {(matchScore.concerns || []).length ? (
+                                                    <ul>
+                                                        {matchScore.concerns.map((item, index) => (
+                                                            <li key={index}>{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <span>Chưa có cảnh báo lớn.</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className={cx('ai-factor-list')}>
+                                            {(matchScore.factors || []).map((factor) => (
+                                                <div className={cx('ai-factor')} key={factor.key}>
+                                                    <div>
+                                                        <strong>{factor.label}</strong>
+                                                        <span>{factor.reason}</span>
+                                                    </div>
+                                                    <em>{factor.score}/100</em>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className={cx('property-features')}>
                                 <h2>Nổi bật</h2>
                                 <div className={cx('features-grid')}>
@@ -740,7 +968,7 @@ function DetailPost() {
                                     {user?.phone || 'Chưa cập nhật'}
                                 </a>
                                 <button className={cx('btn', 'btn-reserve')} disabled={!isAvailable} onClick={() => setReservationModalOpen(true)}>
-                                    Giữ chỗ
+                                    Đặt lịch xem phòng
                                 </button>
                                 <button className={cx('btn', 'btn-deposit')} disabled={!isAvailable} onClick={() => setDepositModalOpen(true)}>
                                     Đặt cọc trung gian
@@ -859,11 +1087,11 @@ function DetailPost() {
             </Modal>
 
             <Modal
-                title="Yêu cầu giữ chỗ"
+                title="Đặt lịch xem phòng"
                 open={reservationModalOpen}
                 onCancel={() => setReservationModalOpen(false)}
                 onOk={handleSubmitReservation}
-                okText="Gửi yêu cầu"
+                okText="Gửi lịch hẹn"
                 cancelText="Hủy"
             >
                 <div style={{ marginBottom: 16 }}>
@@ -874,6 +1102,16 @@ function DetailPost() {
                         style={{ width: '100%' }}
                         format="DD/MM/YYYY"
                         placeholder="Chọn ngày xem phòng"
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Khung giờ muốn xem phòng</label>
+                    <Select
+                        value={reservationVisitTime}
+                        onChange={setReservationVisitTime}
+                        style={{ width: '100%' }}
+                        options={reservationTimeOptions}
+                        placeholder="Chọn khung giờ"
                     />
                 </div>
                 <div>

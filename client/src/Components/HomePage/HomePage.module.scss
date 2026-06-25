@@ -392,6 +392,20 @@
     cursor: pointer;
 }
 
+.saveSearchButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 13px;
+    border: 1px solid rgba(15, 118, 110, 0.22);
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #0f766e;
+    font-weight: 800;
+    cursor: pointer;
+}
+
 .contentGrid {
     display: grid;
     grid-template-columns: 280px minmax(0, 1fr) 300px;
@@ -919,7 +933,8 @@
         min-width: 0;
     }
 
-    .resetButton {
+    .resetButton,
+    .saveSearchButton {
         width: 100%;
         justify-content: center;
     }

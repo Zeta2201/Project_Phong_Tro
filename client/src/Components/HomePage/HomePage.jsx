@@ -16,10 +16,18 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { Checkbox, Input, message, Modal } from 'antd';
 
 import CardBody from '../CardBody/CardBody';
 import imgDefault from '../../assets/images/img_default.png';
-import { requestGetActiveBanner, requestGetFilterOptions, requestGetNewPost, requestGetPosts, requestPostSuggest } from '../../config/request';
+import {
+    requestCreateSavedSearch,
+    requestGetActiveBanner,
+    requestGetFilterOptions,
+    requestGetNewPost,
+    requestGetPosts,
+    requestPostSuggest,
+} from '../../config/request';
 
 const cx = classNames.bind(styles);
 
@@ -146,6 +154,9 @@ function HomePage() {
     const [dataPostSuggest, setDataPostSuggest] = useState([]);
     const [filterOptions, setFilterOptions] = useState(defaultFilterOptions);
     const [discountBanner, setDiscountBanner] = useState(null);
+    const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+    const [savedSearchName, setSavedSearchName] = useState('');
+    const [savedSearchEmail, setSavedSearchEmail] = useState(false);
 
     useEffect(() => {
         document.title = 'Trang chủ';
@@ -281,6 +292,40 @@ function HomePage() {
         setAreaRange('');
         setTypeNews('');
         setProvince('');
+    };
+
+    const currentSearchCriteria = {
+        category,
+        priceRange,
+        areaRange,
+        typeNews,
+        province,
+        keyword: '',
+    };
+
+    const handleOpenSaveSearch = () => {
+        if (!activeFilterCount) {
+            message.warning('Hãy chọn ít nhất một bộ lọc trước khi lưu tìm kiếm');
+            return;
+        }
+        setSavedSearchName(activeFilters.map((item) => item.value).join(' • ') || 'Tìm kiếm phòng đã lưu');
+        setSavedSearchEmail(false);
+        setSaveSearchOpen(true);
+    };
+
+    const handleSaveSearch = async () => {
+        try {
+            await requestCreateSavedSearch({
+                name: savedSearchName || 'Tìm kiếm phòng đã lưu',
+                criteria: currentSearchCriteria,
+                notifyInApp: true,
+                notifyEmail: savedSearchEmail,
+            });
+            message.success('Đã lưu tìm kiếm. Bạn sẽ được thông báo khi có phòng mới phù hợp.');
+            setSaveSearchOpen(false);
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể lưu tìm kiếm');
+        }
     };
 
     const renderMiniPosts = (posts) =>
@@ -463,6 +508,10 @@ function HomePage() {
                             Đặt lại
                         </button>
                     ) : null}
+                    <button type="button" className={cx('saveSearchButton')} onClick={handleOpenSaveSearch}>
+                        <ClockCircleOutlined />
+                        Lưu tìm kiếm
+                    </button>
                 </div>
             </section>
 
@@ -618,6 +667,24 @@ function HomePage() {
                     </section>
                 </aside>
             </div>
+            <Modal
+                title="Lưu tìm kiếm"
+                open={saveSearchOpen}
+                onCancel={() => setSaveSearchOpen(false)}
+                onOk={handleSaveSearch}
+                okText="Lưu tìm kiếm"
+                cancelText="Hủy"
+            >
+                <Input
+                    value={savedSearchName}
+                    onChange={(event) => setSavedSearchName(event.target.value)}
+                    placeholder="Ví dụ: Phòng dưới 3 triệu gần Cần Thơ"
+                    style={{ marginBottom: 12 }}
+                />
+                <Checkbox checked={savedSearchEmail} onChange={(event) => setSavedSearchEmail(event.target.checked)}>
+                    Gửi thêm email khi có phòng mới phù hợp
+                </Checkbox>
+            </Modal>
         </main>
     );
 }

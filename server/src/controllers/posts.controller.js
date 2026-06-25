@@ -16,6 +16,9 @@ const { normalizeVoucherCode, previewVoucher, markVoucherUsed } = require('../ut
 const { buildNumericCondition, ensureDefaultFilterOptions, getActiveFilterOption } = require('../services/filterOption.service');
 const { addPoints, refundPoints, calculateEarnPoints } = require('../services/reward.service');
 const { createNotification, notifyAdmins } = require('../services/notification.service');
+const { scoreRoomMatch } = require('../utils/AIMatchScore/matchScore');
+const { notifySavedSearchMatches } = require('../services/savedSearch.service');
+const { assessPostRisk } = require('../services/postRisk.service');
 
 const getRefundablePostingFee = (post) => {
     if (!post || post.postingFeeRefunded) return 0;
@@ -173,7 +176,7 @@ const expireAcceptedReservations = async () => {
 
     for (const reservation of expiredReservations) {
         reservation.status = 'expired';
-        reservation.ownerNote = reservation.ownerNote || 'Yeu cau giu cho da het han sau 24 gio';
+        reservation.ownerNote = reservation.ownerNote || 'Yêu cầu giữ chỗ đã hết hạn sau 24 giờ';
         reservation.handledAt = now;
         await reservation.save();
 
@@ -264,7 +267,7 @@ class controllerPosts {
         const postingFee = voucherResult.finalAmount;
 
         if (user.balance < postingFee) {
-            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
+            throw new BadRequestError('Số dư không đủ');
         }
 
         const chargedUser = await modelUser.findOneAndUpdate(
@@ -274,7 +277,7 @@ class controllerPosts {
         );
 
         if (!chargedUser) {
-            throw new BadRequestError('Sá»‘ dÆ° khÃ´ng Ä‘á»§');
+            throw new BadRequestError('Số dư không đủ');
         }
 
         let post;
@@ -313,7 +316,7 @@ class controllerPosts {
                 points: calculateEarnPoints(postingFee),
                 source: typeNews === 'vip' ? 'vip_upgrade' : 'listing_payment',
                 referenceId: post._id,
-                description: `Tich diem thanh toan dang tin: ${post.title}`,
+                description: `Tích điểm thanh toán đăng tin: ${post.title}`,
             });
             await notifyAdmins(
                 'Có tin đăng chờ duyệt',
@@ -383,9 +386,10 @@ class controllerPosts {
 
         const userFavourite = findFavourite.map((item) => item.userId);
 
-        const [lengthPost, reputation] = await Promise.all([
+        const [lengthPost, reputation, riskAssessment] = await Promise.all([
             modelPost.countDocuments({ userId: data.userId, isDeleted: { $ne: true }, status: { $ne: 'deleted' } }),
             getLandlordReputation(data.userId),
+            assessPostRisk(data),
         ]);
         let statusUser = '';
         const socket = global.usersMap.get(findUser._id.toString());
@@ -412,7 +416,37 @@ class controllerPosts {
                 data,
                 dataUser,
                 userFavourite,
+                riskAssessment,
             },
+        }).send(res);
+    }
+
+    async getMatchScore(req, res) {
+        const { postId } = req.body;
+        if (!postId) {
+            throw new BadRequestError('Vui lòng chọn phòng cần chấm điểm');
+        }
+
+        const post = await modelPost.findOne({
+            _id: postId,
+            status: { $in: PUBLIC_POST_STATUSES },
+            isDeleted: { $ne: true },
+        });
+
+        if (!post || !isPublicPost(post)) {
+            throw new BadRequestError('Không tìm thấy phòng cần chấm điểm');
+        }
+
+        const landlordReputation = await getLandlordReputation(post.userId);
+        const matchScore = await scoreRoomMatch({
+            post: post.toObject(),
+            landlordReputation,
+            preferences: req.body.preferences || {},
+        });
+
+        return new OK({
+            message: 'Chấm điểm phù hợp thành công',
+            metadata: matchScore,
         }).send(res);
     }
 
@@ -460,17 +494,17 @@ class controllerPosts {
             throw new BadRequestError('Post not found');
         }
         if (findPost.isDeleted || findPost.status === 'deleted') {
-            throw new BadRequestError('Bai viet da bi xoa truoc do');
+            throw new BadRequestError('Bài viết đã bị xóa trước đó');
         }
         if (!(await canManagePost(userId, findPost))) {
-            throw new BadRequestError('Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a bÃ i viáº¿t nÃ y');
+            throw new BadRequestError('Bạn không có quyền xóa bài viết này');
         }
         const activeDeposit = await modelDeposit.exists({
             roomId: id,
             status: { $in: BLOCKING_DEPOSIT_STATUSES },
         });
         if (activeDeposit) {
-            throw new BadRequestError('Bai viet dang co giao dich dat coc dang xu ly/da hoan tat, khong the xoa');
+            throw new BadRequestError('Bài viết đang có giao dịch đặt cọc đang xử lý/đã hoàn tất, không thể xóa');
         }
         const activeContract = await modelContract.exists({
             roomId: id,
@@ -478,7 +512,7 @@ class controllerPosts {
             endDate: { $gte: new Date() },
         });
         if (activeContract) {
-            throw new BadRequestError('Bai viet dang co hop dong con hieu luc, khong the xoa');
+            throw new BadRequestError('Bài viết đang có hợp đồng còn hiệu lực, không thể xóa');
         }
 
         const updatedPost = await modelPost.findByIdAndUpdate(
@@ -493,7 +527,7 @@ class controllerPosts {
         ).populate('deletedBy', 'fullName email');
 
         return new OK({
-            message: 'Xoa bai viet thanh cong',
+            message: 'Xóa bài viết thành công',
             metadata: updatedPost,
         }).send(res);
     }
@@ -510,10 +544,10 @@ class controllerPosts {
             throw new BadRequestError('Post not found');
         }
         if (!(await canManagePost(userId, findPost))) {
-            throw new BadRequestError('Ban khong co quyen khoi phuc bai viet nay');
+            throw new BadRequestError('Bạn không có quyền khôi phục bài viết này');
         }
         if (!findPost.isDeleted && findPost.status !== 'deleted') {
-            throw new BadRequestError('Chi co the khoi phuc bai viet da bi xoa');
+            throw new BadRequestError('Chỉ có thể khôi phục bài viết đã bị xóa');
         }
 
         const restoredStatus = findPost.availabilityStatus === 'rented' ? 'rented' : 'pending';
@@ -529,7 +563,7 @@ class controllerPosts {
         ).populate('deletedBy', 'fullName email');
 
         return new OK({
-            message: 'Khoi phuc bai viet thanh cong',
+            message: 'Khôi phục bài viết thành công',
             metadata: updatedPost,
         }).send(res);
     }
@@ -593,7 +627,7 @@ class controllerPosts {
         totals.conversionRate = totals.viewCount > 0 ? Number(((totals.depositCount / totals.viewCount) * 100).toFixed(2)) : 0;
 
         new OK({
-            message: 'Láº¥y phÃ¢n tÃ­ch chá»§ trá» thÃ nh cÃ´ng',
+            message: 'Lấy phân tích chủ trọ thành công',
             metadata: {
                 totals,
                 posts: postAnalytics,
@@ -674,7 +708,7 @@ class controllerPosts {
         const { id, availabilityStatus } = req.body;
 
         if (!id || !['available', 'unavailable'].includes(availabilityStatus)) {
-            throw new BadRequestError('Tráº¡ng thÃ¡i phÃ²ng khÃ´ng há»£p lá»‡');
+            throw new BadRequestError('Trạng thái phòng không hợp lệ');
         }
 
         const findPost = await modelPost.findById(id);
@@ -682,11 +716,11 @@ class controllerPosts {
             throw new BadRequestError('Post not found');
         }
         if (findPost.isDeleted || findPost.status === 'deleted') {
-            throw new BadRequestError('Bai viet da bi xoa, khong the cap nhat');
+            throw new BadRequestError('Bài viết đã bị xóa, không thể cập nhật');
         }
 
         if (findPost.userId.toString() !== userId) {
-            throw new BadRequestError('Báº¡n khÃ´ng cÃ³ quyá»n cáº­p nháº­t bÃ i viáº¿t nÃ y');
+            throw new BadRequestError('Bạn không có quyền cập nhật bài viết này');
         }
 
         const activeDeposit = await modelDeposit.exists({
@@ -694,12 +728,12 @@ class controllerPosts {
             status: { $in: ['holding', 'disputed'] },
         });
         if (activeDeposit) {
-            throw new BadRequestError('PhÃ²ng Ä‘ang cÃ³ giao dá»‹ch cá»c, khÃ´ng thá»ƒ cáº­p nháº­t thá»§ cÃ´ng');
+            throw new BadRequestError('Phòng đang có giao dịch cọc, không thể cập nhật trạng thái');
         }
 
         const updatedPost = await modelPost.findByIdAndUpdate(id, { availabilityStatus }, { new: true });
         return new OK({
-            message: availabilityStatus === 'available' ? 'ÄÃ£ cáº­p nháº­t cÃ²n phÃ²ng' : 'ÄÃ£ cáº­p nháº­t háº¿t phÃ²ng',
+            message: availabilityStatus === 'available' ? 'Đã cập nhật còn phòng' : 'Đã cập nhật hết phòng',
             metadata: updatedPost,
         }).send(res);
     }
@@ -714,7 +748,13 @@ class controllerPosts {
                 filter.status = status;
             }
         }
-        const data = await modelPost.find(filter).populate('deletedBy', 'fullName email').sort({ createdAt: -1 });
+        const posts = await modelPost.find(filter).populate('deletedBy', 'fullName email').sort({ createdAt: -1 });
+        const data = await Promise.all(
+            posts.map(async (post) => ({
+                ...post._doc,
+                riskAssessment: await assessPostRisk(post),
+            })),
+        );
         return new OK({
             message: 'Posts fetched successfully',
             metadata: data,
@@ -728,10 +768,10 @@ class controllerPosts {
             throw new BadRequestError('Post not found');
         }
         if (findPost.isDeleted || findPost.status === 'deleted') {
-            throw new BadRequestError('Khong the duyet bai viet da bi xoa');
+            throw new BadRequestError('Không thể duyệt bài viết đã bị xóa');
         }
         if (!PENDING_POST_STATUSES.includes(findPost.status)) {
-            throw new BadRequestError('Chá»‰ cÃ³ thá»ƒ duyá»‡t bÃ i viáº¿t Ä‘ang chá» duyá»‡t');
+            throw new BadRequestError('Chỉ có thể duyệt bài viết đang chờ duyệt');
         }
         const findUser = await modelUser.findById(findPost.userId);
         if (!findUser) {
@@ -747,8 +787,9 @@ class controllerPosts {
             `/chi-tiet-tin-dang/${findPost._id}`,
             { postId: findPost._id },
         );
+        await notifySavedSearchMatches(updatedPost);
         return new OK({
-            message: 'Duyá»‡t bÃ i viáº¿t thÃ nh cÃ´ng',
+            message: 'Duyệt bài viết thành công',
             metadata: updatedPost,
         }).send(res);
     }
@@ -760,10 +801,10 @@ class controllerPosts {
             throw new BadRequestError('Post not found');
         }
         if (findPost.isDeleted || findPost.status === 'deleted') {
-            throw new BadRequestError('Khong the tu choi bai viet da bi xoa');
+            throw new BadRequestError('Không thể từ chối bài viết đã bị xóa');
         }
         if (!PENDING_POST_STATUSES.includes(findPost.status)) {
-            throw new BadRequestError('Chá»‰ cÃ³ thá»ƒ tá»« chá»‘i bÃ i viáº¿t Ä‘ang chá» duyá»‡t');
+            throw new BadRequestError('Chỉ có thể từ chối bài viết đang chờ duyệt');
         }
         const findUser = await modelUser.findById(findPost.userId);
         if (!findUser) {
@@ -782,7 +823,7 @@ class controllerPosts {
         );
 
         if (!updatedPost) {
-            throw new BadRequestError('BÃ i viáº¿t Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ trÆ°á»›c Ä‘Ã³');
+            throw new BadRequestError('Bài viết đã được xử lý trước đó');
         }
 
         if (refundAmount > 0) {
@@ -791,7 +832,7 @@ class controllerPosts {
                 userId: findPost.userId,
                 source: findPost.typeNews === 'vip' ? 'vip_upgrade' : 'listing_payment',
                 referenceId: findPost._id,
-                description: `Thu hoi diem do bai dang bi tu choi: ${findPost.title}`,
+                description: `Thu hồi điểm do bài đăng bị từ chối: ${findPost.title}`,
             });
         }
 
@@ -805,7 +846,7 @@ class controllerPosts {
             { postId: findPost._id, reason },
         );
         return new OK({
-            message: 'Tá»« chá»‘i bÃ i viáº¿t thÃ nh cÃ´ng',
+            message: 'Từ chối bài viết thành công',
             metadata: { ...updatedPost._doc, refundAmount },
         }).send(res);
     }
@@ -817,11 +858,9 @@ class controllerPosts {
         const address = findUser.address;
 
         if (address) {
-            // Láº¥y pháº§n quáº­n/huyá»‡n + tá»‰nh/thÃ nh
             const addressParts = address.split(',');
-            const districtCity = addressParts.slice(-2).join(',').trim(); // "HoÃ ng Mai, HÃ  Ná»™i"
+            const districtCity = addressParts.slice(-2).join(',').trim(); // "Hoàng Mai, Hà Nội"
 
-            // TÃ¬m bÃ i viáº¿t cÃ³ location chá»©a "HoÃ ng Mai, HÃ  Ná»™i"
             const data = await modelPost.find({
                 location: { $regex: new RegExp(districtCity, 'i') },
                 status: { $in: PUBLIC_POST_STATUSES },

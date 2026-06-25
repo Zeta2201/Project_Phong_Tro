@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+ 
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
