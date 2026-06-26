@@ -41,8 +41,8 @@ const createVnpayClient = () =>
 const populateDeposit = (query) =>
     query
         .populate('roomId', 'title location price images availabilityStatus status')
-        .populate('tenantId', 'fullName email phone avatar')
-        .populate('landlordId', 'fullName email phone avatar');
+        .populate('tenantId', 'fullName email phone avatar cccdNumber verificationStatus')
+        .populate('landlordId', 'fullName email phone avatar cccdNumber verificationStatus');
 
 const formatDeposit = (deposit) => ({
     ...deposit._doc,

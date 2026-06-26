@@ -38,6 +38,22 @@ function ManagerDeposit({ role }) {
     const [contractDeposit, setContractDeposit] = useState(null);
     const [contractDates, setContractDates] = useState([]);
     const [contractTerms, setContractTerms] = useState('');
+    const [contractLegal, setContractLegal] = useState({
+        paymentFromDay: 1,
+        paymentToDay: 5,
+        electricityRate: '',
+        waterRate: '',
+        otherMonthlyFee: '',
+        otherFeeNote: '',
+        landlordIdentityNumber: '',
+        landlordIdentityIssueDate: '',
+        landlordIdentityIssuePlace: '',
+        tenantIdentityNumber: '',
+        tenantIdentityIssueDate: '',
+        tenantIdentityIssuePlace: '',
+        landlordBankAccount: '',
+        landlordBankName: '',
+    });
     const [disputeDeposit, setDisputeDeposit] = useState(null);
     const [disputeNote, setDisputeNote] = useState('');
     const [disputeFiles, setDisputeFiles] = useState([]);
@@ -152,6 +168,41 @@ function ManagerDeposit({ role }) {
         }
     };
 
+    const resetContractForm = () => {
+        setContractDeposit(null);
+        setContractDates([]);
+        setContractTerms('');
+        setContractLegal({
+            paymentFromDay: 1,
+            paymentToDay: 5,
+            electricityRate: '',
+            waterRate: '',
+            otherMonthlyFee: '',
+            otherFeeNote: '',
+            landlordIdentityNumber: '',
+            landlordIdentityIssueDate: '',
+            landlordIdentityIssuePlace: '',
+            tenantIdentityNumber: '',
+            tenantIdentityIssueDate: '',
+            tenantIdentityIssuePlace: '',
+            landlordBankAccount: '',
+            landlordBankName: '',
+        });
+    };
+
+    const openContractModal = (deposit) => {
+        setContractDeposit(deposit);
+        setContractLegal((prev) => ({
+            ...prev,
+            landlordIdentityNumber: deposit.landlord?.cccdNumber || '',
+            tenantIdentityNumber: deposit.tenant?.cccdNumber || '',
+        }));
+    };
+
+    const updateContractLegal = (field, value) => {
+        setContractLegal((prev) => ({ ...prev, [field]: value }));
+    };
+
     const renderActions = (deposit) => {
         if (role === 'tenant') {
             return (
@@ -195,7 +246,7 @@ function ManagerDeposit({ role }) {
                 )}
                 {deposit.status === 'disputed' && <Button onClick={() => openDisputeModal(deposit)}>Theo dõi tranh chấp</Button>}
                 {deposit.status === 'completed' && (
-                    <Button type="primary" onClick={() => setContractDeposit(deposit)}>
+                    <Button type="primary" onClick={() => openContractModal(deposit)}>
                         Tạo hợp đồng
                     </Button>
                 )}
@@ -215,11 +266,10 @@ function ManagerDeposit({ role }) {
                 startDate: contractDates[0].toISOString(),
                 endDate: contractDates[1].toISOString(),
                 terms: contractTerms,
+                ...contractLegal,
             });
             message.success('Đã tạo hợp đồng thuê phòng');
-            setContractDeposit(null);
-            setContractDates([]);
-            setContractTerms('');
+            resetContractForm();
         } catch (error) {
             message.error(error.response?.data?.message || 'Tạo hợp đồng thất bại');
         }
@@ -258,7 +308,7 @@ function ManagerDeposit({ role }) {
             <Modal
                 title="Tạo hợp đồng thuê phòng"
                 open={Boolean(contractDeposit)}
-                onCancel={() => setContractDeposit(null)}
+                onCancel={resetContractForm}
                 onOk={handleCreateContract}
                 okText="Tạo hợp đồng"
                 cancelText="Hủy"
@@ -274,6 +324,104 @@ function ManagerDeposit({ role }) {
                         value={contractDates}
                         onChange={(values) => setContractDates(values || [])}
                     />
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            type="number"
+                            min={1}
+                            max={31}
+                            value={contractLegal.paymentFromDay}
+                            onChange={(event) => updateContractLegal('paymentFromDay', event.target.value)}
+                            addonBefore="Thanh toán từ ngày"
+                        />
+                        <Input
+                            type="number"
+                            min={1}
+                            max={31}
+                            value={contractLegal.paymentToDay}
+                            onChange={(event) => updateContractLegal('paymentToDay', event.target.value)}
+                            addonBefore="đến"
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            type="number"
+                            min={0}
+                            value={contractLegal.electricityRate}
+                            onChange={(event) => updateContractLegal('electricityRate', event.target.value)}
+                            addonBefore="Điện VND/kWh"
+                        />
+                        <Input
+                            type="number"
+                            min={0}
+                            value={contractLegal.waterRate}
+                            onChange={(event) => updateContractLegal('waterRate', event.target.value)}
+                            addonBefore="Nước VND"
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            type="number"
+                            min={0}
+                            value={contractLegal.otherMonthlyFee}
+                            onChange={(event) => updateContractLegal('otherMonthlyFee', event.target.value)}
+                            addonBefore="Phí khác/tháng"
+                        />
+                        <Input
+                            value={contractLegal.otherFeeNote}
+                            onChange={(event) => updateContractLegal('otherFeeNote', event.target.value)}
+                            placeholder="Ghi chú phí khác"
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            value={contractLegal.landlordIdentityNumber}
+                            onChange={(event) => updateContractLegal('landlordIdentityNumber', event.target.value)}
+                            addonBefore="CCCD chủ trọ"
+                        />
+                        <Input
+                            value={contractLegal.tenantIdentityNumber}
+                            onChange={(event) => updateContractLegal('tenantIdentityNumber', event.target.value)}
+                            addonBefore="CCCD người thuê"
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <DatePicker
+                            style={{ width: '50%' }}
+                            format="DD/MM/YYYY"
+                            placeholder="Ngày cấp CCCD chủ trọ"
+                            onChange={(value) => updateContractLegal('landlordIdentityIssueDate', value?.toISOString() || '')}
+                        />
+                        <DatePicker
+                            style={{ width: '50%' }}
+                            format="DD/MM/YYYY"
+                            placeholder="Ngày cấp CCCD người thuê"
+                            onChange={(value) => updateContractLegal('tenantIdentityIssueDate', value?.toISOString() || '')}
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            value={contractLegal.landlordIdentityIssuePlace}
+                            onChange={(event) => updateContractLegal('landlordIdentityIssuePlace', event.target.value)}
+                            addonBefore="Nơi cấp chủ trọ"
+                        />
+                        <Input
+                            value={contractLegal.tenantIdentityIssuePlace}
+                            onChange={(event) => updateContractLegal('tenantIdentityIssuePlace', event.target.value)}
+                            addonBefore="Nơi cấp người thuê"
+                        />
+                    </Space.Compact>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            value={contractLegal.landlordBankAccount}
+                            onChange={(event) => updateContractLegal('landlordBankAccount', event.target.value)}
+                            addonBefore="STK nhận tiền"
+                        />
+                        <Input
+                            value={contractLegal.landlordBankName}
+                            onChange={(event) => updateContractLegal('landlordBankName', event.target.value)}
+                            addonBefore="Ngân hàng"
+                        />
+                    </Space.Compact>
                     <Input.TextArea
                         rows={6}
                         value={contractTerms}

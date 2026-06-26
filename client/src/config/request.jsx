@@ -637,6 +637,11 @@ export const requestGetContractDetail = async (id) => {
     return res.data;
 };
 
+export const requestContractSignOtp = async (data) => {
+    const res = await request.post('/api/contracts/request-sign-otp', data);
+    return res.data;
+};
+
 export const requestSignTenantContract = async (data) => {
     const res = await request.post('/api/contracts/sign-tenant', data);
     return res.data;

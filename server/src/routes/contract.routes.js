@@ -10,6 +10,7 @@ router.get('/api/contracts/download-public', asyncHandler(controllerContract.dow
 router.post('/api/contracts', authUser, asyncHandler(controllerContract.createContract.bind(controllerContract)));
 router.get('/api/contracts', authUser, asyncHandler(controllerContract.getContracts.bind(controllerContract)));
 router.get('/api/contracts/detail', authUser, asyncHandler(controllerContract.getContractDetail.bind(controllerContract)));
+router.post('/api/contracts/request-sign-otp', authUser, asyncHandler(controllerContract.requestSignatureOtp.bind(controllerContract)));
 router.post(
     '/api/contracts/sign-tenant',
     authUser,

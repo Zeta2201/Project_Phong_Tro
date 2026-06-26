@@ -1,22 +1,129 @@
 @startuml
-title So do hoat dong - Dat lich xem phong / giu cho
+title So do hoat dong - Dat lich / giu cho / rang buoc hop dong
 
 |Nguoi thue|
 start
-:Chon phong muon xem/giu cho;
-:Nhap thong tin lien he va ghi chu;
+:Chon phong muon xem hoac giu cho;
+:Nhap thong tin lien he,\nlich xem phong va ghi chu;
 :Gui yeu cau;
 
 |He thong|
-:Kiem tra phong ton tai va con cong khai;
+:Kiem tra phong ton tai,\ncon cong khai va chua duoc giu;
 if (Phong hop le?) then (Co)
-  :Kiem tra yeu cau trung;
-  if (Chua co yeu cau dang xu ly?) then (Co)
+  :Kiem tra yeu cau trung cua nguoi thue;
+  :Kiem tra lich xem phong bi trung;
+  if (Chua co yeu cau/lich dang xu ly?) then (Co)
     :Tao reservation status = pending;
+    :Luu timeline created;
     :Gui thong bao cho chu tro;
-    :Thong bao gui yeu cau thanh cong;
+
+    |Chu tro|
+    :Xem thong tin nguoi thue\nva lich hen;
+    if (Dong y lich xem/giu cho?) then (Co)
+      :Chap nhan yeu cau;
+
+      |He thong|
+      :Cap nhat reservation status = accepted;
+      :Dat expiresAt = 24 gio;
+      :Tam khoa phong/availability = unavailable;
+      :Tu choi cac yeu cau pending khac;
+      :Gui thong bao cho nguoi thue;
+
+      |Nguoi thue|
+      :Den xem phong theo lich;
+      if (Muon thue phong?) then (Co)
+        :Chon dat coc de giu phong;
+        :Xac nhan thong tin giao dich;
+
+        |He thong|
+        :Kiem tra reservation con hieu luc;
+        :Kiem tra phong van duoc giu cho nguoi thue;
+        if (Du dieu kien dat coc?) then (Co)
+          :Tao deposit status = pending;
+          :Xu ly thanh toan dat coc;
+          if (Thanh toan thanh cong?) then (Co)
+            :Cap nhat deposit status = completed;
+            :Giu tien coc trung gian;
+            :Khoa phong cho giao dich nay;
+
+            |Chu tro|
+            :Nhap thong tin hop dong:\nma hop dong, gia thue, tien coc,\nngay bat dau/ket thuc, phi dich vu,\nthong tin hai ben va dieu khoan;
+
+            |He thong|
+            :Kiem tra ngay bat dau < ngay ket thuc;
+            :Kiem tra tien coc, gia thue,\nphi dien nuoc hop le;
+            :Kiem tra CCCD/Ho chieu,\nemail, so dien thoai hai ben;
+            :Tao hop dong status = waiting_tenant_signature;
+            :Gan dieu khoan phap ly mac dinh:\nthanh toan dung han,\nboi thuong hu hong,\nho tro tam tru,\nhoan/mat coc theo vi pham;
+            :Gui OTP va thong bao cho nguoi thue;
+
+            |Nguoi thue|
+            :Doc hop dong;
+            :Nhap OTP va ve/tai chu ky;
+
+            |He thong|
+            :Kiem tra OTP nguoi thue;
+            if (OTP hop le?) then (Co)
+              :Luu chu ky nguoi thue,\nthoi diem ky va so dien thoai xac thuc;
+              :Cap nhat status = waiting_landlord_signature;
+              :Gui OTP va thong bao cho chu tro;
+
+              |Chu tro|
+              :Doc hop dong da co chu ky nguoi thue;
+              :Nhap OTP va ve/tai chu ky;
+
+              |He thong|
+              :Kiem tra OTP chu tro;
+              if (OTP hop le?) then (Co)
+                :Luu chu ky chu tro,\nthoi diem ky va so dien thoai xac thuc;
+                :Cap nhat hop dong status = active;
+                :Sinh PDF hop dong co day du dieu khoan;
+                :Gui email/thong bao hop dong cho hai ben;
+                :Ghi nhan phong da cho thue;
+
+                if (Ket thuc hop dong dung han\nva da doi chieu cong no?) then (Co)
+                  :Hoan 100% tien coc neu phong nguyen ven;
+                else (Khong)
+                  if (Tra phong truoc han\nhoac vi pham nghiem trong?) then (Co)
+                    :Khau tru/mat tien coc theo dieu khoan;
+                  else (Con tranh chap)
+                    :Tam giu tien coc de doi chieu;
+                  endif
+                endif
+              else (Khong)
+                :Bao loi OTP chu tro khong hop le;
+              endif
+            else (Khong)
+              :Bao loi OTP nguoi thue khong hop le;
+            endif
+          else (Khong)
+            :Cap nhat deposit status = failed;
+            :Mo lai phong neu qua han giu cho;
+            :Thong bao thanh toan that bai;
+          endif
+        else (Khong)
+          :Thong bao giu cho da het han\nhoac phong khong con kha dung;
+        endif
+      else (Khong)
+        :Huy nhu cau thue;
+        |He thong|
+        :Cap nhat reservation status = cancelled;
+        :Mo lai phong neu khong con yeu cau active;
+      endif
+    else (Khong)
+      :Tu choi hoac de xuat doi lich;
+
+      |He thong|
+      if (Chu tro de xuat lich moi?) then (Co)
+        :Cap nhat status = reschedule_requested;
+        :Gui thong bao lich moi cho nguoi thue;
+      else (Khong)
+        :Cap nhat status = rejected;
+        :Thong bao yeu cau bi tu choi;
+      endif
+    endif
   else (Khong)
-    :Thong bao da co yeu cau dang xu ly;
+    :Thong bao da co yeu cau/lich dang xu ly;
   endif
 else (Khong)
   :Thong bao phong khong hop le;

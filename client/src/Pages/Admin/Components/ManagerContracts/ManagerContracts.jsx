@@ -134,6 +134,7 @@ function ManagerContracts() {
 
             <Modal title="Chi tiết hợp đồng" open={Boolean(selected)} onCancel={() => setSelected(null)} footer={null} width={920}>
                 {selected && (
+                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
                     <Descriptions bordered column={2}>
                         <Descriptions.Item label="Mã hợp đồng">{selected.contractCode}</Descriptions.Item>
                         <Descriptions.Item label="Trạng thái"><Tag color={statusColors[selected.status]}>{selected.status}</Tag></Descriptions.Item>
@@ -149,9 +150,19 @@ function ManagerContracts() {
                         <Descriptions.Item label="Ngày kết thúc">{dayjs(selected.endDate).format('DD/MM/YYYY')}</Descriptions.Item>
                         <Descriptions.Item label="Người thuê ký">{selected.tenantSignedAt ? dayjs(selected.tenantSignedAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
                         <Descriptions.Item label="Chủ trọ ký">{selected.landlordSignedAt ? dayjs(selected.landlordSignedAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
+                        <Descriptions.Item label="Kỳ thanh toán">Ngày {selected.paymentFromDay || 1} đến {selected.paymentToDay || 5} hàng tháng</Descriptions.Item>
+                        <Descriptions.Item label="Tiền điện">{Number(selected.electricityRate || 0).toLocaleString('vi-VN')} VND/kWh</Descriptions.Item>
+                        <Descriptions.Item label="Tiền nước">{Number(selected.waterRate || 0).toLocaleString('vi-VN')} VND</Descriptions.Item>
+                        <Descriptions.Item label="Phí khác">{Number(selected.otherMonthlyFee || 0).toLocaleString('vi-VN')} VND/tháng</Descriptions.Item>
+                        <Descriptions.Item label="CCCD chủ trọ">{selected.landlordIdentityNumber || selected.landlord?.cccdNumber || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="CCCD người thuê">{selected.tenantIdentityNumber || selected.tenant?.cccdNumber || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="OTP người thuê">{selected.tenantSignatureOtpVerifiedAt ? dayjs(selected.tenantSignatureOtpVerifiedAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
+                        <Descriptions.Item label="OTP chủ trọ">{selected.landlordSignatureOtpVerifiedAt ? dayjs(selected.landlordSignatureOtpVerifiedAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
                         <Descriptions.Item label="Gửi cho người thuê">{selected.sentToTenantAt ? dayjs(selected.sentToTenantAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
                         <Descriptions.Item label="Gửi cho chủ trọ">{selected.sentToLandlordAt ? dayjs(selected.sentToLandlordAt).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
                     </Descriptions>
+                    <Input.TextArea value={selected.terms} rows={6} readOnly />
+                    </Space>
                 )}
             </Modal>
 

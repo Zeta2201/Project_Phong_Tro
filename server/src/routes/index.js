@@ -125,6 +125,7 @@ function routes(app) {
     app.post('/api/contracts', contractRoutes);
     app.get('/api/contracts', contractRoutes);
     app.get('/api/contracts/detail', contractRoutes);
+    app.post('/api/contracts/request-sign-otp', contractRoutes);
     app.post('/api/contracts/sign-tenant', contractRoutes);
     app.post('/api/contracts/sign-landlord', contractRoutes);
     app.post('/api/contracts/generate-pdf', contractRoutes);

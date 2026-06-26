@@ -32,7 +32,7 @@ import ManagerUser from './Components/ManagerUser/ManagerUser';
 import ManagerPost from './Components/ManagerPost/ManagerPost';
 import ManagerRechange from './Components/ManagerRechange/ManagerRechange';
 import ManagerReports from './Components/ManagerReports/ManagerReports';
-import ManagerReviews from './Components/ManagerReviews/ManagerReviews';
+import ManagerReviews from './Components/ManagerReviews/ManagerReviewsModern';
 import ManagerContacts from './Components/ManagerContacts/ManagerContacts';
 import ManagerComments from './Components/ManagerComments/ManagerComments';
 import ManagerDeposits from './Components/ManagerDeposits/ManagerDeposits';

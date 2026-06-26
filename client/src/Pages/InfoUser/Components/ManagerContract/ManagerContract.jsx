@@ -4,6 +4,7 @@ import { Button, Card, Descriptions, Image, Input, message, Modal, Space, Table,
 import { UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
+    requestContractSignOtp,
     requestGetContracts,
     requestSignLandlordContract,
     requestSignTenantContract,
@@ -24,6 +25,8 @@ function ManagerContract({ role }) {
     const [selected, setSelected] = useState(null);
     const [signing, setSigning] = useState(null);
     const [uploadedSignature, setUploadedSignature] = useState(null);
+    const [signatureOtp, setSignatureOtp] = useState('');
+    const [otpSending, setOtpSending] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
     const canvasRef = useRef(null);
 
@@ -88,19 +91,47 @@ function ManagerContract({ role }) {
             }, 'image/png');
         });
 
+    const openSignModal = (contract) => {
+        setSigning(contract);
+        setUploadedSignature(null);
+        setSignatureOtp('');
+    };
+
+    const closeSignModal = () => {
+        setSigning(null);
+        setUploadedSignature(null);
+        setSignatureOtp('');
+    };
+
+    const handleRequestOtp = async () => {
+        try {
+            setOtpSending(true);
+            await requestContractSignOtp({ contractId: signing._id, role });
+            message.success('Đã gửi OTP ký hợp đồng đến email tài khoản');
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể gửi OTP ký hợp đồng');
+        } finally {
+            setOtpSending(false);
+        }
+    };
+
     const handleSign = async () => {
+        if (!signatureOtp.trim()) {
+            message.warning('Vui lòng nhập OTP ký hợp đồng');
+            return;
+        }
         try {
             const signatureFile = uploadedSignature || (await canvasToFile());
             const formData = new FormData();
             formData.append('contractId', signing._id);
+            formData.append('otp', signatureOtp.trim());
             formData.append('signature', signatureFile);
 
             if (role === 'tenant') await requestSignTenantContract(formData);
             else await requestSignLandlordContract(formData);
 
             message.success('Đã ký hợp đồng');
-            setSigning(null);
-            setUploadedSignature(null);
+            closeSignModal();
             fetchContracts();
         } catch (error) {
             message.error(error.response?.data?.message || 'Ký hợp đồng thất bại');
@@ -134,7 +165,7 @@ function ManagerContract({ role }) {
             render: (_, record) => (
                 <Space wrap>
                     <Button onClick={() => setSelected(record)}>Chi tiết</Button>
-                    {canSign(record) && <Button type="primary" onClick={() => setSigning(record)}>Ký hợp đồng</Button>}
+                    {canSign(record) && <Button type="primary" onClick={() => openSignModal(record)}>Ký hợp đồng</Button>}
                     {record.pdfUrl && (
                         <Button href={`http://localhost:3000/api/contracts/download?id=${record._id}`} target="_blank">
                             Tải PDF
@@ -167,6 +198,20 @@ function ManagerContract({ role }) {
                             <Descriptions.Item label="Ngày kết thúc">{dayjs(selected.endDate).format('DD/MM/YYYY')}</Descriptions.Item>
                             <Descriptions.Item label="Người thuê ký">{selected.tenantSignedAt ? dayjs(selected.tenantSignedAt).format('DD/MM/YYYY HH:mm') : 'Chưa ký'}</Descriptions.Item>
                             <Descriptions.Item label="Chủ trọ ký">{selected.landlordSignedAt ? dayjs(selected.landlordSignedAt).format('DD/MM/YYYY HH:mm') : 'Chưa ký   '}</Descriptions.Item>
+                            <Descriptions.Item label="Kỳ thanh toán">
+                                Ngày {selected.paymentFromDay || 1} đến {selected.paymentToDay || 5} hàng tháng
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Tiền điện">{Number(selected.electricityRate || 0).toLocaleString('vi-VN')} VND/kWh</Descriptions.Item>
+                            <Descriptions.Item label="Tiền nước">{Number(selected.waterRate || 0).toLocaleString('vi-VN')} VND</Descriptions.Item>
+                            <Descriptions.Item label="Phí khác">{Number(selected.otherMonthlyFee || 0).toLocaleString('vi-VN')} VND/tháng</Descriptions.Item>
+                            <Descriptions.Item label="CCCD chủ trọ">{selected.landlordIdentityNumber || selected.landlord?.cccdNumber || '-'}</Descriptions.Item>
+                            <Descriptions.Item label="CCCD người thuê">{selected.tenantIdentityNumber || selected.tenant?.cccdNumber || '-'}</Descriptions.Item>
+                            <Descriptions.Item label="OTP người thuê">
+                                {selected.tenantSignatureOtpVerifiedAt ? dayjs(selected.tenantSignatureOtpVerifiedAt).format('DD/MM/YYYY HH:mm') : 'Chưa xác thực'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="OTP chủ trọ">
+                                {selected.landlordSignatureOtpVerifiedAt ? dayjs(selected.landlordSignatureOtpVerifiedAt).format('DD/MM/YYYY HH:mm') : 'Chưa xác thực'}
+                            </Descriptions.Item>
                         </Descriptions>
                         <Input.TextArea value={selected.terms} rows={6} readOnly />
                         <Space>
@@ -180,13 +225,24 @@ function ManagerContract({ role }) {
             <Modal
                 title="Ký điện tử hợp đồng"
                 open={Boolean(signing)}
-                onCancel={() => setSigning(null)}
+                onCancel={closeSignModal}
                 onOk={handleSign}
                 okText="Xác nhận ký"
                 cancelText="Hủy"
                 width={680}
             >
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            value={signatureOtp}
+                            onChange={(event) => setSignatureOtp(event.target.value)}
+                            placeholder="Nhập OTP ký hợp đồng"
+                            maxLength={6}
+                        />
+                        <Button loading={otpSending} onClick={handleRequestOtp}>
+                            Gửi OTP
+                        </Button>
+                    </Space.Compact>
                     <canvas
                         ref={canvasRef}
                         width={560}
