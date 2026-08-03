@@ -1,0 +1,65 @@
+@startuml
+title So do chuc nang - He thong website tim va quan ly phong tro
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam defaultFontName Arial
+skinparam linetype ortho
+skinparam nodesep 35
+skinparam ranksep 35
+skinparam rectangle {
+  BorderColor #D1D5DB
+  FontColor #111827
+}
+
+left to right direction
+
+rectangle "HE THONG WEBSITE\nTIM VA QUAN LY PHONG TRO" as SYS #2F6FD6
+
+package "Nguoi dung va bai dang" as P1 {
+  rectangle "Quan ly nguoi dung" as USER #22A447
+  rectangle "Dang ky\nDang nhap\nCap nhat thong tin\nDoi mat khau\nXac thuc CCCD" as USER_FN #DFF5E3
+
+  rectangle "Quan ly bai dang" as POST #F47C20
+  rectangle "Dang bai phong tro\nCap nhat bai dang\nAn/khoi phuc bai dang\nDuyet bai dang\nQuan ly goi dang tin" as POST_FN #FFE4CC
+}
+
+package "Tim kiem va tuong tac" as P2 {
+  rectangle "Tim kiem phong tro" as SEARCH #F5C542
+  rectangle "Xem danh sach phong\nLoc theo nhu cau\nXem chi tiet phong\nTim kiem bang AI\nSo sanh phong" as SEARCH_FN #FFF4BF
+
+  rectangle "Tuong tac va danh gia" as SOCIAL #0EA5E9
+  rectangle "Chat/lien he chu tro\nLuu phong yeu thich\nDanh gia phong\nBao cao vi pham" as SOCIAL_FN #D7F1FF
+}
+
+package "Giao dich va hop dong" as P3 {
+  rectangle "Quan ly giao dich thue" as RENT #EF4444
+  rectangle "Dat lich xem phong\nDat coc phong\nThanh toan dat coc\nXu ly tranh chap coc" as RENT_FN #FFE1E1
+
+  rectangle "Quan ly hop dong" as CONTRACT #8B5CF6
+  rectangle "Tao hop dong\nKy dien tu bang OTP\nSinh PDF hop dong\nGui email hop dong\nHuy hop dong" as CONTRACT_FN #EDE4FF
+}
+
+package "Quan tri he thong" as P4 {
+  rectangle "Quan tri he thong" as ADMIN #DC2626
+  rectangle "Quan ly nguoi dung\nQuan ly nap tien\nQuan ly voucher\nQuan ly thong bao\nThong ke bao cao" as ADMIN_FN #FFE1E1
+}
+
+SYS --> USER
+SYS --> POST
+SYS --> SEARCH
+SYS --> SOCIAL
+SYS --> RENT
+SYS --> CONTRACT
+SYS --> ADMIN
+
+USER --> USER_FN
+POST --> POST_FN
+SEARCH --> SEARCH_FN
+SOCIAL --> SOCIAL_FN
+RENT --> RENT_FN
+CONTRACT --> CONTRACT_FN
+ADMIN --> ADMIN_FN
+
+@enduml

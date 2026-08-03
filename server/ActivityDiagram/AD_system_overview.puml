@@ -1,0 +1,182 @@
+@startuml
+title So do hoat dong tong quan - He thong tim va quan ly phong tro
+
+|Nguoi dung|
+start
+:Truy cap he thong;
+
+|He thong|
+:Hien thi trang chu, danh sach phong va cong cu tim kiem;
+
+if (Nguoi dung da co tai khoan?) then (Co)
+  |Nguoi dung|
+  :Dang nhap;
+
+  |He thong|
+  :Xac thuc tai khoan;
+  if (Thong tin dang nhap hop le?) then (Co)
+    :Phan quyen theo vai tro;
+  else (Khong)
+    :Thong bao loi dang nhap;
+    stop
+  endif
+else (Khong)
+  |Nguoi dung|
+  :Dang ky tai khoan;
+
+  |He thong|
+  :Kiem tra thong tin dang ky;
+  :Gui OTP/email xac thuc neu can;
+  if (Dang ky hop le?) then (Co)
+    :Tao tai khoan moi;
+    :Cho phep dang nhap;
+  else (Khong)
+    :Thong bao loi dang ky;
+    stop
+  endif
+endif
+
+|He thong|
+if (La nguoi thue?) then (Co)
+  |Nguoi thue|
+  :Tim kiem/loc phong theo nhu cau;
+  :Xem chi tiet phong;
+
+  if (Muon lien he hoac chat?) then (Co)
+    :Gui tin nhan/lien he chu tro;
+    |He thong|
+    :Luu tin nhan/lien he;
+    :Thong bao cho chu tro;
+  endif
+
+  |Nguoi thue|
+  if (Muon dat lich xem phong?) then (Co)
+    :Tao lich xem phong;
+    |He thong|
+    :Luu lich hen;
+    :Thong bao cho chu tro;
+    |Chu tro|
+    :Xac nhan/cap nhat lich hen;
+    |He thong|
+    :Thong bao ket qua cho nguoi thue;
+  endif
+
+  |Nguoi thue|
+  if (Muon dat coc phong?) then (Co)
+    :Tao yeu cau dat coc;
+    |He thong|
+    :Kiem tra phong va giao dich coc;
+    if (Co the dat coc?) then (Co)
+      :Tao giao dich dat coc;
+      :Xu ly thanh toan;
+      if (Thanh toan thanh cong?) then (Co)
+        :Cap nhat dat coc da thanh toan;
+        :Giu tien trung gian;
+        :Thong bao cho chu tro;
+        |Chu tro|
+        :Xac nhan giao dich dat coc;
+        |He thong|
+        :Cap nhat dat coc completed;
+      else (Khong)
+        :Thong bao thanh toan that bai;
+      endif
+    else (Khong)
+      :Thong bao khong the dat coc;
+    endif
+  endif
+
+  |Nguoi thue|
+  if (Co hop dong can ky?) then (Co)
+    :Xem hop dong;
+    :Yeu cau OTP ky hop dong;
+    :Nhap OTP va ky dien tu;
+    |He thong|
+    :Xac thuc OTP nguoi thue;
+    :Luu chu ky nguoi thue;
+    :Thong bao cho chu tro ky hop dong;
+  endif
+
+  |Nguoi thue|
+  if (Da hoan tat thue phong?) then (Co)
+    :Danh gia phong/chu tro;
+    |He thong|
+    :Luu danh gia;
+    :Cap nhat thong tin hien thi;
+  endif
+
+else (Khong)
+if (La chu tro?) then (Co)
+  |Chu tro|
+  :Quan ly thong tin ca nhan va vi;
+  :Chon dang bai phong tro;
+
+  |He thong|
+  :Kiem tra thong tin bai dang;
+  :Kiem tra goi dang tin va so du;
+  if (Du dieu kien dang bai?) then (Co)
+    :Tru phi neu co;
+    :Luu bai dang;
+    :Cho admin duyet hoac hien thi theo cau hinh;
+  else (Khong)
+    :Thong bao ly do khong the dang bai;
+  endif
+
+  |Chu tro|
+  :Quan ly bai dang, lich xem phong va dat coc;
+
+  if (Co dat coc completed?) then (Co)
+    :Tao hop dong thue phong;
+    |He thong|
+    :Kiem tra quyen tao hop dong;
+    :Tao hop dong waiting_tenant_signature;
+    :Thong bao cho nguoi thue;
+  endif
+
+  |Chu tro|
+  if (Hop dong cho chu tro ky?) then (Co)
+    :Xem hop dong da co chu ky nguoi thue;
+    :Yeu cau OTP ky hop dong;
+    :Nhap OTP va ky dien tu;
+    |He thong|
+    :Xac thuc OTP chu tro;
+    :Luu chu ky chu tro;
+    :Sinh PDF hop dong;
+    :Cap nhat hop dong active;
+    :Gui email/thong bao cho hai ben;
+  endif
+
+else (Admin)
+  |Admin|
+  :Dang nhap trang quan tri;
+  :Quan ly nguoi dung, bai dang, nap tien, voucher, bao cao, hop dong;
+
+  |He thong|
+  :Tai du lieu quan tri;
+
+  |Admin|
+  if (Can duyet bai/bao cao?) then (Co)
+    :Duyet, tu choi hoac xu ly vi pham;
+    |He thong|
+    :Cap nhat trang thai;
+    :Thong bao cho nguoi lien quan;
+  endif
+
+  |Admin|
+  if (Can xu ly tranh chap/hop dong?) then (Co)
+    :Xem chi tiet giao dich, dat coc, hop dong;
+    :Thuc hien hanh dong quan tri;
+    |He thong|
+    :Cap nhat trang thai va luu lich su xu ly;
+  endif
+endif
+endif
+
+|He thong|
+:Dong bo thong bao, email va du lieu hien thi;
+:Luu log/lich su giao dich quan trong;
+
+|Nguoi dung|
+:Nhan ket qua xu ly va tiep tuc su dung he thong;
+stop
+
+@enduml

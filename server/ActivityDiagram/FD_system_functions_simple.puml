@@ -1,0 +1,91 @@
+@startuml
+title So do chuc nang don gian - He thong NestFinder
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam defaultFontName Arial
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BorderColor #CBD5E1
+  FontColor #111827
+}
+
+top to bottom direction
+
+actor "Khach truy cap" as Guest
+actor "Nguoi dung" as User
+actor "Chu tro" as Owner
+actor "Quan tri vien" as Admin
+
+rectangle "HE THONG NESTFINDER\nTIM KIEM VA QUAN LY PHONG TRO" as SYS #2563EB
+
+rectangle "Quan ly tai khoan" as Account #DCFCE7
+rectangle "Dang ky / Dang nhap\nQuen mat khau\nCap nhat thong tin\nDoi mat khau\nXac thuc CCCD" as AccountFn #F0FDF4
+
+rectangle "Tim kiem phong tro" as Search #FEF3C7
+rectangle "Xem danh sach phong\nLoc theo gia, dien tich, khu vuc\nXem chi tiet phong\nTim kiem AI\nBan do va so sanh phong\nLuu tim kiem" as SearchFn #FFFBEB
+
+rectangle "Quan ly tin dang" as Post #FFEDD5
+rectangle "Dang tin phong tro\nUpload hinh anh\nSua / xoa / khoi phuc tin\nCap nhat trang thai phong\nDuyet hoac tu choi tin" as PostFn #FFF7ED
+
+rectangle "Tuong tac" as Interaction #DBEAFE
+rectangle "Luu tin yeu thich\nBinh luan\nDanh gia phong\nBao cao vi pham\nChat va goi truc tuyen\nGui lien he" as InteractionFn #EFF6FF
+
+rectangle "Dat phong va hop dong" as Rental #FCE7F3
+rectangle "Dat lich xem phong\nDat coc trung gian\nThanh toan coc\nXu ly tranh chap\nTao va ky hop dong\nTai / gui hop dong PDF" as RentalFn #FDF2F8
+
+rectangle "Tai chinh va uu dai" as Finance #E0F2FE
+rectangle "Nap tien tai khoan\nThanh toan MoMo / VNPay\nQuan ly goi dang tin\nSu dung voucher\nTich diem va doi thuong" as FinanceFn #F0F9FF
+
+rectangle "Thong bao" as Notification #ECFCCB
+rectangle "Nhan thong bao ca nhan\nDanh dau da doc\nThong bao tim kiem da luu\nAdmin gui thong bao\nBanner khuyen mai" as NotificationFn #F7FEE7
+
+rectangle "Quan tri he thong" as AdminPanel #FEE2E2
+rectangle "Thong ke dashboard\nQuan ly nguoi dung\nQuan ly bai dang\nQuan ly bao cao\nQuan ly giao dich\nQuan ly danh gia / binh luan\nQuan ly hop dong, voucher, banner" as AdminFn #FEF2F2
+
+Guest --> SYS
+User --> SYS
+Owner --> SYS
+Admin --> SYS
+
+SYS --> Account
+SYS --> Search
+SYS --> Post
+SYS --> Interaction
+SYS --> Rental
+SYS --> Finance
+SYS --> Notification
+SYS --> AdminPanel
+
+Account --> AccountFn
+Search --> SearchFn
+Post --> PostFn
+Interaction --> InteractionFn
+Rental --> RentalFn
+Finance --> FinanceFn
+Notification --> NotificationFn
+AdminPanel --> AdminFn
+
+Guest --> Account
+Guest --> Search
+Guest --> Interaction
+
+User --> Account
+User --> Search
+User --> Interaction
+User --> Rental
+User --> Finance
+User --> Notification
+
+Owner --> Account
+Owner --> Post
+Owner --> Interaction
+Owner --> Rental
+Owner --> Finance
+Owner --> Notification
+
+Admin --> AdminPanel
+
+@enduml

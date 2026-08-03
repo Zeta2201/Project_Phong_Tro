@@ -1,0 +1,244 @@
+@startuml
+title So do chuc nang tong the - He thong NestFinder / Quan ly phong tro
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam defaultFontName Arial
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BorderColor #CBD5E1
+  FontColor #0F172A
+}
+
+left to right direction
+
+actor "Khach truy cap" as Guest
+actor "Nguoi thue" as Tenant
+actor "Chu tro" as Landlord
+actor "Quan tri vien" as Admin
+actor "Cong thanh toan\nMoMo / VNPay" as PaymentGateway
+actor "Dich vu ngoai\nCloudinary / Email / AI" as ExternalService
+
+rectangle "HE THONG NESTFINDER\nTIM KIEM VA QUAN LY PHONG TRO" as System #2563EB
+
+package "1. Tai khoan va xac thuc" as AuthPkg {
+  rectangle "Dang ky tai khoan" as F_Register #DCFCE7
+  rectangle "Gui va xac thuc OTP dang ky" as F_RegisterOtp #DCFCE7
+  rectangle "Dang nhap Email/Mat khau" as F_Login #DCFCE7
+  rectangle "Dang nhap Google" as F_GoogleLogin #DCFCE7
+  rectangle "Kiem tra phien dang nhap" as F_Auth #DCFCE7
+  rectangle "Lam moi token / Dang xuat" as F_Token #DCFCE7
+  rectangle "Quen mat khau / Dat lai mat khau" as F_ForgotPassword #DCFCE7
+  rectangle "Doi mat khau" as F_ChangePassword #DCFCE7
+  rectangle "Cap nhat thong tin ca nhan" as F_Profile #DCFCE7
+  rectangle "Doi email / so dien thoai bang OTP" as F_ChangeContact #DCFCE7
+  rectangle "Xac thuc CCCD chu tro" as F_Cccd #DCFCE7
+}
+
+package "2. Tim kiem va kham pha phong" as SearchPkg {
+  rectangle "Xem trang chu va danh sach tin" as F_Home #FEF3C7
+  rectangle "Loc theo khu vuc, loai phong,\ngia, dien tich, loai tin" as F_Filter #FEF3C7
+  rectangle "Xem tin moi / tin VIP / goi y" as F_PostSuggest #FEF3C7
+  rectangle "Xem chi tiet tin dang" as F_PostDetail #FEF3C7
+  rectangle "Tim kiem tu khoa va hot search" as F_Keyword #FEF3C7
+  rectangle "Tim kiem bang AI" as F_AISearch #FEF3C7
+  rectangle "Cham diem phu hop phong bang AI" as F_MatchScore #FEF3C7
+  rectangle "Tim phong tren ban do" as F_Map #FEF3C7
+  rectangle "So sanh nhieu phong" as F_Compare #FEF3C7
+  rectangle "Luu tim kiem va nhan thong bao" as F_SavedSearch #FEF3C7
+}
+
+package "3. Tin dang phong tro" as PostPkg {
+  rectangle "Tao tin dang" as F_CreatePost #FFEDD5
+  rectangle "Upload anh tin dang" as F_UploadImages #FFEDD5
+  rectangle "Tinh phi dang tin theo goi" as F_PostingFee #FFEDD5
+  rectangle "Ap dung voucher khi dang tin" as F_PostVoucher #FFEDD5
+  rectangle "Quan ly tin cua toi" as F_MyPosts #FFEDD5
+  rectangle "Cap nhat / xoa mem / khoi phuc tin" as F_EditPost #FFEDD5
+  rectangle "Cap nhat trang thai phong\ncon phong / het phong / da coc / da thue" as F_Availability #FFEDD5
+  rectangle "Phe duyet / tu choi tin dang" as F_ApprovePost #FFEDD5
+  rectangle "Thong ke chu tro" as F_OwnerAnalytics #FFEDD5
+}
+
+package "4. Tuong tac nguoi dung" as InteractionPkg {
+  rectangle "Luu / bo luu tin yeu thich" as F_Favourite #DBEAFE
+  rectangle "Binh luan tin dang" as F_Comment #DBEAFE
+  rectangle "Danh gia phong theo nhieu tieu chi" as F_Review #DBEAFE
+  rectangle "Chu tro phan hoi danh gia" as F_ReviewReply #DBEAFE
+  rectangle "Bao cao tin dang vi pham" as F_ReportPost #DBEAFE
+  rectangle "Bao cao danh gia vi pham" as F_ReportReview #DBEAFE
+  rectangle "Gui form lien he he thong" as F_Contact #DBEAFE
+  rectangle "Chat realtime voi chu tro/nguoi thue" as F_Message #DBEAFE
+  rectangle "Goi WebRTC giua nguoi dung" as F_WebRTC #DBEAFE
+}
+
+package "5. Lich xem phong, coc va hop dong" as RentalPkg {
+  rectangle "Dat lich xem phong" as F_CreateReservation #FCE7F3
+  rectangle "Quan ly lich xem phong" as F_ManageReservation #FCE7F3
+  rectangle "Cap nhat trang thai lich hen" as F_UpdateReservation #FCE7F3
+  rectangle "Tao yeu cau dat coc trung gian" as F_CreateDeposit #FCE7F3
+  rectangle "Thanh toan coc bang so du / MoMo / VNPay" as F_PayDeposit #FCE7F3
+  rectangle "Nguoi thue / chu tro xac nhan coc" as F_ConfirmDeposit #FCE7F3
+  rectangle "Huy coc / tranh chap coc" as F_DisputeDeposit #FCE7F3
+  rectangle "Bo sung bang chung va tin nhan tranh chap" as F_DisputeEvidence #FCE7F3
+  rectangle "Tao hop dong thue" as F_CreateContract #F3E8FF
+  rectangle "Ky hop dong bang OTP\nnguoi thue va chu tro" as F_SignContract #F3E8FF
+  rectangle "Sinh PDF hop dong" as F_ContractPdf #F3E8FF
+  rectangle "Gui email hop dong" as F_SendContract #F3E8FF
+  rectangle "Tai hop dong / Tai cong khai" as F_DownloadContract #F3E8FF
+  rectangle "Huy hop dong" as F_CancelContract #F3E8FF
+}
+
+package "6. Tai chinh, voucher va tich diem" as FinancePkg {
+  rectangle "Nap tien vao tai khoan" as F_Recharge #E0F2FE
+  rectangle "Kiem tra ket qua thanh toan" as F_CheckPayment #E0F2FE
+  rectangle "Xem lich su nap tien" as F_RechargeHistory #E0F2FE
+  rectangle "Quan ly goi dang tin" as F_PostingPlan #E0F2FE
+  rectangle "Quan ly voucher giam gia" as F_Voucher #E0F2FE
+  rectangle "Xem diem thuong va hang thanh vien" as F_RewardMe #E0F2FE
+  rectangle "Doi diem lay voucher" as F_RedeemReward #E0F2FE
+  rectangle "Xem lich su diem / voucher cua toi" as F_RewardHistory #E0F2FE
+}
+
+package "7. Thong bao va truyen thong" as NotifyPkg {
+  rectangle "Nhan thong bao ca nhan" as F_Notifications #ECFCCB
+  rectangle "Dem thong bao chua doc" as F_UnreadCount #ECFCCB
+  rectangle "Danh dau da doc / xoa thong bao" as F_ReadNotification #ECFCCB
+  rectangle "Admin gui thong bao broadcast" as F_Broadcast #ECFCCB
+  rectangle "Quan ly banner khuyen mai" as F_Banner #ECFCCB
+}
+
+package "8. Quan tri he thong" as AdminPkg {
+  rectangle "Dashboard thong ke tong quan" as F_AdminStats #FEE2E2
+  rectangle "Quan ly nguoi dung" as F_AdminUsers #FEE2E2
+  rectangle "Khoa / mo khoa tai khoan" as F_LockUser #FEE2E2
+  rectangle "Phan quyen / ha quyen" as F_RoleUser #FEE2E2
+  rectangle "Duyet xac thuc CCCD" as F_AdminCccd #FEE2E2
+  rectangle "Quan ly bai dang" as F_AdminPosts #FEE2E2
+  rectangle "Xu ly bao cao vi pham" as F_HandleReports #FEE2E2
+  rectangle "Kiem duyet danh gia va binh luan" as F_ModerateContent #FEE2E2
+  rectangle "Quan ly lien he" as F_AdminContacts #FEE2E2
+  rectangle "Quan ly giao dich nap tien" as F_AdminRecharge #FEE2E2
+  rectangle "Quan ly giao dich coc va tranh chap" as F_AdminDeposits #FEE2E2
+  rectangle "Quan ly hop dong" as F_AdminContracts #FEE2E2
+  rectangle "Quan ly bo loc" as F_AdminFilters #FEE2E2
+  rectangle "Quan ly voucher va goi dang tin" as F_AdminCommercial #FEE2E2
+  rectangle "Quan ly tich diem va voucher diem" as F_AdminRewards #FEE2E2
+  rectangle "Quan ly banner va thong bao" as F_AdminBroadcast #FEE2E2
+}
+
+Guest --> System
+Tenant --> System
+Landlord --> System
+Admin --> System
+System --> PaymentGateway
+System --> ExternalService
+
+System --> AuthPkg
+System --> SearchPkg
+System --> PostPkg
+System --> InteractionPkg
+System --> RentalPkg
+System --> FinancePkg
+System --> NotifyPkg
+System --> AdminPkg
+
+Guest --> F_Register
+Guest --> F_Login
+Guest --> F_GoogleLogin
+Guest --> F_ForgotPassword
+Guest --> F_Home
+Guest --> F_Filter
+Guest --> F_PostDetail
+Guest --> F_AISearch
+Guest --> F_Map
+Guest --> F_Contact
+
+Tenant --> F_Profile
+Tenant --> F_ChangePassword
+Tenant --> F_ChangeContact
+Tenant --> F_Favourite
+Tenant --> F_Comment
+Tenant --> F_Review
+Tenant --> F_ReportPost
+Tenant --> F_Message
+Tenant --> F_WebRTC
+Tenant --> F_CreateReservation
+Tenant --> F_CreateDeposit
+Tenant --> F_PayDeposit
+Tenant --> F_ConfirmDeposit
+Tenant --> F_DisputeDeposit
+Tenant --> F_SignContract
+Tenant --> F_DownloadContract
+Tenant --> F_Recharge
+Tenant --> F_RewardMe
+Tenant --> F_RedeemReward
+Tenant --> F_SavedSearch
+Tenant --> F_Notifications
+
+Landlord --> F_Cccd
+Landlord --> F_CreatePost
+Landlord --> F_MyPosts
+Landlord --> F_EditPost
+Landlord --> F_Availability
+Landlord --> F_OwnerAnalytics
+Landlord --> F_ManageReservation
+Landlord --> F_UpdateReservation
+Landlord --> F_ConfirmDeposit
+Landlord --> F_DisputeDeposit
+Landlord --> F_CreateContract
+Landlord --> F_SignContract
+Landlord --> F_SendContract
+Landlord --> F_ReviewReply
+Landlord --> F_Message
+Landlord --> F_WebRTC
+
+Admin --> F_AdminStats
+Admin --> F_AdminUsers
+Admin --> F_AdminPosts
+Admin --> F_HandleReports
+Admin --> F_ModerateContent
+Admin --> F_AdminContacts
+Admin --> F_AdminRecharge
+Admin --> F_AdminDeposits
+Admin --> F_AdminContracts
+Admin --> F_AdminFilters
+Admin --> F_AdminCommercial
+Admin --> F_AdminRewards
+Admin --> F_AdminBroadcast
+
+F_CreatePost --> F_UploadImages
+F_CreatePost --> F_PostingFee
+F_CreatePost --> F_PostVoucher
+F_CreatePost --> F_ApprovePost
+F_Filter --> F_SavedSearch
+F_PostDetail --> F_MatchScore
+F_PostDetail --> F_Compare
+F_CreateReservation --> F_ManageReservation
+F_CreateDeposit --> F_PayDeposit
+F_PayDeposit --> F_CheckPayment
+F_CreateContract --> F_SignContract
+F_SignContract --> F_ContractPdf
+F_ContractPdf --> F_SendContract
+F_AdminUsers --> F_LockUser
+F_AdminUsers --> F_RoleUser
+F_AdminUsers --> F_AdminCccd
+F_AdminCommercial --> F_PostingPlan
+F_AdminCommercial --> F_Voucher
+F_AdminRewards --> F_RewardHistory
+F_AdminBroadcast --> F_Banner
+F_AdminBroadcast --> F_Broadcast
+
+F_PayDeposit --> PaymentGateway
+F_Recharge --> PaymentGateway
+F_UploadImages --> ExternalService
+F_AISearch --> ExternalService
+F_MatchScore --> ExternalService
+F_RegisterOtp --> ExternalService
+F_ChangeContact --> ExternalService
+F_SendContract --> ExternalService
+F_SavedSearch --> ExternalService
+
+@enduml
