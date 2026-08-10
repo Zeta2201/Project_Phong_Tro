@@ -21,6 +21,7 @@ import {
     AuditOutlined,
     TrophyOutlined,
     BellOutlined,
+    WalletOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { requestLogout } from '../../config/request';
@@ -43,6 +44,7 @@ import ManagerVouchers from './Components/ManagerVouchers/ManagerVouchers';
 import ManagerBanners from './Components/ManagerBanners/ManagerBanners';
 import ManagerRewards from './Components/ManagerRewards/ManagerRewards';
 import ManagerNotifications from './Components/ManagerNotifications/ManagerNotifications';
+import ManagerWithdraws from './Components/ManagerWithdraws/ManagerWithdraws';
 import { useStore } from '../../hooks/useStore';
 
 const { Header, Sider, Content } = Layout;
@@ -107,6 +109,12 @@ function Admin() {
             icon: <DollarOutlined />,
             label: 'Quản lý giao dịch',
             onClick: () => setType('transactions'),
+        },
+        {
+            key: 'withdraws',
+            icon: <WalletOutlined />,
+            label: 'Yêu cầu rút tiền',
+            onClick: () => setType('withdraws'),
         },
         {
             key: 'contacts',
@@ -208,6 +216,7 @@ function Admin() {
                     {type === 'reports' && <ManagerReports />}
                     {type === 'reviews' && <ManagerReviews />}
                     {type === 'transactions' && <ManagerRechange />}
+                    {type === 'withdraws' && <ManagerWithdraws />}
                     {type === 'contacts' && <ManagerContacts />}
                     {type === 'comments' && <ManagerComments />}
                     {type === 'deposits' && <ManagerDeposits />}

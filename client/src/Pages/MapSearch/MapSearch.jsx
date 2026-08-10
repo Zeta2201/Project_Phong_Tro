@@ -59,23 +59,19 @@ const createHeatLayer = (points, options = {}) => {
 
         onAdd(map) {
             this._map = map;
-            if (!map.getPane('heatPane')) {
-                const pane = map.createPane('heatPane');
-                pane.style.zIndex = 450;
-                pane.style.pointerEvents = 'none';
-            }
             this._canvas = L.DomUtil.create('canvas', styles.heatCanvas);
             this._canvas.style.pointerEvents = 'none';
             this._canvas.style.position = 'absolute';
             this._canvas.style.left = '0';
             this._canvas.style.top = '0';
-            map.getPane('heatPane').appendChild(this._canvas);
-            map.on('moveend zoomend resize viewreset', this._reset, this);
+            this._canvas.style.zIndex = '450';
+            map.getContainer().appendChild(this._canvas);
+            map.on('move zoom resize viewreset', this._reset, this);
             this._reset();
         },
 
         onRemove(map) {
-            map.off('moveend zoomend resize viewreset', this._reset, this);
+            map.off('move zoom resize viewreset', this._reset, this);
             L.DomUtil.remove(this._canvas);
         },
 
@@ -86,9 +82,6 @@ const createHeatLayer = (points, options = {}) => {
 
         _reset() {
             const size = this._map.getSize();
-            const topLeft = this._map.containerPointToLayerPoint([0, 0]);
-            this._topLeft = topLeft;
-            L.DomUtil.setPosition(this._canvas, topLeft);
             this._canvas.width = size.x;
             this._canvas.height = size.y;
             this._canvas.style.width = `${size.x}px`;
@@ -105,7 +98,7 @@ const createHeatLayer = (points, options = {}) => {
 
             const validPoints = this._points
                 .map((item) => ({
-                    point: this._map.latLngToLayerPoint([item.lat, item.lng]).subtract(this._topLeft),
+                    point: this._map.latLngToContainerPoint([item.lat, item.lng]),
                     intensity: item.intensity || 1,
                 }))
                 .filter((item) => Number.isFinite(item.point.x) && Number.isFinite(item.point.y));

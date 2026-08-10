@@ -245,6 +245,31 @@ export const requestDeleteSavedSearch = async (id) => {
     return res.data;
 };
 
+export const requestCreateWithdraw = async (data) => {
+    const res = await request.post('/api/withdraw-requests', data);
+    return res.data;
+};
+
+export const requestGetMyWithdraws = async () => {
+    const res = await request.get('/api/withdraw-requests/me');
+    return res.data;
+};
+
+export const requestCancelWithdraw = async (id) => {
+    const res = await request.patch(`/api/withdraw-requests/${id}/cancel`);
+    return res.data;
+};
+
+export const requestGetAdminWithdraws = async (params = {}) => {
+    const res = await request.get('/api/admin/withdraw-requests', { params });
+    return res.data;
+};
+
+export const requestAdminWithdrawAction = async (id, data) => {
+    const res = await request.patch(`/api/admin/withdraw-requests/${id}/action`, data);
+    return res.data;
+};
+
 //// posts
 
 export const requestUploadImages = async (data) => {

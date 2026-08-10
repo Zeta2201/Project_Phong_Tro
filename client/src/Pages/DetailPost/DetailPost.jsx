@@ -78,6 +78,19 @@ const reservationTimeOptions = [
     '18:00 - 19:00',
 ].map((value) => ({ value, label: value }));
 
+const getPostCoordinates = (post) => {
+    const lat = Number(post?.coordinates?.lat);
+    const lng = Number(post?.coordinates?.lng);
+
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+};
+
+const getMapQuery = (post) => {
+    const coordinates = getPostCoordinates(post);
+    if (coordinates) return `${coordinates.lat},${coordinates.lng}`;
+    return post?.location || '';
+};
+
 function DetailPost() {
     const { id } = useParams();
     const { dataUser } = useStore();
@@ -118,6 +131,7 @@ function DetailPost() {
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [editingReview, setEditingReview] = useState(null);
     const [reviewForm, setReviewForm] = useState(emptyReviewForm);
+    const mapQuery = getMapQuery(post);
     const [reviewImageFiles, setReviewImageFiles] = useState([]);
     const [compared, setCompared] = useState(false);
 
@@ -799,7 +813,7 @@ function DetailPost() {
                                 </div>
                                 <div className={cx('map-frame')}>
                                     <iframe
-                                        src={`https://www.google.com/maps?q=${post?.location}&output=embed`}
+                                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`}
                                         width="600"
                                         height="450"
                                         style={{ border: 0 }}

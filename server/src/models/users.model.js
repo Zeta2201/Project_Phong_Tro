@@ -16,6 +16,7 @@ const modelUser = new Schema(
         accountStatus: { type: String, enum: ['active', 'locked'], default: 'active', index: true },
         lastLoginAt: { type: Date, default: null },
         balance: { type: Number, default: 0 },
+        holdBalance: { type: Number, default: 0, min: 0 },
         rewardPoints: { type: Number, default: 0, min: 0 },
         memberRank: { type: String, enum: ['bronze', 'silver', 'gold', 'diamond'], default: 'bronze', index: true },
         typeLogin: { type: String, enum: ['email', 'google'] },

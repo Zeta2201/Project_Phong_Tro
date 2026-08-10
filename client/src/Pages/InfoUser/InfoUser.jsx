@@ -12,6 +12,7 @@ import {
     BarChartOutlined,
     GiftOutlined,
     BellOutlined,
+    WalletOutlined,
 } from '@ant-design/icons';
 import Header from '../../Components/Header/Header';
 import { useEffect, useState } from 'react';
@@ -27,6 +28,7 @@ import ManagerContract from './Components/ManagerContract/ManagerContract';
 import OwnerAnalytics from './Components/OwnerAnalytics/OwnerAnalytics';
 import Rewards from './Components/Rewards/Rewards';
 import SavedSearches from './Components/SavedSearches/SavedSearches';
+import Withdraw from './Components/Withdraw/Withdraw';
 import styles from './InfoUser.module.scss';
 
 import userNotFound from '../../assets/images/img_default.png';
@@ -66,6 +68,7 @@ function InfoUser() {
         { key: 'analytics', icon: <BarChartOutlined />, label: 'Phân tích chủ trọ' },
         { key: 'reservations', icon: <ScheduleOutlined />, label: 'Lịch xem phòng' },
         { key: 'recharge', icon: <DollarCircleOutlined />, label: 'Nạp tiền' },
+        { key: 'withdraw', icon: <WalletOutlined />, label: 'Rút tiền' },
         { key: 'rewards', icon: <GiftOutlined />, label: 'Điểm thưởng' },
         { key: 'saved-searches', icon: <BellOutlined />, label: 'Tìm kiếm đã lưu' },
         { key: 'tenant-deposits', icon: <SafetyCertificateOutlined />, label: 'Lịch sử đặt cọc' },
@@ -80,6 +83,7 @@ function InfoUser() {
         analytics: 'Phân tích chủ trọ',
         reservations: 'Lịch xem phòng',
         recharge: 'Nạp tiền',
+        withdraw: 'Rút tiền',
         rewards: 'Điểm thưởng',
         'saved-searches': 'Tìm kiếm đã lưu',
         'change-password': 'Đổi mật khẩu',
@@ -122,6 +126,11 @@ function InfoUser() {
                     <Col span={24}>
                         <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
                             Số dư : {dataUser?.balance?.toLocaleString()} VNĐ
+                        </Text>
+                    </Col>
+                    <Col span={24}>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                            Đang giữ : {Number(dataUser?.holdBalance || 0).toLocaleString()} VNĐ
                         </Text>
                     </Col>
                 </Row>
@@ -172,6 +181,7 @@ function InfoUser() {
                         {selectedMenu === 'analytics' && <OwnerAnalytics />}
                         {selectedMenu === 'reservations' && <ManagerReservation />}
                         {selectedMenu === 'recharge' && <RechargeUser />}
+                        {selectedMenu === 'withdraw' && <Withdraw />}
                         {selectedMenu === 'rewards' && <Rewards />}
                         {selectedMenu === 'saved-searches' && <SavedSearches />}
                         {selectedMenu === 'change-password' && <ChangePassword />}

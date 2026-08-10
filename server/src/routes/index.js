@@ -17,6 +17,7 @@ const bannerRoutes = require('./banner.routes');
 const rewardRoutes = require('./reward.routes');
 const notificationRoutes = require('./notification.routes');
 const savedSearchRoutes = require('./savedSearch.routes');
+const withdrawRoutes = require('./withdraw.routes');
 
 const multer = require('multer');
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUpload');
@@ -63,6 +64,11 @@ function routes(app) {
     app.get('/api/saved-searches', savedSearchRoutes);
     app.patch('/api/saved-searches/:id', savedSearchRoutes);
     app.delete('/api/saved-searches/:id', savedSearchRoutes);
+    app.post('/api/withdraw-requests', withdrawRoutes);
+    app.get('/api/withdraw-requests/me', withdrawRoutes);
+    app.patch('/api/withdraw-requests/:id/cancel', withdrawRoutes);
+    app.get('/api/admin/withdraw-requests', withdrawRoutes);
+    app.patch('/api/admin/withdraw-requests/:id/action', withdrawRoutes);
 
     app.get('/api/get-hot-search', userRoutes);
     app.get('/api/search', userRoutes);

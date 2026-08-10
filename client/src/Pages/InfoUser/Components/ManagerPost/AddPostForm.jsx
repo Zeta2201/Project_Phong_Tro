@@ -129,6 +129,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
     const [valueSearch, setValueSearch] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
     const [selectedCoordinates, setSelectedCoordinates] = useState(initialValues?.coordinates || null);
+    const [locating, setLocating] = useState(false);
     const debouncedSearch = useDebounce(valueSearch, 500);
     // State for calculated cost
     const [estimatedCost, setEstimatedCost] = useState(0);
@@ -199,7 +200,12 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
 
     const resolveCoordinatesByAddress = async (address) => {
         if (selectedCoordinates?.lat && selectedCoordinates?.lng) return selectedCoordinates;
-        return geocodeAddress(address);
+        const coordinates = await geocodeAddress(address);
+        if (coordinates?.lat && coordinates?.lng) {
+            setSelectedCoordinates(coordinates);
+            return coordinates;
+        }
+        return null;
     };
 
     const reverseGeocodeCoordinates = async ({ lat, lng }) => {
@@ -223,15 +229,16 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         };
         setSelectedCoordinates(nextCoordinates);
 
-        const fallbackAddress = `${nextCoordinates.lat}, ${nextCoordinates.lng}`;
-        form.setFieldsValue({ location: fallbackAddress });
+        const currentAddress = form.getFieldValue('location');
 
         const address = await reverseGeocodeCoordinates(nextCoordinates);
         if (address) {
             form.setFieldsValue({ location: address });
             message.success('Đã ghim vị trí và cập nhật địa chỉ');
+        } else if (currentAddress?.trim()) {
+            message.info('Đã ghim vị trí. Địa chỉ đã nhập sẽ được giữ nguyên.');
         } else {
-            message.info('Đã ghim vị trí. Bạn có thể chỉnh lại địa chỉ nếu cần.');
+            message.warning('Đã ghim vị trí. Vui lòng nhập địa chỉ hiển thị cho bài đăng.');
         }
     };
 
@@ -381,21 +388,22 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                 return;
             }
 
-            const resolvedCoordinates = await resolveCoordinatesByAddress(values.location);
-            if (!resolvedCoordinates) {
-                message.error('Không lấy được tọa độ địa chỉ. Vui lòng bấm "Định vị theo địa chỉ" hoặc click chọn vị trí trên bản đồ.');
+            if (!values.location?.trim()) {
+                message.error('Vui lòng nhập địa chỉ hiển thị cho bài đăng.');
                 return;
             }
 
-            const formData = new FormData();
+            const resolvedCoordinates = await resolveCoordinatesByAddress(values.location);
+            if (!resolvedCoordinates) {
+                message.error('Chưa có tọa độ cho bài đăng. Vui lòng bấm "Định vị theo địa chỉ" hoặc click chọn vị trí trên bản đồ rồi đăng lại.');
+                return;
+            }
+
             const compressedFiles = await Promise.all(newImageFiles.map((file) => compressImageFile(file)));
-            compressedFiles.forEach((file) => {
-                formData.append('images', file);
-            });
             // Calculate endDate based on selected duration
             const today = dayjs();
             const endDate = values.duration ? today.add(values.duration, 'day').utc().toISOString() : null;
-            const resImages = compressedFiles.length > 0 ? await requestUploadImages(formData) : { images: [] };
+            const resImages = compressedFiles.length > 0 ? await uploadImagesWithRetry(compressedFiles) : { images: [] };
 
             const data = {
                 title: values.title,
@@ -429,7 +437,7 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             setVoucherPreview(null);
             onFinish(data);
         } catch (error) {
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
+            message.error(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tạo/cập nhật bài viết.');
         } finally {
             setSubmitting(false);
         }
@@ -496,6 +504,24 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
         }
     };
 
+    const uploadImagesWithRetry = async (files) => {
+        const formData = new FormData();
+        files.forEach((file) => {
+            formData.append('images', file);
+        });
+
+        try {
+            return await requestUploadImages(formData);
+        } catch (firstError) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+            try {
+                return await requestUploadImages(formData);
+            } catch (secondError) {
+                throw secondError || firstError;
+            }
+        }
+    };
+
     const handleLocateTypedAddress = async () => {
         const address = form.getFieldValue('location');
         if (!address?.trim()) {
@@ -503,12 +529,17 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
             return;
         }
 
-        const coordinates = await geocodeAddress(address);
-        if (coordinates?.lat && coordinates?.lng) {
-            setSelectedCoordinates(coordinates);
-            message.success('Đã định vị địa chỉ trên bản đồ');
-        } else {
-            message.warning('Không tìm thấy tọa độ cho địa chỉ này');
+        try {
+            setLocating(true);
+            const coordinates = await geocodeAddress(address);
+            if (coordinates?.lat && coordinates?.lng) {
+                setSelectedCoordinates(coordinates);
+                message.success('Đã định vị địa chỉ trên bản đồ');
+            } else {
+                message.warning('Không tìm thấy tọa độ cho địa chỉ này');
+            }
+        } finally {
+            setLocating(false);
         }
     };
 
@@ -661,7 +692,9 @@ function AddPostForm({ onFinish, onCancel, initialValues }) {
                         </Typography.Text>
                     </Col>
                     <Col>
-                        <Button onClick={handleLocateTypedAddress}>Định vị theo địa chỉ</Button>
+                        <Button onClick={handleLocateTypedAddress} loading={locating} disabled={submitting}>
+                            Định vị theo địa chỉ
+                        </Button>
                     </Col>
                 </Row>
                 <LocationPickerMap coordinates={selectedCoordinates} onPick={handlePickMapLocation} />

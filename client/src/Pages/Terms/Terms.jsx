@@ -80,7 +80,7 @@ export default function Terms() {
           <p>Điều khoản có thể được cập nhật.</p>
 
           <h2>7. Liên hệ</h2>
-          <p>Email: nguyenthevan22012004@gmail.com</p>
+          <p>Email: nestfinder2201@gmail.com</p>
         </div>
 
         {/* Thông báo */}
