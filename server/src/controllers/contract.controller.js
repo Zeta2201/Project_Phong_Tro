@@ -444,7 +444,7 @@ class controllerContract {
                 name: tenant.fullName,
                 contractCode: contract.contractCode,
                 pdfUrl: downloadUrl,
-                body: `Hop dong ${contract.contractCode} da duoc kich hoat. File PDF duoc dinh kem trong email nay.`,
+                body: `Hợp đồng ${contract.contractCode} đã được kích hoạt. File PDF được đính kèm trong email này.`,
                 attachments,
             });
             contract.sentToTenantAt = now;

@@ -142,7 +142,7 @@
 - Backend là REST API viết bằng ExpressJS.
 - Realtime dùng `Socket.IO`.
 - Dữ liệu lưu trên MongoDB.
-- AI dùng Google Gemini `gemini-1.5-flash`.
+- AI dùng Google Gemini `gemini-2.5-flash`.
 
 ### 5.2. Công nghệ sử dụng
 

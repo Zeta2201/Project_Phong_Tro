@@ -55,19 +55,19 @@ const sendMailChangeEmail = async (email, otp) => {
     const info = await transport.sendMail({
         from: `"NESTFINDER" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Ma OTP xac thuc doi email NESTFINDER',
-        text: `Ma OTP de xac thuc doi email cua ban la: ${otp}. Ma co hieu luc trong 10 phut.`,
+        subject: 'Mã OTP xac thuc doi email NESTFINDER',
+        text: `Mã OTP để xac thuc đổi email của bạn là: ${otp}. Mã có hiệu lực trong 10 phút.`,
         html: `
             <div style="font-family:Arial,sans-serif;background:#f6f8fb;padding:24px;color:#111827">
                 <div style="max-width:560px;margin:auto;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
                     <div style="background:#0f766e;color:#fff;padding:20px 24px">
-                        <h2 style="margin:0;font-size:20px">Xac thuc doi email</h2>
+                        <h2 style="margin:0;font-size:20px">Xác thực đổi email</h2>
                     </div>
                     <div style="padding:24px">
-                        <p>Ban dang yeu cau doi email dang nhap tren NESTFINDER.</p>
-                        <p>Nhap ma OTP ben duoi de xac thuc email moi:</p>
+                        <p>ạn đang yêu cầu đổi email đăng nhập trên NESTFINDER.</p>
+                        <p>Nhập mã OTP bên dưới để xác thực email mới:</p>
                         <div style="font-size:28px;font-weight:800;letter-spacing:6px;text-align:center;padding:18px;border:1px dashed #0f766e;border-radius:8px;background:#ecfdf5;color:#0f766e">${otp}</div>
-                        <p style="margin-top:18px;color:#64748b">Ma OTP co hieu luc trong 10 phut. Neu ban khong yeu cau thao tac nay, vui long bo qua email.</p>
+                        <p style="margin-top:18px;color:#64748b">Mã OTP co hiệu lực trong 10 phút. Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email.</p>
                     </div>
                 </div>
             </div>

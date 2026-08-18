@@ -9,9 +9,9 @@ import { faComments, faPaperPlane, faTimes } from '@fortawesome/free-solid-svg-i
 import imgDefault from '../../assets/images/img_default.png';
 
 const quickPrompts = [
-    'Tim phong duoi 3 trieu gan trung tam',
-    'Can phong con trong co the dat coc',
-    'Tu van khi ky hop dong thue phong',
+    'Tìm phòng dưới 3 triệu gần trung tâm',
+    'Căn phòng còn trống có thể đặt cọc',
+    'Tư vấn khi ký hợp đồng thuê phòng',
 ];
 
 const CHAT_BUTTON_STORAGE_KEY = 'nestfinder-ai-chat-position';
@@ -22,7 +22,7 @@ const normalizeBotResponse = (response) => {
         return { answer: response, suggestions: [] };
     }
     return {
-        answer: response?.answer || 'Minh chua co cau tra loi phu hop. Ban thu noi ro hon ve khu vuc va ngan sach nhe.',
+        answer: response?.answer || 'Mình chưa có câu trả lời phù hợp. Bạn thử nói rõ hơn về khu vực và ngân sách nhé.',
         suggestions: response?.suggestions || [],
     };
 };
@@ -31,7 +31,7 @@ const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
-            text: 'Xin chao! Minh la tro ly AI ho tro thue phong. Ban co the hoi ve phong phu hop, gia thue, dat coc hoac hop dong.',
+            text: 'Xin chào! Mình là trơ lý AI hỗ trợ thuê phòng. Bạn có thể hỏi về phòng phù hợp, giá thuê, đặt cọc hoặc hợp đồng.',
             sender: 'bot',
             suggestions: [],
         },

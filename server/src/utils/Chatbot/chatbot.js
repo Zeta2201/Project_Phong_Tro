@@ -4,7 +4,7 @@ require('dotenv').config();
 const modelPost = require('../../models/post.model');
 
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-3.5-flash' }) : null;
 
 const PUBLIC_POST_STATUSES = ['active', 'approved'];
 const MAX_CONTEXT_POSTS = 24;

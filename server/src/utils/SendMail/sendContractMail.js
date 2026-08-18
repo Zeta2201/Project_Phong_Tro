@@ -32,18 +32,18 @@ const sendContractMail = async ({
         from: `"NESTFINDER" <${process.env.EMAIL_USER}>`,
         to,
         subject,
-        text: `Xin chao ${name || ''}, ${body} Link: ${pdfUrl}`,
+        text: `Xin chào ${name || ''}, ${body} Link: ${pdfUrl}`,
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #0f172a;">
                 <h2>${title}</h2>
-                <p>Xin chao ${name || ''},</p>
+                <p>Xin chào ${name || ''},</p>
                 <p>${body}</p>
                 <p>
                     <a href="${pdfUrl}" style="display:inline-block;padding:12px 16px;background:#0f766e;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">
                         ${actionLabel}
                     </a>
                 </p>
-                <p style="color:#64748b;font-size:13px;">Neu nut tren khong hoat dong, vui long mo link: ${pdfUrl}</p>
+                <p style="color:#64748b;font-size:13px;">Nếu nút trên không hoạt động, vui lòng mở link: ${pdfUrl}</p>
             </div>
         `,
         attachments,

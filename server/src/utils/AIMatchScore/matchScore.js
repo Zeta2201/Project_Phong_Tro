@@ -3,7 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-3.5-flash' }) : null;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
